@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:libraryapp/auth/pages/forgot_password.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 
 class SignupPage extends StatefulWidget {
