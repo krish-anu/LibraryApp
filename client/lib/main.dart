@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:libraryapp/auth/pages/login_page.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/core/widgets/BottomNavigator/bottom_bar.dart';
+import 'package:libraryapp/home/pages/home.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(ProviderScope(child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -17,7 +19,7 @@ class MyApp extends StatelessWidget {
        
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: Login(),
+      home: BottomNav(),
     );
   }
 }
