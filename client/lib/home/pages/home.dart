@@ -14,7 +14,7 @@ class _HomeState extends State<Home> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("XYZ Librart"),
-        backgroundColor: Pallete.app_bar,
+        backgroundColor: Pallete.appBarBackground,
       ),
       body: Text("Hi"),
       
