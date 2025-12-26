@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
-import 'package:libraryapp/home/pages/discover.dart';
+import 'package:libraryapp/home/pages/borrowed.dart';
 import 'package:libraryapp/home/pages/home.dart';
 import 'package:libraryapp/home/pages/profile.dart';
 import 'package:libraryapp/home/pages/search.dart';
@@ -33,7 +33,7 @@ class BottomNav extends ConsumerWidget {
             ),
             _TabNavigator(
               navigatorKey: _tabNavigatorKeys[2],
-              child: const Discover(),
+              child: const Borrowed(),
             ),
             _TabNavigator(
               navigatorKey: _tabNavigatorKeys[3],
@@ -61,8 +61,8 @@ class BottomNav extends ConsumerWidget {
               label: "Search",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.explore, color: Colors.black),
-              label: "Discover",
+              icon: Icon(Icons.menu_book, color: Colors.black),
+              label: "Borrowed",
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.favorite_border, color: Colors.black),
