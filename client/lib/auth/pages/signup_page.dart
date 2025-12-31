@@ -49,11 +49,11 @@ class _SignupPageState extends State<SignupPage> {
               RichText(
                 text: TextSpan(
                   text: "Already have an account? ",
-                  style: TextStyle(color: Colors.black),
+                  style: TextStyle(color: Pallete.textPrimary),
                   children: [
                     TextSpan(
                       text: "Login",
-                      style: TextStyle(color: Colors.red),
+                      style: TextStyle(color: Pallete.textLink),
                       recognizer: TapGestureRecognizer()
                         ..onTap = () {
                           Navigator.push(

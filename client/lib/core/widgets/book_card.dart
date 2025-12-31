@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:libraryapp/core/theme/app_pallete.dart';
 
 class BookCard extends StatelessWidget {
   final String title;
@@ -19,11 +20,11 @@ class BookCard extends StatelessWidget {
       child: Container(
         width: 140,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Pallete.cardBackground,
           borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
-              color: Colors.black12,
+              color: Pallete.cardShadow,
               blurRadius: 6,
               offset: Offset(0, 3),
             ),
@@ -36,7 +37,7 @@ class BookCard extends StatelessWidget {
             Container(
               height: 160,
               decoration: BoxDecoration(
-                color: Colors.blue.shade100,
+                color: Pallete.cardAccent,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(12),
                 ),
@@ -65,7 +66,7 @@ class BookCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: Pallete.textSecondary,
                   fontSize: 12,
                 ),
               ),

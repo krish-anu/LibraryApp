@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
 import 'package:libraryapp/home/pages/borrowed.dart';
 import 'package:libraryapp/home/pages/home.dart';
@@ -51,25 +52,25 @@ class BottomNav extends ConsumerWidget {
           onTap: (idx) {
             ref.read(bottomNavIndexProvider.notifier).state = idx;
           },
-          items: const <BottomNavigationBarItem>[
+          items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              icon: Icon(Icons.home, color: Colors.black),
+              icon: Icon(Icons.home, color: Pallete.iconColor),
               label: "Home",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.search, color: Colors.black),
+              icon: Icon(Icons.search, color: Pallete.iconColor),
               label: "Search",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.menu_book, color: Colors.black),
+              icon: Icon(Icons.menu_book, color: Pallete.iconColor),
               label: "Borrowed",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border, color: Colors.black),
+              icon: Icon(Icons.favorite_border, color: Pallete.iconColor),
               label: "WishList",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person, color: Colors.black),
+              icon: Icon(Icons.person, color: Pallete.iconColor),
               label: "Profile",
             ),
           ],

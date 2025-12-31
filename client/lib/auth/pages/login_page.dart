@@ -58,11 +58,11 @@ class _LoginState extends State<Login> {
               RichText(
                 text: TextSpan(
                   text: "Don't you have an account? ",
-                  style: TextStyle(color: Colors.black),
+                  style: TextStyle(color: Pallete.textPrimary),
                   children: [
                     TextSpan(
                       text: "SignUp",
-                      style: TextStyle(color: Colors.red),
+                      style: TextStyle(color: Pallete.textLink),
                       recognizer: TapGestureRecognizer()
                         ..onTap = () {
                           Navigator.push(
