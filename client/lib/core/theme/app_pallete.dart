@@ -9,6 +9,7 @@ class Pallete {
   // Button colors
   static const btnBackground = Color.fromARGB(255, 7, 60, 9);
   static const btnTextColor = Colors.white;
+  static const logoutBtn = Colors.white60;
 
   // App bar
   static const appBarBackground = Color(0xFF1B5E20);
@@ -33,7 +34,7 @@ class Pallete {
   static const warning = Color(0xFFFFA000);
 
   // Background colors
-  static const scaffoldBackground = Color(0xFFFAFAFA);
+  static const scaffoldBackground = Color.fromARGB(255, 233, 240, 233);
 
   // Border colors
   static const border = Color(0xFFE0E0E0);
