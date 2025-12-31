@@ -21,21 +21,16 @@ class _SignupPageState extends State<SignupPage> {
             children: [
               Text("Sign Up", style: TextStyle(fontSize: 64)),
               SizedBox(height: 30),
-              TextFormField(
-                decoration: InputDecoration(hintText: "Name"),
-              ),
+              TextFormField(decoration: InputDecoration(hintText: "Name")),
               const SizedBox(height: 30),
-              TextFormField(
-                decoration: InputDecoration(hintText: "User name"),
-              ),
+              TextFormField(decoration: InputDecoration(hintText: "User name")),
               const SizedBox(height: 30),
               TextFormField(
                 decoration: InputDecoration(hintText: "Password"),
                 obscureText: true,
               ),
               const SizedBox(height: 10),
-          
-             
+
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: ElevatedButton(
