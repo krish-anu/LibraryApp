@@ -2,7 +2,7 @@ import 'package:libraryapp/models/book.dart';
 
 final mockBooks = <Book>[
   Book(
-    id: 'b1',
+    id: '1',
     title: 'Clean Code',
     author: 'Robert C. Martin',
     category: 'Programming',
@@ -14,7 +14,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b2',
+    id: '2',
     title: 'Flutter in Action',
     author: 'Eric Windmill',
     category: 'Programming',
@@ -26,7 +26,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b3',
+    id: '3',
     title: 'Sapiens',
     author: 'Yuval Noah Harari',
     category: 'History',
@@ -38,7 +38,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b4',
+    id: '4',
     title: 'A Brief History of Time',
     author: 'Stephen Hawking',
     category: 'Science',
@@ -50,7 +50,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b5',
+    id: '5',
     title: 'The Alchemist',
     author: 'Paulo Coelho',
     category: 'Fiction',
@@ -62,7 +62,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b6',
+    id: '6',
     title: 'Clean Architecture',
     author: 'Robert C. Martin',
     category: 'Programming',
@@ -74,7 +74,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b7',
+    id: '7',
     title: 'Dart Apprentice',
     author: 'Eric Windmill',
     category: 'Programming',
@@ -86,7 +86,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b8',
+    id: '8',
     title: 'Homo Deus',
     author: 'Yuval Noah Harari',
     category: 'History',
@@ -98,7 +98,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b9',
+    id: '9',
     title: 'The Universe in a Nutshell',
     author: 'Stephen Hawking',
     category: 'Science',
@@ -110,7 +110,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b10',
+    id: '10',
     title: 'Eleven Minutes',
     author: 'Paulo Coelho',
     category: 'Fiction',
@@ -122,7 +122,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b11',
+    id: '11',
     title: 'Refactoring',
     author: 'Martin Fowler',
     category: 'Programming',
@@ -134,7 +134,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b12',
+    id: '12',
     title: 'Design Patterns',
     author: 'Erich Gamma',
     category: 'Programming',
@@ -146,7 +146,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b13',
+    id: '13',
     title: 'The Pragmatic Programmer',
     author: 'Andrew Hunt',
     category: 'Programming',
@@ -158,7 +158,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b14',
+    id: '14',
     title: 'Introduction to Algorithms',
     author: 'Thomas H. Cormen',
     category: 'Programming',
@@ -170,7 +170,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b15',
+    id: '15',
     title: 'Effective Java',
     author: 'Joshua Bloch',
     category: 'Programming',
@@ -182,7 +182,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b16',
+    id: '16',
     title: '1984',
     author: 'George Orwell',
     category: 'Fiction',
@@ -194,7 +194,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b17',
+    id: '17',
     title: 'To Kill a Mockingbird',
     author: 'Harper Lee',
     category: 'Fiction',
@@ -206,7 +206,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b18',
+    id: '18',
     title: 'The Great Gatsby',
     author: 'F. Scott Fitzgerald',
     category: 'Fiction',
@@ -218,7 +218,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b19',
+    id: '19',
     title: 'Pride and Prejudice',
     author: 'Jane Austen',
     category: 'Fiction',
@@ -230,7 +230,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b20',
+    id: '20',
     title: 'The Catcher in the Rye',
     author: 'J.D. Salinger',
     category: 'Fiction',
@@ -242,7 +242,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b21',
+    id: '21',
     title: 'Cosmos',
     author: 'Carl Sagan',
     category: 'Science',
@@ -254,7 +254,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b22',
+    id: '22',
     title: 'The Selfish Gene',
     author: 'Richard Dawkins',
     category: 'Science',
@@ -266,7 +266,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b23',
+    id: '23',
     title: 'Silent Spring',
     author: 'Rachel Carson',
     category: 'Science',
@@ -278,7 +278,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b24',
+    id: '24',
     title: 'Thinking, Fast and Slow',
     author: 'Daniel Kahneman',
     category: 'Science',
@@ -290,7 +290,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b25',
+    id: '25',
     title: 'Guns, Germs, and Steel',
     author: 'Jared Diamond',
     category: 'History',
@@ -302,7 +302,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b26',
+    id: '26',
     title: 'The Silk Roads',
     author: 'Peter Frankopan',
     category: 'History',
@@ -314,7 +314,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b27',
+    id: '27',
     title: '1491',
     author: 'Charles C. Mann',
     category: 'History',
@@ -326,7 +326,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b28',
+    id: '28',
     title: 'Steve Jobs',
     author: 'Walter Isaacson',
     category: 'Biography',
@@ -338,7 +338,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b29',
+    id: '29',
     title: 'Einstein',
     author: 'Walter Isaacson',
     category: 'Biography',
@@ -350,7 +350,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b30',
+    id: '30',
     title: 'The Diary of a Young Girl',
     author: 'Anne Frank',
     category: 'Biography',
@@ -362,7 +362,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b31',
+    id: '31',
     title: 'Long Walk to Freedom',
     author: 'Nelson Mandela',
     category: 'Biography',
@@ -374,7 +374,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b32',
+    id: '32',
     title: 'Dune',
     author: 'Frank Herbert',
     category: 'Sci-Fi',
@@ -386,7 +386,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b33',
+    id: '33',
     title: 'Neuromancer',
     author: 'William Gibson',
     category: 'Sci-Fi',
@@ -398,7 +398,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b34',
+    id: '34',
     title: 'Foundation',
     author: 'Isaac Asimov',
     category: 'Sci-Fi',
@@ -410,7 +410,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b35',
+    id: '35',
     title: 'Ender\'s Game',
     author: 'Orson Scott Card',
     category: 'Sci-Fi',
@@ -422,7 +422,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b36',
+    id: '36',
     title: 'The Hobbit',
     author: 'J.R.R. Tolkien',
     category: 'Fantasy',
@@ -434,7 +434,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b37',
+    id: '37',
     title: 'Harry Potter and the Sorcerer\'s Stone',
     author: 'J.K. Rowling',
     category: 'Fantasy',
@@ -446,7 +446,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b38',
+    id: '38',
     title: 'The Lord of the Rings',
     author: 'J.R.R. Tolkien',
     category: 'Fantasy',
@@ -458,7 +458,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b39',
+    id: '39',
     title: 'The Da Vinci Code',
     author: 'Dan Brown',
     category: 'Thriller',
@@ -470,7 +470,7 @@ final mockBooks = <Book>[
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
-    id: 'b40',
+    id: '40',
     title: 'Gone Girl',
     author: 'Gillian Flynn',
     category: 'Thriller',
