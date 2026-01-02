@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:libraryapp/models/book.dart';
 import 'book_card.dart';
 
 class BookSection extends StatelessWidget {
-  final List<Map<String, String>> booksDetail;
+  final List<Book> booksDetail;
   final String heading;
 
-  const BookSection({super.key, required this.booksDetail,required this.heading});
+  const BookSection({
+    super.key,
+    required this.booksDetail,
+    required this.heading,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +25,7 @@ class BookSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-               Text(
+              Text(
                 heading,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
@@ -47,8 +52,7 @@ class BookSection extends StatelessWidget {
             itemBuilder: (context, index) {
               final book = books[index];
               return BookCard(
-                title: book['title']!,
-                author: book['author']!,
+                book: book,
                 onTap: () {
                   // Go to book details (full screen)
                 },

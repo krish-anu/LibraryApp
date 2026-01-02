@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
+import 'package:libraryapp/models/book.dart';
 
 class BookCard extends StatelessWidget {
-  final String title;
-  final String author;
+  final Book book;
   final VoidCallback onTap;
 
-  const BookCard({
-    super.key,
-    required this.title,
-    required this.author,
-    required this.onTap,
-  });
+  const BookCard({super.key, required this.book, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -41,34 +36,30 @@ class BookCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(12),
                 ),
-              ),
-              child: const Center(
-                child: Icon(Icons.menu_book, size: 48),
+                image: DecorationImage(
+                  image: AssetImage(book.image.replaceFirst('client/', '')),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
 
             Padding(
               padding: const EdgeInsets.all(8),
               child: Text(
-                title,
+                book.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                author,
+                book.author,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Pallete.textSecondary,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Pallete.textSecondary, fontSize: 12),
               ),
             ),
           ],
