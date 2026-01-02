@@ -10,7 +10,7 @@ final mockBooks = <Book>[
         'Even bad code can function. But if code isn\'t clean, it can bring a development organization to its knees. Every year, countless hours and significant resources are lost because of poorly written code. But it doesn\'t have to be that way.',
     rating: 4.8,
     publicationYear: 2008,
-    copiesOwned: 3,
+    copiesOwned: 0,
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
@@ -22,7 +22,7 @@ final mockBooks = <Book>[
         'Flutter in Action teaches you to build professional-quality mobile applications using the Flutter SDK and the Dart programming language. You\'ll begin with a quick tour of Dart essentials and then dive into engaging, well-described techniques for building beautiful user interfaces using Flutter\'s huge collection of built-in widgets.',
     rating: 4.5,
     publicationYear: 2019,
-    copiesOwned: 2,
+    copiesOwned: 0,
     image: 'client/assets/book/book_cover.webp',
   ),
   Book(
