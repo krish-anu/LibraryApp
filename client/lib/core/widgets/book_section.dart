@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:libraryapp/core/widgets/book_view.dart';
 import 'package:libraryapp/models/book.dart';
 import 'book_card.dart';
 
@@ -54,7 +55,12 @@ class BookSection extends StatelessWidget {
               return BookCard(
                 book: book,
                 onTap: () {
-                  // Go to book details (full screen)
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookView(id: index),
+                    ),
+                  );
                 },
               );
             },
