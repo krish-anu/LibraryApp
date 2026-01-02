@@ -92,30 +92,6 @@ class BookView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Column(
-                          children: [
-                            Text(
-                              'Copies',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Pallete.textSecondary,
-                              ),
-                            ),
-                            Text(
-                              book.copiesOwned.toString(),
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Pallete.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -153,8 +129,14 @@ class BookView extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () {},
+              style: FilledButton.styleFrom(
+                backgroundColor: book.copiesOwned > 0
+                    ? Pallete.primaryColor
+                    : Colors.red,
+              ),
               child: Text(
-                "Borrow",
+                book.copiesOwned > 0 ? "Borrow" : "Reserve",
+
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.w400),
               ),
             ),
