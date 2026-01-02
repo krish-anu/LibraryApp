@@ -12,7 +12,7 @@ class BookView extends StatelessWidget {
 
     final book = mockBooks[id];
     return Scaffold(
-      appBar: AppBar(title: Icon(Icons.arrow_back)),
+      appBar: AppBar(),
 
       /// The code snippet you provided is defining the body of a Flutter widget called BookView.
       body: SingleChildScrollView(
