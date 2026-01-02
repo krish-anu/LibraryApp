@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
+import 'package:libraryapp/core/widgets/see_all.dart';
 import 'package:libraryapp/models/book.dart';
 import 'book_card.dart';
 
@@ -15,7 +16,8 @@ class BookSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final books = booksDetail.take(6).toList(); // 🔑 exactly 6
+    final books = booksDetail.take(6).toList();
+    final allBooks = booksDetail; // 🔑 exactly 6
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,6 +35,12 @@ class BookSection extends StatelessWidget {
               TextButton(
                 onPressed: () {
                   // Navigate to all trending
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SeeAll(bookDetail: allBooks),
+                    ),
+                  );
                 },
                 child: const Text('See all'),
               ),
