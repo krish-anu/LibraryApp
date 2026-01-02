@@ -9,7 +9,7 @@ class BookView extends StatelessWidget {
   Widget build(BuildContext context) {
     final book = mockBooks[0];
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(title: Icon(Icons.arrow_back)),
 
       /// The code snippet you provided is defining the body of a Flutter widget called BookView.
       body: Center(
@@ -91,6 +91,31 @@ class BookView extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                          children: [
+                            Text(
+                              'Copies',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Pallete.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              book.copiesOwned.toString(),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Pallete.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -126,7 +151,13 @@ class BookView extends StatelessWidget {
                 ),
               ],
             ),
-            FilledButton(onPressed: () {}, child: Text("Borrow",style: TextStyle(fontSize: 24,fontWeight: FontWeight.w400),)),
+            FilledButton(
+              onPressed: () {},
+              child: Text(
+                "Borrow",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w400),
+              ),
+            ),
           ],
         ),
       ),
