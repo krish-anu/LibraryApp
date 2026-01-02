@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/providers/theme_provider.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_bar.dart';
+import 'package:libraryapp/core/widgets/book_view.dart';
 
 void main() {
   runApp(ProviderScope(child: const MyApp()));
@@ -17,7 +18,7 @@ class MyApp extends ConsumerWidget {
     final isDark = ref.watch(isDarkProvider);
     return MaterialApp(
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-      title: 'Flutter Demo',
+      title: 'Library XYZ',
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Pallete.primaryColor,
@@ -30,7 +31,8 @@ class MyApp extends ConsumerWidget {
         brightness: Brightness.dark,
         colorSchemeSeed: Pallete.primaryColor,
       ),
-      home: BottomNav(),
+      // home: BottomNav(),
+      home: BookView(),
     );
   }
 }
