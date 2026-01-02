@@ -27,7 +27,8 @@ class _HomeState extends State<Home> {
     return Scaffold(
       appBar: AppBar(
         title: Row(
-          children: [const Text("XYZ Librart"), Icon(Icons.notifications)],
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [const Text("XYZ Library"), Icon(Icons.notifications)],
         ),
         backgroundColor: Pallete.appBarBackground,
       ),
