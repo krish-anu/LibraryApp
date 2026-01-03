@@ -10,7 +10,7 @@ part of 'auth_local_repository.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(authLocalRepository)
-const authLocalRepositoryProvider = AuthLocalRepositoryProvider._();
+final authLocalRepositoryProvider = AuthLocalRepositoryProvider._();
 
 final class AuthLocalRepositoryProvider
     extends
@@ -20,7 +20,7 @@ final class AuthLocalRepositoryProvider
           AuthLocalRepository
         >
     with $Provider<AuthLocalRepository> {
-  const AuthLocalRepositoryProvider._()
+  AuthLocalRepositoryProvider._()
     : super(
         from: null,
         argument: null,

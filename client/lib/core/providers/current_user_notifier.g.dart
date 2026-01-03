@@ -10,11 +10,11 @@ part of 'current_user_notifier.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(CurrentUserNotifier)
-const currentUserProvider = CurrentUserNotifierProvider._();
+final currentUserProvider = CurrentUserNotifierProvider._();
 
 final class CurrentUserNotifierProvider
     extends $NotifierProvider<CurrentUserNotifier, User?> {
-  const CurrentUserNotifierProvider._()
+  CurrentUserNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -49,7 +49,6 @@ abstract class _$CurrentUserNotifier extends $Notifier<User?> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build();
     final ref = this.ref as $Ref<User?, User?>;
     final element =
         ref.element
@@ -59,6 +58,6 @@ abstract class _$CurrentUserNotifier extends $Notifier<User?> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    element.handleCreate(ref, build);
   }
 }
