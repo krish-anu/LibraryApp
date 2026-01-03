@@ -17,6 +17,7 @@ class BorrowedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final remainingDays = dueDate.difference(DateTime.now()).inDays;
     final isOverdue = remainingDays < 0;
+    final fine = isOverdue ? remainingDays.abs() * 50 : 0;
     final formattedDate = "${dueDate.day}/${dueDate.month}/${dueDate.year}";
 
     return Card(
@@ -66,15 +67,32 @@ class BorrowedCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text(
-              isOverdue
-                  ? "Overdue by ${remainingDays.abs()} days"
-                  : "$remainingDays days remaining",
-              style: TextStyle(
-                color: isOverdue ? Colors.red : Colors.orange,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isOverdue
+                      ? "Overdue by ${remainingDays.abs()} days"
+                      : "$remainingDays days remaining",
+                  style: TextStyle(
+                    color: isOverdue ? Colors.red : Colors.orange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (isOverdue) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    "Fine: Rs.$fine",
+                
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
