@@ -59,9 +59,12 @@ class _SearchState extends State<Search> {
             ),
             DropdownButtonFormField(
               value: selectedAuthor,
-              items: authors.map((author) {
-                return DropdownMenuItem(value: author, child: Text(author));
-              }).toList(),
+              items: [
+                const DropdownMenuItem(value: null, child: Text("All Authors")),
+                ...authors.map((author) {
+                  return DropdownMenuItem(value: author, child: Text(author));
+                }),
+              ],
               onChanged: (value) {
                 setState(() {
                   selectedAuthor = value;
@@ -70,9 +73,18 @@ class _SearchState extends State<Search> {
             ),
             DropdownButtonFormField(
               value: selectedCategory,
-              items: categories.map((category) {
-                return DropdownMenuItem(value: category, child: Text(category));
-              }).toList(),
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text("All Categories"),
+                ),
+                ...categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(category),
+                  );
+                }),
+              ],
               onChanged: (value) {
                 setState(() {
                   selectedCategory = value;
