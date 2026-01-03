@@ -32,53 +32,58 @@ class _HomeState extends State<Home> {
         ),
         backgroundColor: Pallete.appBarBackground,
       ),
-      body: Padding(
-        padding: const EdgeInsets.only(left: 10, right: 10),
-        child: Column(
-          children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Pallete.btnBackground,
-                      foregroundColor: Pallete.btnTextColor,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 10, right: 10),
+          child: Column(
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Pallete.btnBackground,
+                        foregroundColor: Pallete.btnTextColor,
+                      ),
+                      onPressed: () {},
+                      child: Row(
+                        children: [Icon(Icons.book), Text("Categories")],
+                      ),
                     ),
-                    onPressed: () {},
-                    child: Row(
-                      children: [Icon(Icons.book), Text("Categories")],
-                    ),
-                  ),
-                  ...categories.map(
-                    (category) => Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        child: Row(
-                          children: [Icon(Icons.book), Text(category.name)],
+                    ...categories.map(
+                      (category) => Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          child: Row(
+                            children: [Icon(Icons.book), Text(category.name)],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Pallete.btnBackground,
-                      foregroundColor: Pallete.btnTextColor,
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Pallete.btnBackground,
+                        foregroundColor: Pallete.btnTextColor,
+                      ),
+                      onPressed: () {},
+                      child: Row(children: [Icon(Icons.book), Text("More")]),
                     ),
-                    onPressed: () {},
-                    child: Row(children: [Icon(Icons.book), Text("More")]),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            BookSection(booksDetail: trendingBooks, heading: 'Trending Books'),
-            BookSection(
-              booksDetail: suggestedBooks,
-              heading: 'Recommended For you',
-            ),
-          ],
+              BookSection(
+                booksDetail: trendingBooks,
+                heading: 'Trending Books',
+              ),
+              BookSection(
+                booksDetail: suggestedBooks,
+                heading: 'Recommended For you',
+              ),
+            ],
+          ),
         ),
       ),
     );
