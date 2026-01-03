@@ -4,17 +4,21 @@ import 'package:libraryapp/models/book.dart';
 class BorrowedCard extends StatelessWidget {
   final Book book;
   final VoidCallback onTap;
-  final String returnDate;
+  final DateTime dueDate;
 
   const BorrowedCard({
     super.key,
     required this.book,
     required this.onTap,
-    this.returnDate = "Jan 15, 2026",
+    required this.dueDate,
   });
 
   @override
   Widget build(BuildContext context) {
+    final remainingDays = dueDate.difference(DateTime.now()).inDays;
+    final isOverdue = remainingDays < 0;
+    final formattedDate = "${dueDate.day}/${dueDate.month}/${dueDate.year}";
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -45,17 +49,32 @@ class BorrowedCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.calendar_today, size: 14, color: Colors.red),
+                Icon(
+                  Icons.calendar_today,
+                  size: 14,
+                  color: isOverdue ? Colors.red : Colors.green,
+                ),
                 const SizedBox(width: 4),
                 Text(
-                  "Return by: $returnDate",
-                  style: const TextStyle(
-                    color: Colors.red,
+                  "Return by: $formattedDate",
+                  style: TextStyle(
+                    color: isOverdue ? Colors.red : Colors.green,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isOverdue
+                  ? "Overdue by ${remainingDays.abs()} days"
+                  : "$remainingDays days remaining",
+              style: TextStyle(
+                color: isOverdue ? Colors.red : Colors.orange,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
