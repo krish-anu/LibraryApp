@@ -5,7 +5,8 @@ import 'package:libraryapp/data/mock_books.dart';
 import 'package:libraryapp/models/book.dart';
 
 class Search extends StatefulWidget {
-  const Search({super.key});
+  final String? currentCategory;
+  const Search({super.key, this.currentCategory});
 
   @override
   State<Search> createState() => _SearchState();
@@ -16,6 +17,12 @@ class _SearchState extends State<Search> {
   String? selectedAuthor;
   String? selectedCategory;
   final List<Book> books = mockBooks;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCategory = widget.currentCategory;
+  }
 
   @override
   Widget build(BuildContext context) {
