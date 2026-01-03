@@ -47,13 +47,16 @@ class Loan {
       bookId: map['bookId'] as String,
       memberId: map['memberId'] as String,
       loanDate: DateTime.fromMillisecondsSinceEpoch(map['loanDate'] as int),
-      returnedDate: DateTime.fromMillisecondsSinceEpoch(map['returnedDate'] as int),
+      returnedDate: DateTime.fromMillisecondsSinceEpoch(
+        map['returnedDate'] as int,
+      ),
     );
   }
 
   String toJson() => json.encode(toMap());
 
-  factory Loan.fromJson(String source) => Loan.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory Loan.fromJson(String source) =>
+      Loan.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
@@ -63,21 +66,20 @@ class Loan {
   @override
   bool operator ==(covariant Loan other) {
     if (identical(this, other)) return true;
-  
-    return 
-      other.id == id &&
-      other.bookId == bookId &&
-      other.memberId == memberId &&
-      other.loanDate == loanDate &&
-      other.returnedDate == returnedDate;
+
+    return other.id == id &&
+        other.bookId == bookId &&
+        other.memberId == memberId &&
+        other.loanDate == loanDate &&
+        other.returnedDate == returnedDate;
   }
 
   @override
   int get hashCode {
     return id.hashCode ^
-      bookId.hashCode ^
-      memberId.hashCode ^
-      loanDate.hashCode ^
-      returnedDate.hashCode;
+        bookId.hashCode ^
+        memberId.hashCode ^
+        loanDate.hashCode ^
+        returnedDate.hashCode;
   }
 }
