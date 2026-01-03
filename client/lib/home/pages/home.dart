@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/book_section.dart';
 import 'package:libraryapp/data/mock_books.dart';
+import 'package:libraryapp/home/pages/search.dart';
 import 'package:libraryapp/models/category.dart';
 
 class Home extends StatefulWidget {
@@ -19,7 +20,6 @@ class _HomeState extends State<Home> {
       Category(id: 'c2', name: 'Science'),
       Category(id: 'c3', name: 'History'),
       Category(id: 'c4', name: 'Programming'),
-      Category(id: 'c5', name: 'Maths'),
     ];
     final trendingBooks = mockBooks;
     final suggestedBooks = mockBooks;
@@ -56,7 +56,15 @@ class _HomeState extends State<Home> {
                       (category) => Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    Search(currentCategory: category.name),
+                              ),
+                            );
+                          },
                           child: Row(
                             children: [Icon(Icons.book), Text(category.name)],
                           ),
