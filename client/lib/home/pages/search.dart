@@ -92,8 +92,14 @@ class _SearchState extends State<Search> {
               },
             ),
             Expanded(
-              child: ListView.builder(
+              child: GridView.builder(
                 itemCount: filteredBooks.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                  childAspectRatio: 0.7,
+                ),
                 itemBuilder: (context, index) {
                   return BookCard(
                     book: filteredBooks[index],
