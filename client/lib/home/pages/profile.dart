@@ -134,17 +134,13 @@ class Profile extends ConsumerWidget {
                       ref.read(isDarkProvider.notifier).state = value;
                     },
                   ),
-                ),                SizedBox(height: 15),
+                ),
+                SizedBox(height: 15),
                 Row(
                   children: [
                     FilledButton(
                       onPressed: () {},
-                      child: Row(
-                        children: [
-                          Text("Support"),
-                          
-                        ],
-                      ),
+                      child: Row(children: [Text("Support")]),
                     ),
                   ],
                 ),

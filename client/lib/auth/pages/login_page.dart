@@ -23,16 +23,14 @@ class _LoginState extends State<Login> {
             children: [
               Text("Sign In", style: TextStyle(fontSize: 64)),
               SizedBox(height: 30),
-              TextFormField(
-                decoration: InputDecoration(hintText: "User name"),
-              ),
+              TextFormField(decoration: InputDecoration(hintText: "User name")),
               const SizedBox(height: 30),
               TextFormField(
                 decoration: InputDecoration(hintText: "Password"),
                 obscureText: true,
               ),
               const SizedBox(height: 10),
-          
+
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,

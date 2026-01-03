@@ -53,7 +53,8 @@ class Member {
 
   String toJson() => json.encode(toMap());
 
-  factory Member.fromJson(String source) => Member.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory Member.fromJson(String source) =>
+      Member.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
@@ -63,21 +64,20 @@ class Member {
   @override
   bool operator ==(covariant Member other) {
     if (identical(this, other)) return true;
-  
-    return 
-      other.id == id &&
-      other.firstName == firstName &&
-      other.lastNAme == lastNAme &&
-      other.joinedDate == joinedDate &&
-      other.status == status;
+
+    return other.id == id &&
+        other.firstName == firstName &&
+        other.lastNAme == lastNAme &&
+        other.joinedDate == joinedDate &&
+        other.status == status;
   }
 
   @override
   int get hashCode {
     return id.hashCode ^
-      firstName.hashCode ^
-      lastNAme.hashCode ^
-      joinedDate.hashCode ^
-      status.hashCode;
+        firstName.hashCode ^
+        lastNAme.hashCode ^
+        joinedDate.hashCode ^
+        status.hashCode;
   }
 }

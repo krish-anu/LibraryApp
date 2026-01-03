@@ -12,14 +12,8 @@ class User {
     required this.id,
     required this.token,
   });
-  
 
-  User copyWith({
-    String? userName,
-    String? email,
-    String? id,
-    String? token,
-  }) {
+  User copyWith({String? userName, String? email, String? id, String? token}) {
     return User(
       userName: userName ?? this.userName,
       email: email ?? this.email,
@@ -48,7 +42,8 @@ class User {
 
   String toJson() => json.encode(toMap());
 
-  factory User.fromJson(String source) => User.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory User.fromJson(String source) =>
+      User.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
@@ -58,19 +53,15 @@ class User {
   @override
   bool operator ==(covariant User other) {
     if (identical(this, other)) return true;
-  
-    return 
-      other.userName == userName &&
-      other.email == email &&
-      other.id == id &&
-      other.token == token;
+
+    return other.userName == userName &&
+        other.email == email &&
+        other.id == id &&
+        other.token == token;
   }
 
   @override
   int get hashCode {
-    return userName.hashCode ^
-      email.hashCode ^
-      id.hashCode ^
-      token.hashCode;
+    return userName.hashCode ^ email.hashCode ^ id.hashCode ^ token.hashCode;
   }
 }

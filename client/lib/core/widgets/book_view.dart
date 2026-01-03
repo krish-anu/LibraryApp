@@ -5,11 +5,10 @@ import 'package:libraryapp/data/mock_books.dart';
 class BookView extends StatelessWidget {
   final int id;
 
-  const BookView({super.key,required this.id});
+  const BookView({super.key, required this.id});
 
   @override
   Widget build(BuildContext context) {
-
     final book = mockBooks[id];
     return Scaffold(
       appBar: AppBar(),
@@ -103,7 +102,7 @@ class BookView extends StatelessWidget {
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-        
+
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 20, right: 20),
@@ -141,7 +140,7 @@ class BookView extends StatelessWidget {
                 ),
                 child: Text(
                   book.copiesOwned > 0 ? "Borrow" : "Reserve",
-        
+
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w400),
                 ),
               ),
