@@ -58,7 +58,7 @@ class _SearchState extends State<Search> {
               ),
             ),
             DropdownButtonFormField(
-              value: selectedAuthor,
+              initialValue: selectedAuthor,
               items: [
                 const DropdownMenuItem(value: null, child: Text("All Authors")),
                 ...authors.map((author) {
@@ -72,7 +72,7 @@ class _SearchState extends State<Search> {
               },
             ),
             DropdownButtonFormField(
-              value: selectedCategory,
+              initialValue: selectedCategory,
               items: [
                 const DropdownMenuItem(
                   value: null,

@@ -41,7 +41,7 @@ class AuthViewModel extends _$AuthViewModel {
     };
 
     // update state appropriately
-    print(res);
+    // print(res);
   }
 
   Future<void> loginUser(String email, String password) async {
@@ -58,7 +58,7 @@ class AuthViewModel extends _$AuthViewModel {
     };
 
     // update state appropriately
-    print(res);
+    // print(res);
   }
 
   Future<void> _loginSuccess(User user) async {

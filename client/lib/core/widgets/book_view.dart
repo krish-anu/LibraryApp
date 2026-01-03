@@ -81,6 +81,7 @@ class BookView extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
+                          // ignore: deprecated_member_use
                           color: Pallete.textSecondary.withOpacity(
                             0.15,
                           ), // background color
