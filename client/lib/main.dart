@@ -4,6 +4,7 @@ import 'package:libraryapp/core/providers/theme_provider.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_bar.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
+import 'package:libraryapp/home/pages/home.dart';
 
 void main() {
   runApp(ProviderScope(child: const MyApp()));
@@ -32,7 +33,7 @@ class MyApp extends ConsumerWidget {
         colorSchemeSeed: Pallete.primaryColor,
       ),
       // home: BottomNav(),
-      home: BookView(),
+      home: BottomNav(),
     );
   }
 }
