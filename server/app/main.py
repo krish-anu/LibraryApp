@@ -5,6 +5,8 @@ from sqlalchemy import text
 from .database import SessionLocal, engine
 from .models.base import Base
 from .models import book, users
+from .pydantic_schemas import book as book_schema
+from typing import List
 
 
 @asynccontextmanager
@@ -27,6 +29,11 @@ def get_db():
 @app.get("/")
 def root():
     return {"message": "Hello, FastAPI + Supabase is working!"}
+
+
+@app.get("/books", response_model=List[book_schema.Book])
+def get_books(db: Session = Depends(get_db)):
+    return db.query(book.Book).all()
 
 
 @app.get("/test-db")
