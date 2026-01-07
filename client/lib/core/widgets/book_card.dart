@@ -74,12 +74,7 @@ class BookCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton(
-    
-                  onPressed: () {
-                  },
-                  icon: Icon(CupertinoIcons.heart),
-                ),
+                IconButton(onPressed: () {}, icon: Icon(CupertinoIcons.heart)),
               ],
             ),
           ],
