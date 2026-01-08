@@ -264,7 +264,7 @@ class Profile extends ConsumerWidget {
         trailing: Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: const Color(0xFF4CAF50),
+          activeThumbColor: const Color(0xFF4CAF50),
           activeTrackColor: const Color(0xFF1B5E20),
         ),
       ),
