@@ -34,13 +34,14 @@ class BookRepository {
           return Book(
             id: e['id']?.toString() ?? '',
             title: e['title']?.toString() ?? '',
-            author: 'Unknown Author',
+            author: e['author']?.toString() ?? 'Unknown Author',
             category: e['category']?.toString() ?? '',
-            description: 'No description available.',
-            rating: 0.0,
+            description:
+                e['description']?.toString() ?? 'No description available.',
+            rating: (e['rating'] as num?)?.toDouble() ?? 0.0,
             publicationYear: e['publication_year'] as int? ?? 0,
             copiesOwned: e['copies_owned'] as int? ?? 0,
-            image: 'https://via.placeholder.com/150',
+            image: e['image']?.toString() ?? 'https://via.placeholder.com/150',
           );
         }).toList();
         return right(books);
