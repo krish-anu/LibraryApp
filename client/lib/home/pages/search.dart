@@ -19,46 +19,6 @@ class _SearchState extends ConsumerState<Search> {
   String sortBy = 'Popular';
   bool showSearchResults = false;
 
-  // Genre data with placeholder images
-  final List<Map<String, dynamic>> genres = [
-    {
-      'name': 'Science Fiction',
-      'count': 120,
-      'image':
-          'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=400',
-    },
-    {
-      'name': 'History',
-      'count': 85,
-      'image':
-          'https://images.unsplash.com/photo-1461360370896-922624d12a74?w=400',
-    },
-    {
-      'name': 'Romance',
-      'count': 200,
-      'image':
-          'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400',
-    },
-    {
-      'name': 'Technology',
-      'count': 50,
-      'image':
-          'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400',
-    },
-    {
-      'name': 'Mystery',
-      'count': 140,
-      'image':
-          'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400',
-    },
-    {
-      'name': 'Biographies',
-      'count': 90,
-      'image':
-          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -101,6 +61,24 @@ class _SearchState extends ConsumerState<Search> {
         data: (books) {
           final categories = books.map((e) => e.category).toSet().toList();
           final authors = books.map((e) => e.author).toSet().toList();
+
+          // Compute genres from fetched books: name, count and a representative image
+          final Map<String, Map<String, dynamic>> _genreMap = {};
+          for (final b in books) {
+            final name = b.category;
+            if (_genreMap.containsKey(name)) {
+              _genreMap[name]!['count'] = (_genreMap[name]!['count'] as int) + 1;
+            } else {
+              _genreMap[name] = {
+                'name': name,
+                'count': 1,
+                'image': (b.image != null && b.image.isNotEmpty)
+                    ? b.image
+                    : 'https://via.placeholder.com/400',
+              };
+            }
+          }
+          final genres = _genreMap.values.toList();
 
           final filteredBooks = books.where((b) {
             final query = searchController.text.toLowerCase().trim();
@@ -273,7 +251,7 @@ class _SearchState extends ConsumerState<Search> {
               Expanded(
                 child: showSearchResults
                     ? _buildSearchResults(filteredBooks)
-                    : _buildGenreGrid(),
+                    : _buildGenreGrid(genres),
               ),
             ],
           );
@@ -315,7 +293,7 @@ class _SearchState extends ConsumerState<Search> {
     );
   }
 
-  Widget _buildGenreGrid() {
+  Widget _buildGenreGrid(List<Map<String, dynamic>> genres) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
