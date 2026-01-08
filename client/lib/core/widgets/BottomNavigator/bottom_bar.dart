@@ -91,6 +91,7 @@ class _TabNavigator extends StatelessWidget {
     return Navigator(
       key: navigatorKey,
       pages: [MaterialPage(child: child)],
+      // ignore: deprecated_member_use
       onPopPage: (route, result) {
         if (!route.didPop(result)) return false;
         return true;
