@@ -90,7 +90,11 @@ class _TabNavigator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Navigator(
       key: navigatorKey,
-      onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => child),
+      pages: [MaterialPage(child: child)],
+      onPopPage: (route, result) {
+        if (!route.didPop(result)) return false;
+        return true;
+      },
     );
   }
 }
