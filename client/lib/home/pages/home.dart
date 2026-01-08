@@ -87,11 +87,13 @@ class _HomeState extends ConsumerState<Home> {
                   return Column(
                     children: [
                       BookSection(
-                        booksDetail: books, // Display all books as trending for now
+                        booksDetail:
+                            books, // Display all books as trending for now
                         heading: 'Trending Books',
                       ),
                       BookSection(
-                        booksDetail: books.reversed.toList(), // Display reversed for recommended
+                        booksDetail: books.reversed
+                            .toList(), // Display reversed for recommended
                         heading: 'Recommended For you',
                       ),
                     ],

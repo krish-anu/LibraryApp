@@ -72,10 +72,14 @@ class _SearchState extends ConsumerState<Search> {
                   initialValue: selectedAuthor,
                   items: [
                     const DropdownMenuItem(
-                        value: null, child: Text("All Authors")),
+                      value: null,
+                      child: Text("All Authors"),
+                    ),
                     ...authors.map((author) {
                       return DropdownMenuItem(
-                          value: author, child: Text(author));
+                        value: author,
+                        child: Text(author),
+                      );
                     }),
                   ],
                   onChanged: (value) {

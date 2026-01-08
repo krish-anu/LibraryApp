@@ -16,7 +16,6 @@ class BookView extends StatelessWidget {
       body: SingleChildScrollView(
         child: Center(
           child: Column(
-            
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Padding(

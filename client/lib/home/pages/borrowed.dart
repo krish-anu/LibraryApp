@@ -49,7 +49,8 @@ class Borrowed extends ConsumerWidget {
                 },
               );
             },
-            error: (err, stack) => Center(child: Text('Error loading books: $err')),
+            error: (err, stack) =>
+                Center(child: Text('Error loading books: $err')),
             loading: () => const Center(child: CircularProgressIndicator()),
           );
         },
