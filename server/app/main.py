@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from .database import SessionLocal, engine
 from .models.base import Base
-from .models import book, users
+from .models import book, users, loan
 from .pydantic_schemas import book as book_schema
+from .pydantic_schemas import loan as loan_schema
 from typing import List
 
 
@@ -34,6 +35,11 @@ def root():
 @app.get("/books", response_model=List[book_schema.Book])
 def get_books(db: Session = Depends(get_db)):
     return db.query(book.Book).all()
+
+
+@app.get("/loans", response_model=List[loan_schema.Loan])
+def get_loans(db: Session = Depends(get_db)):
+    return db.query(loan.Loan).all()
 
 
 @app.get("/test-db")
