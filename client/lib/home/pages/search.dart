@@ -63,23 +63,23 @@ class _SearchState extends ConsumerState<Search> {
           final authors = books.map((e) => e.author).toSet().toList();
 
           // Compute genres from fetched books: name, count and a representative image
-          final Map<String, Map<String, dynamic>> _genreMap = {};
+          final Map<String, Map<String, dynamic>> genreMap = {};
           for (final b in books) {
             final name = b.category;
-            if (_genreMap.containsKey(name)) {
-              _genreMap[name]!['count'] =
-                  (_genreMap[name]!['count'] as int) + 1;
+            if (genreMap.containsKey(name)) {
+              genreMap[name]!['count'] =
+                  (genreMap[name]!['count'] as int) + 1;
             } else {
-              _genreMap[name] = {
+              genreMap[name] = {
                 'name': name,
                 'count': 1,
-                'image': (b.image != null && b.image.isNotEmpty)
+                'image': (b.image.isNotEmpty)
                     ? b.image
                     : 'https://via.placeholder.com/400',
               };
             }
           }
-          final genres = _genreMap.values.toList();
+          final genres = genreMap.values.toList();
 
           final filteredBooks = books.where((b) {
             final query = searchController.text.toLowerCase().trim();
@@ -362,6 +362,7 @@ class _SearchState extends ConsumerState<Search> {
             image: NetworkImage(imageUrl),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
+              // ignore: deprecated_member_use
               Colors.black.withOpacity(0.3),
               BlendMode.darken,
             ),
@@ -376,6 +377,7 @@ class _SearchState extends ConsumerState<Search> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
+                  // ignore: deprecated_member_use
                   colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                 ),
               ),
