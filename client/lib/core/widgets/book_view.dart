@@ -25,14 +25,20 @@ class BookView extends StatelessWidget {
                   child: Column(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadiusGeometry.circular(12),
-                        child: Image(
-                          height: 300,
-                          image: AssetImage(
-                            book.image.replaceFirst('client/', ''),
-                          ),
-                          fit: BoxFit.cover,
-                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        child: book.image.startsWith('http')
+                            ? Image.network(
+                                book.image,
+                                height: 300,
+                                fit: BoxFit.cover,
+                              )
+                            : Image(
+                                height: 300,
+                                image: AssetImage(
+                                  book.image.replaceFirst('client/', ''),
+                                ),
+                                fit: BoxFit.cover,
+                              ),
                       ),
                       Padding(
                         padding: const EdgeInsets.only(top: 24, bottom: 12),

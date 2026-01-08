@@ -11,6 +11,10 @@ class BookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ImageProvider imageProvider = book.image.startsWith('http')
+        ? NetworkImage(book.image)
+        : AssetImage(book.image.replaceFirst('client/', ''));
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -38,7 +42,7 @@ class BookCard extends StatelessWidget {
                   top: Radius.circular(12),
                 ),
                 image: DecorationImage(
-                  image: AssetImage(book.image.replaceFirst('client/', '')),
+                  image: imageProvider,
                   fit: BoxFit.cover,
                 ),
               ),
