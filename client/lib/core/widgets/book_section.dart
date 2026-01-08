@@ -66,7 +66,7 @@ class BookSection extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => BookView(id: index),
+                      builder: (context) => BookView(book: book),
                     ),
                   );
                 },

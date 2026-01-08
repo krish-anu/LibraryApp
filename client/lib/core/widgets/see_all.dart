@@ -31,7 +31,9 @@ class _SeeAllState extends State<SeeAll> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => BookView(id: index)),
+                MaterialPageRoute(
+                    builder: (context) =>
+                        BookView(book: widget.bookDetail[index])),
               );
             },
           ),

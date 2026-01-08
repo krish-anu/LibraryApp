@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/book_section.dart';
-import 'package:libraryapp/data/mock_books.dart';
+import 'package:libraryapp/data/repository/book_repository.dart';
 import 'package:libraryapp/home/pages/search.dart';
 import 'package:libraryapp/models/category.dart';
 
-class Home extends StatefulWidget {
+class Home extends ConsumerStatefulWidget {
   const Home({super.key});
 
   @override
-  State<Home> createState() => _HomeState();
+  ConsumerState<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends ConsumerState<Home> {
   @override
   Widget build(BuildContext context) {
     final categories = [
@@ -21,8 +22,7 @@ class _HomeState extends State<Home> {
       Category(id: 'c3', name: 'History'),
       Category(id: 'c4', name: 'Programming'),
     ];
-    final trendingBooks = mockBooks;
-    final suggestedBooks = mockBooks;
+    final booksAsync = ref.watch(fetchAllBooksProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -82,13 +82,23 @@ class _HomeState extends State<Home> {
                   ],
                 ),
               ),
-              BookSection(
-                booksDetail: trendingBooks,
-                heading: 'Trending Books',
-              ),
-              BookSection(
-                booksDetail: suggestedBooks,
-                heading: 'Recommended For you',
+              booksAsync.when(
+                data: (books) {
+                  return Column(
+                    children: [
+                      BookSection(
+                        booksDetail: books, // Display all books as trending for now
+                        heading: 'Trending Books',
+                      ),
+                      BookSection(
+                        booksDetail: books.reversed.toList(), // Display reversed for recommended
+                        heading: 'Recommended For you',
+                      ),
+                    ],
+                  );
+                },
+                error: (err, stack) => Center(child: Text(err.toString())),
+                loading: () => const Center(child: CircularProgressIndicator()),
               ),
             ],
           ),

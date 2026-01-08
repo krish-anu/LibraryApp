@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
-import 'package:libraryapp/data/mock_books.dart';
+import 'package:libraryapp/models/book.dart';
 
 class BookView extends StatelessWidget {
-  final int id;
+  final Book book;
 
-  const BookView({super.key, required this.id});
+  const BookView({super.key, required this.book});
 
   @override
   Widget build(BuildContext context) {
-    final book = mockBooks[id];
     return Scaffold(
       appBar: AppBar(),
 
@@ -17,6 +16,7 @@ class BookView extends StatelessWidget {
       body: SingleChildScrollView(
         child: Center(
           child: Column(
+            
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Padding(
