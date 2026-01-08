@@ -24,32 +24,38 @@ class _SearchState extends ConsumerState<Search> {
     {
       'name': 'Science Fiction',
       'count': 120,
-      'image': 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=400',
+      'image':
+          'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=400',
     },
     {
       'name': 'History',
       'count': 85,
-      'image': 'https://images.unsplash.com/photo-1461360370896-922624d12a74?w=400',
+      'image':
+          'https://images.unsplash.com/photo-1461360370896-922624d12a74?w=400',
     },
     {
       'name': 'Romance',
       'count': 200,
-      'image': 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400',
+      'image':
+          'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400',
     },
     {
       'name': 'Technology',
       'count': 50,
-      'image': 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400',
+      'image':
+          'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400',
     },
     {
       'name': 'Mystery',
       'count': 140,
-      'image': 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400',
+      'image':
+          'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400',
     },
     {
       'name': 'Biographies',
       'count': 90,
-      'image': 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
+      'image':
+          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
     },
   ];
 
@@ -116,7 +122,9 @@ class _SearchState extends ConsumerState<Search> {
           if (sortBy == 'Popular') {
             filteredBooks.sort((a, b) => b.rating.compareTo(a.rating));
           } else if (sortBy == 'Newest') {
-            filteredBooks.sort((a, b) => b.publicationYear.compareTo(a.publicationYear));
+            filteredBooks.sort(
+              (a, b) => b.publicationYear.compareTo(a.publicationYear),
+            );
           } else if (sortBy == 'Title') {
             filteredBooks.sort((a, b) => a.title.compareTo(b.title));
           }
@@ -127,7 +135,10 @@ class _SearchState extends ConsumerState<Search> {
               // Search field (shown when search is active)
               if (showSearchResults)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: TextField(
                     controller: searchController,
                     onChanged: (value) => setState(() {}),
@@ -147,14 +158,20 @@ class _SearchState extends ConsumerState<Search> {
                 ),
               // Filter Chips Row
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
                       // Sort By Dropdown
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF142814),
                           borderRadius: BorderRadius.circular(20),
@@ -164,9 +181,18 @@ class _SearchState extends ConsumerState<Search> {
                           dropdownColor: const Color(0xFF1B3D1B),
                           underline: const SizedBox(),
                           isDense: true,
-                          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 18),
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
-                          items: ['Popular', 'Newest', 'Title'].map((String value) {
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                          items: ['Popular', 'Newest', 'Title'].map((
+                            String value,
+                          ) {
                             return DropdownMenuItem<String>(
                               value: value,
                               child: Text('Sort by: $value'),
@@ -191,17 +217,21 @@ class _SearchState extends ConsumerState<Search> {
                       ),
                       const SizedBox(width: 8),
                       // Category Chips
-                      ...categories.take(3).map((category) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _buildFilterChip(
-                          category,
-                          selectedCategory == category,
-                          () => setState(() {
-                            selectedCategory = category;
-                            showSearchResults = true;
-                          }),
-                        ),
-                      )),
+                      ...categories
+                          .take(3)
+                          .map(
+                            (category) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _buildFilterChip(
+                                category,
+                                selectedCategory == category,
+                                () => setState(() {
+                                  selectedCategory = category;
+                                  showSearchResults = true;
+                                }),
+                              ),
+                            ),
+                          ),
                     ],
                   ),
                 ),
@@ -209,7 +239,10 @@ class _SearchState extends ConsumerState<Search> {
               // Author Filter (shown when search results are visible)
               if (showSearchResults)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -220,14 +253,18 @@ class _SearchState extends ConsumerState<Search> {
                           () => setState(() => selectedAuthor = null),
                         ),
                         const SizedBox(width: 8),
-                        ...authors.take(5).map((author) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: _buildFilterChip(
-                            author,
-                            selectedAuthor == author,
-                            () => setState(() => selectedAuthor = author),
-                          ),
-                        )),
+                        ...authors
+                            .take(5)
+                            .map(
+                              (author) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _buildFilterChip(
+                                  author,
+                                  selectedAuthor == author,
+                                  () => setState(() => selectedAuthor = author),
+                                ),
+                              ),
+                            ),
                       ],
                     ),
                   ),
@@ -242,9 +279,14 @@ class _SearchState extends ConsumerState<Search> {
           );
         },
         error: (err, stack) => Center(
-          child: Text('Error: $err', style: const TextStyle(color: Colors.white)),
+          child: Text(
+            'Error: $err',
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
-        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50))),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+        ),
       ),
     );
   }
@@ -257,7 +299,9 @@ class _SearchState extends ConsumerState<Search> {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF4CAF50) : const Color(0xFF142814),
           borderRadius: BorderRadius.circular(20),
-          border: isSelected ? null : Border.all(color: const Color(0xFF2D4D2D)),
+          border: isSelected
+              ? null
+              : Border.all(color: const Color(0xFF2D4D2D)),
         ),
         child: Text(
           label,
@@ -353,10 +397,7 @@ class _SearchState extends ConsumerState<Search> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                 ),
               ),
             ),
@@ -378,10 +419,7 @@ class _SearchState extends ConsumerState<Search> {
                   const SizedBox(height: 4),
                   Text(
                     "$count books",
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
                   ),
                 ],
               ),
@@ -425,7 +463,7 @@ class _SearchState extends ConsumerState<Search> {
         ),
       );
     }
-    
+
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: filteredBooks.length,
