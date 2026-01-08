@@ -48,7 +48,7 @@ final class BookRepositoryProvider
   }
 }
 
-String _$bookRepositoryHash() => r'805a7181cfbf00f96e3b175f391b61e6d7a003be';
+String _$bookRepositoryHash() => r'a97feb2a783777333097ff36387c8cbc260990f6';
 
 @ProviderFor(fetchAllBooks)
 final fetchAllBooksProvider = FetchAllBooksProvider._();
@@ -86,4 +86,4 @@ final class FetchAllBooksProvider
   }
 }
 
-String _$fetchAllBooksHash() => r'38c40c6f91a58798523b27836093cb13128cabf9';
+String _$fetchAllBooksHash() => r'323bbe49964ca743040f094a3eadef7d6564ee25';
