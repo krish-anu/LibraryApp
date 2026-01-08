@@ -67,7 +67,8 @@ class _SearchState extends ConsumerState<Search> {
           for (final b in books) {
             final name = b.category;
             if (_genreMap.containsKey(name)) {
-              _genreMap[name]!['count'] = (_genreMap[name]!['count'] as int) + 1;
+              _genreMap[name]!['count'] =
+                  (_genreMap[name]!['count'] as int) + 1;
             } else {
               _genreMap[name] = {
                 'name': name,
