@@ -1,6 +1,8 @@
 from .base import Base
 from sqlalchemy import Column, TEXT, Date, ForeignKey
 from sqlalchemy.orm import relationship
+from .book import Book
+from .users import User
 
 
 class Loan(Base):
@@ -12,5 +14,5 @@ class Loan(Base):
     loan_date = Column(Date)
     returned_date = Column(Date)
 
-    book = relationship("Book")
-    member = relationship("User")
+    book = relationship(Book)
+    member = relationship(User)
