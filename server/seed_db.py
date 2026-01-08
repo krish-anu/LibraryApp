@@ -6,8 +6,64 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.database import SessionLocal, engine
 from app.models.book import Book
+from app.models.loan import Loan
+from app.models.users import User
 from app.models.base import Base
 from sqlalchemy import text
+from datetime import date
+
+# Mock Loans Data
+loans_data = [
+    {
+        "id": "l1",
+        "book_id": "1",
+        "member_id": "m1",
+        "loan_date": date(2023, 12, 1),
+        "returned_date": date(2023, 12, 15),
+    },
+    {
+        "id": "l2",
+        "book_id": "3",
+        "member_id": "m1",
+        "loan_date": date(2025, 12, 26),
+        "returned_date": date(2024, 1, 19),
+    },
+    {
+        "id": "l3",
+        "book_id": "5",
+        "member_id": "m1",
+        "loan_date": date(2024, 1, 10),
+        "returned_date": date(2024, 1, 24),
+    },
+    {
+        "id": "l4",
+        "book_id": "7",
+        "member_id": "m1",
+        "loan_date": date(2026, 1, 1),
+        "returned_date": date(2026, 1, 1),
+    },
+    {
+        "id": "l5",
+        "book_id": "10",
+        "member_id": "m1",
+        "loan_date": date(2024, 1, 20),
+        "returned_date": date(2024, 2, 3),
+    },
+    {
+        "id": "l6",
+        "book_id": "12",
+        "member_id": "m1",
+        "loan_date": date(2024, 1, 25),
+        "returned_date": date(2024, 2, 8),
+    },
+    {
+        "id": "l7",
+        "book_id": "15",
+        "member_id": "m1",
+        "loan_date": date(2024, 2, 1),
+        "returned_date": date(2024, 2, 15),
+    },
+]
 
 books_data = [
     {
@@ -475,6 +531,18 @@ def seed():
 
             book = Book(**book_data)
             db.add(book)
+
+        # Seed User
+        print("Seeding user m1...")
+        user = User(id="m1", name="Test User", email="test@example.com")
+        db.add(user)
+
+        # Seed Loans
+        print(f"Seeding {len(loans_data)} loans...")
+        for loan_data in loans_data:
+            loan = Loan(**loan_data)
+            db.add(loan)
+
         db.commit()
         print("Seeded successfully!")
     except Exception as e:
