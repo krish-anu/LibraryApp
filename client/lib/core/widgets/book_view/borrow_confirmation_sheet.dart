@@ -83,6 +83,7 @@ class _ReadyToBorrowBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
+        // ignore: deprecated_member_use
         color: Pallete.primaryLight.withOpacity(0.2),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Pallete.primaryLight),
@@ -279,6 +280,7 @@ class _InfoCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
+                  // ignore: deprecated_member_use
                   color: Pallete.primaryLight.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -314,8 +316,10 @@ class _WarningNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
+        // ignore: deprecated_member_use
         color: Pallete.warning.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
+        // ignore: deprecated_member_use
         border: Border.all(color: Pallete.warning.withOpacity(0.3)),
       ),
       child: Row(

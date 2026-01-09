@@ -28,6 +28,7 @@ class GenreCard extends StatelessWidget {
             image: imageProviderFromPath(imageUrl),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
+              // ignore: deprecated_member_use
               Colors.black.withOpacity(0.3),
               BlendMode.darken,
             ),
@@ -51,6 +52,7 @@ class GenreCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
+          // ignore: deprecated_member_use
           colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
         ),
       ),
