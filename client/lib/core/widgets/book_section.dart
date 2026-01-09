@@ -17,47 +17,52 @@ class BookSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final books = booksDetail.take(6).toList();
-    final allBooks = booksDetail; // 🔑 exactly 6
+    final allBooks = booksDetail;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section title
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                heading,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        // Section title with See all button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              heading,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
-              TextButton(
-                onPressed: () {
-                  // Navigate to all trending
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SeeAll(bookDetail: allBooks),
-                    ),
-                  );
-                },
-                child: const Text('See all'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SeeAll(bookDetail: allBooks),
+                  ),
+                );
+              },
+              child: Text(
+                'See all',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14,
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
 
         const SizedBox(height: 12),
 
         // Horizontal list
         SizedBox(
-          height: 280,
+          height: 250,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: books.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
             itemBuilder: (context, index) {
               final book = books[index];
               return BookCard(

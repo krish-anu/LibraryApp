@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/models/book.dart';
@@ -11,72 +10,63 @@ class BookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ImageProvider imageProvider = book.image.startsWith('http')
+    final bool isNetworkImage =
+        book.image.startsWith('http://') || book.image.startsWith('https://');
+    final ImageProvider imageProvider = isNetworkImage
         ? NetworkImage(book.image)
-        : AssetImage(book.image.replaceFirst('client/', ''));
+        : AssetImage(
+            book.image.startsWith('client/')
+                ? book.image.replaceFirst('client/', '')
+                : book.image.startsWith('assets/')
+                ? book.image
+                : 'assets/book/${book.image}',
+          );
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 140,
-        decoration: BoxDecoration(
-          color: Pallete.cardBackground,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Pallete.cardShadow,
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
+      child: SizedBox(
+        width: 130,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Book cover placeholder
+            // Book cover
             Container(
-              height: 160,
+              height: 180,
               decoration: BoxDecoration(
                 color: Pallete.cardAccent,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
+                borderRadius: BorderRadius.circular(12),
                 image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Pallete.cardShadow,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
             ),
-
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(
-                          book.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          book.author,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Pallete.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(onPressed: () {}, icon: Icon(CupertinoIcons.heart)),
-              ],
+            const SizedBox(height: 10),
+            // Book title
+            Text(
+              book.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Author name
+            Text(
+              book.author,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.6),
+                fontSize: 12,
+              ),
             ),
           ],
         ),
