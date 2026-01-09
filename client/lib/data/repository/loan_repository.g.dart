@@ -48,7 +48,7 @@ final class LoanRepositoryProvider
   }
 }
 
-String _$loanRepositoryHash() => r'531b277cb6ddf91646f627ba297a8fc4ab0c386b';
+String _$loanRepositoryHash() => r'000fdbe43943bbbc5046be782ed40facf8a5e4ae';
 
 @ProviderFor(fetchAllLoans)
 final fetchAllLoansProvider = FetchAllLoansProvider._();
@@ -86,4 +86,78 @@ final class FetchAllLoansProvider
   }
 }
 
-String _$fetchAllLoansHash() => r'aaa8b1d69c9467839589199f405e9188b7ad43d7';
+String _$fetchAllLoansHash() => r'294636707ec667821a2ccaf37e74fbe60ea5bdbb';
+
+@ProviderFor(fetchActiveLoans)
+final fetchActiveLoansProvider = FetchActiveLoansFamily._();
+
+final class FetchActiveLoansProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Loan>>,
+          List<Loan>,
+          FutureOr<List<Loan>>
+        >
+    with $FutureModifier<List<Loan>>, $FutureProvider<List<Loan>> {
+  FetchActiveLoansProvider._({
+    required FetchActiveLoansFamily super.from,
+    required String? super.argument,
+  }) : super(
+         retry: null,
+         name: r'fetchActiveLoansProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$fetchActiveLoansHash();
+
+  @override
+  String toString() {
+    return r'fetchActiveLoansProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Loan>> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Loan>> create(Ref ref) {
+    final argument = this.argument as String?;
+    return fetchActiveLoans(ref, memberId: argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is FetchActiveLoansProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$fetchActiveLoansHash() => r'8b7d9a8e2d5d66cecf140c57800ce3fa1258d19a';
+
+final class FetchActiveLoansFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<Loan>>, String?> {
+  FetchActiveLoansFamily._()
+    : super(
+        retry: null,
+        name: r'fetchActiveLoansProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  FetchActiveLoansProvider call({String? memberId}) =>
+      FetchActiveLoansProvider._(argument: memberId, from: this);
+
+  @override
+  String toString() => r'fetchActiveLoansProvider';
+}

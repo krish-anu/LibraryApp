@@ -19,50 +19,50 @@ loans_data = [
         "id": "l1",
         "book_id": "1",
         "member_id": "m1",
-        "loan_date": date(2023, 12, 1),
-        "returned_date": date(2023, 12, 15),
+        "loan_date": date(2026, 1, 1),
+        "returned_date": date(2026, 1, 15),  # Due in 6 days
     },
     {
         "id": "l2",
         "book_id": "3",
         "member_id": "m1",
-        "loan_date": date(2025, 12, 26),
-        "returned_date": date(2024, 1, 19),
+        "loan_date": date(2026, 1, 5),
+        "returned_date": date(2026, 1, 19),  # Due in 10 days
     },
     {
         "id": "l3",
         "book_id": "5",
         "member_id": "m1",
-        "loan_date": date(2024, 1, 10),
-        "returned_date": date(2024, 1, 24),
+        "loan_date": date(2026, 1, 7),
+        "returned_date": date(2026, 1, 21),  # Due in 12 days
     },
     {
         "id": "l4",
         "book_id": "7",
         "member_id": "m1",
-        "loan_date": date(2026, 1, 1),
-        "returned_date": date(2026, 1, 1),
+        "loan_date": date(2025, 12, 28),
+        "returned_date": date(2026, 1, 11),  # Due in 2 days (due soon)
     },
     {
         "id": "l5",
         "book_id": "10",
         "member_id": "m1",
-        "loan_date": date(2024, 1, 20),
-        "returned_date": date(2024, 2, 3),
+        "loan_date": date(2025, 12, 20),
+        "returned_date": date(2026, 1, 3),  # Overdue by 6 days
     },
     {
         "id": "l6",
         "book_id": "12",
         "member_id": "m1",
-        "loan_date": date(2024, 1, 25),
-        "returned_date": date(2024, 2, 8),
+        "loan_date": date(2025, 12, 15),
+        "returned_date": date(2025, 12, 29),  # Overdue by 11 days
     },
     {
         "id": "l7",
         "book_id": "15",
         "member_id": "m1",
-        "loan_date": date(2024, 2, 1),
-        "returned_date": date(2024, 2, 15),
+        "loan_date": date(2026, 1, 8),
+        "returned_date": date(2026, 1, 22),  # Due in 13 days
     },
 ]
 
