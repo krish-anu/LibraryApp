@@ -8,5 +8,6 @@ class Category(Base):
 
     id = Column(TEXT, primary_key=True)
     name = Column(TEXT)
+    image_url = Column(TEXT)
 
     books = relationship("Book", back_populates="category_rel")
