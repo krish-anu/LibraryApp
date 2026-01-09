@@ -48,29 +48,33 @@ class BottomNav extends ConsumerWidget {
         ),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
+          backgroundColor: Pallete.cardBackground,
+          selectedItemColor: Pallete.primaryLight,
+          unselectedItemColor: Pallete.textSecondary,
+          showUnselectedLabels: true,
           currentIndex: index,
           onTap: (idx) {
             ref.read(bottomNavIndexProvider.notifier).state = idx;
           },
           items: <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home, color: Pallete.iconColor),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.home),
               label: "Home",
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search, color: Pallete.iconColor),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.search),
               label: "Search",
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.menu_book, color: Pallete.iconColor),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.menu_book),
               label: "Borrowed",
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border, color: Pallete.iconColor),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.favorite_border),
               label: "WishList",
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person, color: Pallete.iconColor),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.person),
               label: "Profile",
             ),
           ],
