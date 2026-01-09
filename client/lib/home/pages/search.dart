@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/widgets/book_card.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
 import 'package:libraryapp/data/repository/book_repository.dart';
+import 'package:libraryapp/core/utils/image_helper.dart';
 
 class Search extends ConsumerStatefulWidget {
   final String? currentCategory;
@@ -358,7 +359,7 @@ class _SearchState extends ConsumerState<Search> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           image: DecorationImage(
-            image: NetworkImage(imageUrl),
+            image: imageProviderFromPath(imageUrl),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
               // ignore: deprecated_member_use

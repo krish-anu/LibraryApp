@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/book_section.dart';
 import 'package:libraryapp/data/repository/book_repository.dart';
+import 'package:libraryapp/data/repository/category_repository.dart';
 import 'package:libraryapp/home/pages/search.dart';
 import 'package:libraryapp/models/category.dart';
+import 'package:libraryapp/core/utils/image_helper.dart';
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
@@ -23,13 +25,8 @@ class _HomeState extends ConsumerState<Home> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = [
-      Category(id: 'c1', name: 'Sci-Fi'),
-      Category(id: 'c2', name: 'History'),
-      Category(id: 'c3', name: 'Fiction'),
-      Category(id: 'c4', name: 'Mystery'),
-    ];
     final booksAsync = ref.watch(fetchAllBooksProvider);
+    final categoriesAsync = ref.watch(fetchCategoriesProvider);
 
     return Scaffold(
       backgroundColor: Pallete.scaffoldBackground,
@@ -41,32 +38,46 @@ class _HomeState extends ConsumerState<Home> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
-                // Header with greeting and notification
                 _buildHeader(),
                 const SizedBox(height: 20),
-                // Search bar
                 _buildSearchBar(context),
                 const SizedBox(height: 24),
-                // Trending Books Section
+
                 booksAsync.when(
                   data: (books) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        BookSection(
-                          booksDetail: books,
-                          heading: 'Trending Books',
+                    return categoriesAsync.when(
+                      data: (categories) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            BookSection(
+                              booksDetail: books,
+                              heading: 'Trending Books',
+                            ),
+                            const SizedBox(height: 24),
+
+                            _buildCategoriesSection(categories),
+
+                            const SizedBox(height: 24),
+                            BookSection(
+                              booksDetail: books.reversed.toList(),
+                              heading: 'Recommended for You',
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        );
+                      },
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(
+                          color: Pallete.primaryLight,
                         ),
-                        const SizedBox(height: 24),
-                        // Explore Categories Section
-                        _buildCategoriesSection(categories),
-                        const SizedBox(height: 24),
-                        BookSection(
-                          booksDetail: books.reversed.toList(),
-                          heading: 'Recommended for You',
+                      ),
+                      error: (err, stack) => Center(
+                        child: Text(
+                          err.toString(),
+                          style: const TextStyle(color: Colors.white),
                         ),
-                        const SizedBox(height: 20),
-                      ],
+                      ),
                     );
                   },
                   error: (err, stack) => Center(
@@ -108,7 +119,6 @@ class _HomeState extends ConsumerState<Home> {
             Text(
               'Ready to dive into a new world?',
               style: TextStyle(
-                // ignore: deprecated_member_use
                 color: Colors.white.withOpacity(0.7),
                 fontSize: 14,
               ),
@@ -163,11 +173,23 @@ class _HomeState extends ConsumerState<Home> {
   }
 
   Widget _buildCategoriesSection(List<Category> categories) {
-    final categoryIcons = {
-      'Sci-Fi': Icons.rocket_launch_outlined,
-      'History': Icons.account_balance_outlined,
-      'Fiction': Icons.auto_stories_outlined,
-      'Mystery': Icons.psychology_outlined,
+    final categoryData = {
+      'Sci-Fi': {
+        'icon': Icons.rocket_launch_outlined,
+        'color': const Color(0xFF2D5A45),
+      },
+      'History': {
+        'icon': Icons.account_balance_outlined,
+        'color': const Color(0xFF2D5A45),
+      },
+      'Fiction': {
+        'icon': Icons.auto_stories_outlined,
+        'color': const Color(0xFF2D5A45),
+      },
+      'Mystery': {
+        'icon': Icons.psychology_outlined,
+        'color': const Color(0xFF2D5A45),
+      },
     };
 
     return Column(
@@ -185,44 +207,71 @@ class _HomeState extends ConsumerState<Home> {
           ),
         ),
         const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 2.8,
           children: categories.map((category) {
+            final data =
+                categoryData[category.name] ??
+                {'icon': Icons.book_outlined, 'color': const Color(0xFF2D5A45)};
             return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        Search(currentCategory: category.name),
+                    builder: (context) => Search(currentCategory: category.name),
                   ),
                 );
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
+                  horizontal: 16,
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
                   color: Pallete.categoryChipBackground,
-                  borderRadius: BorderRadius.circular(25),
+                  borderRadius: BorderRadius.circular(30),
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      categoryIcons[category.name] ?? Icons.book_outlined,
-                      color: Colors.white,
-                      size: 20,
+                    SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: category.image != null && category.image!.isNotEmpty
+                          ? ClipOval(
+                              child: Image(
+                                image: imageProviderFromPath(category.image),
+                                fit: BoxFit.cover,
+                                width: 36,
+                                height: 36,
+                              ),
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: data['color'] as Color,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                data['icon'] as IconData,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      category.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        category.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

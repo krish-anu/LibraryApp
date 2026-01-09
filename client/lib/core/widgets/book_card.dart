@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
+import 'package:libraryapp/core/utils/image_helper.dart';
 import 'package:libraryapp/models/book.dart';
 
 class BookCard extends StatelessWidget {
@@ -10,17 +11,7 @@ class BookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isNetworkImage =
-        book.image.startsWith('http://') || book.image.startsWith('https://');
-    final ImageProvider imageProvider = isNetworkImage
-        ? NetworkImage(book.image)
-        : AssetImage(
-            book.image.startsWith('client/')
-                ? book.image.replaceFirst('client/', '')
-                : book.image.startsWith('assets/')
-                ? book.image
-                : 'assets/book/${book.image}',
-          );
+    final ImageProvider imageProvider = imageProviderFromPath(book.image);
 
     return GestureDetector(
       onTap: onTap,

@@ -4,18 +4,28 @@ import 'dart:convert';
 class Category {
   final String id;
   final String name;
-  Category({required this.id, required this.name});
+  final String? image; // image URL or asset path
 
-  Category copyWith({String? id, String? name}) {
-    return Category(id: id ?? this.id, name: name ?? this.name);
+  Category({required this.id, required this.name, this.image});
+
+  Category copyWith({String? id, String? name, String? image}) {
+    return Category(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      image: image ?? this.image,
+    );
   }
 
   Map<String, dynamic> toMap() {
-    return <String, dynamic>{'id': id, 'name': name};
+    return <String, dynamic>{'id': id, 'name': name, 'image': image};
   }
 
   factory Category.fromMap(Map<String, dynamic> map) {
-    return Category(id: map['id'] as String, name: map['name'] as String);
+    return Category(
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? '',
+      image: map['image']?.toString(),
+    );
   }
 
   String toJson() => json.encode(toMap());
