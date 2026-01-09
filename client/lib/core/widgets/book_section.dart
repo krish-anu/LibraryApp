@@ -46,6 +46,7 @@ class BookSection extends StatelessWidget {
               child: Text(
                 'See all',
                 style: TextStyle(
+                  // ignore: deprecated_member_use
                   color: Colors.white.withOpacity(0.7),
                   fontSize: 14,
                 ),
@@ -62,7 +63,7 @@ class BookSection extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: books.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
             itemBuilder: (context, index) {
               final book = books[index];
               return BookCard(

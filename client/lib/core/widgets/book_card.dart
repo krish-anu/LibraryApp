@@ -64,6 +64,7 @@ class BookCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
+                // ignore: deprecated_member_use
                 color: Colors.white.withOpacity(0.6),
                 fontSize: 12,
               ),
