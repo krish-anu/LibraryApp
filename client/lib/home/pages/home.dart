@@ -32,9 +32,7 @@ class Home extends ConsumerWidget {
                 const SizedBox(height: 20),
                 const HomeHeader(),
                 const SizedBox(height: 20),
-                HomeSearchBar(
-                  onTap: () => _navigateToSearch(context),
-                ),
+                HomeSearchBar(onTap: () => _navigateToSearch(context)),
                 const SizedBox(height: 24),
                 _buildContent(booksAsync, categoriesAsync, context),
               ],

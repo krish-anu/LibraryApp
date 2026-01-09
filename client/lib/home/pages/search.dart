@@ -71,7 +71,8 @@ class _SearchState extends ConsumerState<Search> {
       actions: [
         IconButton(
           icon: const Icon(Icons.search, color: Colors.white),
-          onPressed: () => setState(() => showSearchResults = !showSearchResults),
+          onPressed: () =>
+              setState(() => showSearchResults = !showSearchResults),
         ),
       ],
     );
@@ -129,17 +130,21 @@ class _SearchState extends ConsumerState<Search> {
               }),
             ),
             const SizedBox(width: 8),
-            ...categories.take(3).map((category) => Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChipButton(
-                label: category,
-                isSelected: selectedCategory == category,
-                onTap: () => setState(() {
-                  selectedCategory = category;
-                  showSearchResults = true;
-                }),
-              ),
-            )),
+            ...categories
+                .take(3)
+                .map(
+                  (category) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChipButton(
+                      label: category,
+                      isSelected: selectedCategory == category,
+                      onTap: () => setState(() {
+                        selectedCategory = category;
+                        showSearchResults = true;
+                      }),
+                    ),
+                  ),
+                ),
           ],
         ),
       ),
@@ -159,14 +164,18 @@ class _SearchState extends ConsumerState<Search> {
               onTap: () => setState(() => selectedAuthor = null),
             ),
             const SizedBox(width: 8),
-            ...authors.take(5).map((author) => Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChipButton(
-                label: author,
-                isSelected: selectedAuthor == author,
-                onTap: () => setState(() => selectedAuthor = author),
-              ),
-            )),
+            ...authors
+                .take(5)
+                .map(
+                  (author) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChipButton(
+                      label: author,
+                      isSelected: selectedAuthor == author,
+                      onTap: () => setState(() => selectedAuthor = author),
+                    ),
+                  ),
+                ),
           ],
         ),
       ),
@@ -196,11 +205,13 @@ class _SearchState extends ConsumerState<Search> {
     final query = searchController.text.toLowerCase().trim();
 
     final filtered = books.where((b) {
-      final matchText = query.isEmpty ||
+      final matchText =
+          query.isEmpty ||
           b.title.toLowerCase().contains(query) ||
           b.author.toLowerCase().contains(query);
       final matchAuthor = selectedAuthor == null || b.author == selectedAuthor;
-      final matchCategory = selectedCategory == null || b.category == selectedCategory;
+      final matchCategory =
+          selectedCategory == null || b.category == selectedCategory;
       return matchText && matchAuthor && matchCategory;
     }).toList();
 

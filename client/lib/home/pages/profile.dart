@@ -137,7 +137,10 @@ class Profile extends ConsumerWidget {
     return Column(
       children: const [
         ProfileSectionTitle(title: "ACCOUNT"),
-        ProfileMenuItem(icon: Icons.person_outline, title: "Personal Information"),
+        ProfileMenuItem(
+          icon: Icons.person_outline,
+          title: "Personal Information",
+        ),
         ProfileMenuItem(icon: Icons.lock_outline, title: "Change Password"),
         ProfileMenuItem(icon: Icons.credit_card, title: "My Digital Card"),
       ],
