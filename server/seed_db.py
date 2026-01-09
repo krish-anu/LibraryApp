@@ -514,42 +514,42 @@ categories_data = [
     {
         "id": "programming",
         "name": "Programming",
-        "image_url": "client/assets/book/book_cover.webp",
+        "image_url": "/assets/book/book_cover.webp",
     },
     {
         "id": "history",
         "name": "History",
-        "image_url": "client/assets/book/book_cover.webp",
+        "image_url": "/assets/book/book_cover.webp",
     },
     {
         "id": "science",
         "name": "Science",
-        "image_url": "client/assets/book/book_cover.webp",
+        "image_url": "/assets/book/book_cover.webp",
     },
     {
         "id": "fiction",
         "name": "Fiction",
-        "image_url": "client/assets/book/book_cover.webp",
+        "image_url": "/assets/book/book_cover.webp",
     },
     {
         "id": "biography",
         "name": "Biography",
-        "image_url": "client/assets/book/book_cover.webp",
+        "image_url": "/assets/book/book_cover.webp",
     },
     {
         "id": "scifi",
         "name": "Sci-Fi",
-        "image_url": "client/assets/book/book_cover.webp",
+        "image_url": "/assets/book/book_cover.webp",
     },
     {
         "id": "fantasy",
         "name": "Fantasy",
-        "image_url": "client/assets/book/book_cover.webp",
+        "image_url": "/assets/book/book_cover.webp",
     },
     {
         "id": "thriller",
         "name": "Thriller",
-        "image_url": "client/assets/book/book_cover.webp",
+        "image_url": "/assets/book/book_cover.webp",
     },
 ]
 
@@ -602,11 +602,15 @@ def seed():
                     # fallback: create a new category id by slugifying the name
                     cid = cat_name.replace(" ", "-").replace("/", "-")
                     name_to_id[cat_name] = cid
-                    db.add(
-                        Category(
-                            id=cid, name=cat_name, image_url=book_data.get("image")
-                        )
-                    )
+                    # normalize fallback image paths to the mounted /assets path when possible
+                    fallback_img = book_data.get("image")
+                    if (
+                        isinstance(fallback_img, str)
+                        and "client/assets/" in fallback_img
+                    ):
+                        fallback_img = fallback_img.split("client/assets/")[-1]
+                        fallback_img = "/assets/" + fallback_img
+                    db.add(Category(id=cid, name=cat_name, image_url=fallback_img))
                 book_data["category_id"] = cid
 
             book = Book(**book_data)
