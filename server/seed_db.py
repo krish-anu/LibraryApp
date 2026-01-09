@@ -511,14 +511,46 @@ books_data = [
 
 # Categories list (id, name) - used to seed categories table
 categories_data = [
-    {"id": "programming", "name": "Programming"},
-    {"id": "history", "name": "History"},
-    {"id": "science", "name": "Science"},
-    {"id": "fiction", "name": "Fiction"},
-    {"id": "biography", "name": "Biography"},
-    {"id": "scifi", "name": "Sci-Fi"},
-    {"id": "fantasy", "name": "Fantasy"},
-    {"id": "thriller", "name": "Thriller"},
+    {
+        "id": "programming",
+        "name": "Programming",
+        "image_url": "client/assets/book/book_cover.webp",
+    },
+    {
+        "id": "history",
+        "name": "History",
+        "image_url": "client/assets/book/book_cover.webp",
+    },
+    {
+        "id": "science",
+        "name": "Science",
+        "image_url": "client/assets/book/book_cover.webp",
+    },
+    {
+        "id": "fiction",
+        "name": "Fiction",
+        "image_url": "client/assets/book/book_cover.webp",
+    },
+    {
+        "id": "biography",
+        "name": "Biography",
+        "image_url": "client/assets/book/book_cover.webp",
+    },
+    {
+        "id": "scifi",
+        "name": "Sci-Fi",
+        "image_url": "client/assets/book/book_cover.webp",
+    },
+    {
+        "id": "fantasy",
+        "name": "Fantasy",
+        "image_url": "client/assets/book/book_cover.webp",
+    },
+    {
+        "id": "thriller",
+        "name": "Thriller",
+        "image_url": "client/assets/book/book_cover.webp",
+    },
 ]
 
 
@@ -542,8 +574,9 @@ def seed():
         for c in categories_data:
             cid = c.get("id")
             cname = c.get("name")
+            cimage = c.get("image_url")
             if cid and cname:
-                db.add(Category(id=cid, name=cname))
+                db.add(Category(id=cid, name=cname, image_url=cimage))
                 name_to_id[cname.strip().lower()] = cid
 
         # flush to ensure categories exist for FK references
@@ -569,7 +602,11 @@ def seed():
                     # fallback: create a new category id by slugifying the name
                     cid = cat_name.replace(" ", "-").replace("/", "-")
                     name_to_id[cat_name] = cid
-                    db.add(Category(id=cid, name=cat_name))
+                    db.add(
+                        Category(
+                            id=cid, name=cat_name, image_url=book_data.get("image")
+                        )
+                    )
                 book_data["category_id"] = cid
 
             book = Book(**book_data)
