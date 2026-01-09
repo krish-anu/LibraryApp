@@ -11,3 +11,4 @@ class Category(Base):
     image_url = Column(TEXT)
 
     books = relationship("Book", back_populates="category_rel")
+ 

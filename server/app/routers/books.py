@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from ..dependencies import get_db
 from ..models import book
+from ..models import category as category_model
 from ..models.interactions import Interaction
 from ..pydantic_schemas import book as book_schema
 
@@ -36,8 +37,10 @@ def get_trending_books(db: Session = Depends(get_db)):
 @router.get("/recommended/{user_id}")
 def get_recommended_books(user_id: str, db: Session = Depends(get_db)):
     # 1. Find the categories the user has interacted with most
+    # query the Category.name via join (book.Book.category is a python property)
     user_categories = (
-        db.query(book.Book.category)
+        db.query(category_model.Category.name)
+        .join(book.Book, category_model.Category.id == book.Book.category_id)
         .join(Interaction, Interaction.book_id == book.Book.id)
         .filter(Interaction.user_id == user_id)
         .all()
@@ -52,7 +55,7 @@ def get_recommended_books(user_id: str, db: Session = Depends(get_db)):
     # 2. Recommend books in those categories that the user hasn't read/interacted with
     recommendations = (
         db.query(book.Book)
-        .filter(book.Book.category.in_(categories))
+        .filter(book.Book.category_id.in_(categories))
         # Exclude books the user already interacted with
         .filter(
             ~book.Book.id.in_(
