@@ -8,6 +8,7 @@ from app.database import SessionLocal, engine
 from app.models.book import Book
 from app.models.loan import Loan
 from app.models.users import User
+from app.models.category import Category
 from app.models.base import Base
 from sqlalchemy import text
 from datetime import date
@@ -508,15 +509,46 @@ books_data = [
     },
 ]
 
+# Categories list (id, name) - used to seed categories table
+categories_data = [
+    {"id": "programming", "name": "Programming"},
+    {"id": "history", "name": "History"},
+    {"id": "science", "name": "Science"},
+    {"id": "fiction", "name": "Fiction"},
+    {"id": "biography", "name": "Biography"},
+    {"id": "scifi", "name": "Sci-Fi"},
+    {"id": "fantasy", "name": "Fantasy"},
+    {"id": "thriller", "name": "Thriller"},
+]
+
 
 def seed():
-    # Drop "books" table if exists and re-create it to reflect new columns
-    print("Dropping and recreating tables...")
-    Base.metadata.drop_all(bind=engine)
+    # Drop tables (use CASCADE for dependent objects) then re-create metadata
+    print("Dropping and recreating tables (using CASCADE for dependents)...")
+    with engine.begin() as conn:
+        # drop known dependent tables first to avoid FK dependency errors
+        conn.exec_driver_sql("DROP TABLE IF EXISTS interactions CASCADE")
+        conn.exec_driver_sql("DROP TABLE IF EXISTS loans CASCADE")
+        conn.exec_driver_sql("DROP TABLE IF EXISTS books CASCADE")
+        conn.exec_driver_sql("DROP TABLE IF EXISTS categories CASCADE")
+        conn.exec_driver_sql("DROP TABLE IF EXISTS users CASCADE")
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
     try:
+        # Insert categories first
+        print(f"Seeding {len(categories_data)} categories...")
+        name_to_id = {}
+        for c in categories_data:
+            cid = c.get("id")
+            cname = c.get("name")
+            if cid and cname:
+                db.add(Category(id=cid, name=cname))
+                name_to_id[cname.strip().lower()] = cid
+
+        # flush to ensure categories exist for FK references
+        db.flush()
+
         print(f"Seeding {len(books_data)} books...")
         for book_data in books_data:
             # Handle potential case mismatches or missing fields
@@ -528,6 +560,17 @@ def seed():
                 book_data["publication_year"] = book_data.pop("publicationYear")
             if "copiesOwned" in book_data:
                 book_data["copies_owned"] = book_data.pop("copiesOwned")
+
+            # Map category name to category_id using loaded categories
+            if "category" in book_data and book_data["category"]:
+                cat_name = str(book_data.pop("category")).strip().lower()
+                cid = name_to_id.get(cat_name)
+                if cid is None:
+                    # fallback: create a new category id by slugifying the name
+                    cid = cat_name.replace(" ", "-").replace("/", "-")
+                    name_to_id[cat_name] = cid
+                    db.add(Category(id=cid, name=cat_name))
+                book_data["category_id"] = cid
 
             book = Book(**book_data)
             db.add(book)
