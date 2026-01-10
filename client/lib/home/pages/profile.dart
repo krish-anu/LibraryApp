@@ -60,6 +60,7 @@ class Profile extends ConsumerWidget {
 
   // AppBar moved to CommonAppBar to reduce duplication across pages.
 
+  // ignore: strict_top_level_inference
   Widget _buildProfileHeader(currentUser) {
     return Column(
       children: [
@@ -81,6 +82,7 @@ class Profile extends ConsumerWidget {
     );
   }
 
+  // ignore: strict_top_level_inference
   Widget _buildMemberId(currentUser) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
