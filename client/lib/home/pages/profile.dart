@@ -53,7 +53,7 @@ class Profile extends ConsumerWidget {
       leading: Builder(
         builder: (context) => IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.maybePop(context),
         ),
       ),
       title: const Text(

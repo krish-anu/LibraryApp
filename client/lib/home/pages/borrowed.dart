@@ -45,7 +45,7 @@ class _BorrowedState extends ConsumerState<Borrowed> {
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.pop(context),
+        onPressed: () => Navigator.maybePop(context),
       ),
       title: const Text(
         "My Books",
