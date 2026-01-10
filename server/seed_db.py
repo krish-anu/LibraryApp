@@ -553,6 +553,38 @@ categories_data = [
     },
 ]
 
+users_data = [
+    {
+        "id": "m1",
+        "member_id": "M8392102",
+        "name": "Jane Doe",
+        "email": "jane.doe@example.com",
+    },
+    {
+        "id": "m2",
+        "member_id": "M8392103",
+        "name": "John Smith",
+        "email": "john.smith@example.com",
+    },
+    {
+        "id": "m3",
+        "member_id": "M8392104",
+        "name": "Alice Johnson",
+        "email": "alice.johnson@example.com",
+    },
+    {
+        "id": "m4",
+        "member_id": "M8392105",
+        "name": "Bob Lee",
+        "email": "bob.lee@example.com",
+    },
+    {
+        "id": "m5",
+        "member_id": "M8392106",
+        "name": "Maria Garcia",
+        "email": "maria.garcia@example.com",
+    },
+]
 
 def seed():
     # Drop tables (use CASCADE for dependent objects) then re-create metadata
@@ -616,10 +648,20 @@ def seed():
             book = Book(**book_data)
             db.add(book)
 
-        # Seed User
-        print("Seeding user m1...")
-        user = User(id="m1", name="Test User", email="test@example.com")
-        db.add(user)
+        # Seed Users
+        
+
+        print(f"Seeding {len(users_data)} users...")
+        for u in users_data:
+            # password left empty for seeded users (set via auth flow in production)
+            user = User(
+                id=u.get("id"),
+                member_id=u.get("member_id"),
+                name=u.get("name"),
+                email=u.get("email"),
+                password=None,
+            )
+            db.add(user)
 
         # Seed Loans
         print(f"Seeding {len(loans_data)} loans...")
