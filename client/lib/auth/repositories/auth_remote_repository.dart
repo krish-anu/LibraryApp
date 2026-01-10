@@ -73,4 +73,55 @@ class AuthRemoteRepository {
       return Left(AppFailure(e.toString()));
     }
   }
+
+  Future<Either<AppFailure, User>> getUserById(String id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ServerConstant.serverURL}/users/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      final resBodyMap = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode != 200) {
+        return Left(AppFailure(resBodyMap['detail'] ?? 'Failed to fetch user'));
+      }
+
+      // Map server `name` -> client `userName`, token not provided here
+      final userMap = {
+        'userName': resBodyMap['name'] ?? '',
+        'email': resBodyMap['email'] ?? '',
+        'id': resBodyMap['id'] ?? id,
+        'token': '',
+      };
+
+      return Right(User.fromMap(userMap));
+    } catch (e) {
+      return Left(AppFailure(e.toString()));
+    }
+  }
+
+  Future<Either<AppFailure, User>> getUserByMemberId(String memberId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ServerConstant.serverURL}/users/by-member/$memberId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      final resBodyMap = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode != 200) {
+        return Left(AppFailure(resBodyMap['detail'] ?? 'Failed to fetch user'));
+      }
+
+      final userMap = {
+        'userName': resBodyMap['name'] ?? '',
+        'email': resBodyMap['email'] ?? '',
+        'id': resBodyMap['id'] ?? '',
+        'token': '',
+      };
+
+      return Right(User.fromMap(userMap));
+    } catch (e) {
+      return Left(AppFailure(e.toString()));
+    }
+  }
 }

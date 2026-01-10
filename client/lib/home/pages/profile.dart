@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/providers/theme_provider.dart';
+import 'package:libraryapp/core/providers/current_user_notifier.dart';
 import 'package:libraryapp/home/widgets/profile/profile_avatar.dart';
 import 'package:libraryapp/home/widgets/profile/profile_stats.dart';
 import 'package:libraryapp/home/widgets/profile/profile_menu_item.dart';
@@ -19,6 +20,7 @@ class Profile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = ref.watch(isDarkProvider);
+    final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
       backgroundColor: Pallete.scaffoldBackground,
@@ -36,7 +38,7 @@ class Profile extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            _buildProfileHeader(),
+            _buildProfileHeader(currentUser),
             const SizedBox(height: 24),
             const ProfileStats(),
             const SizedBox(height: 24),
@@ -58,35 +60,35 @@ class Profile extends ConsumerWidget {
 
   // AppBar moved to CommonAppBar to reduce duplication across pages.
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(currentUser) {
     return Column(
       children: [
         const ProfileAvatar(imageUrl: _profileImageUrl),
         const SizedBox(height: 16),
-        const Text(
-          "Jane Doe",
-          style: TextStyle(
+        Text(
+          currentUser?.userName ?? "Jane Doe",
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 4),
-        _buildMemberId(),
+        _buildMemberId(currentUser),
         const SizedBox(height: 12),
         _buildActiveBadge(),
       ],
     );
   }
 
-  Widget _buildMemberId() {
+  Widget _buildMemberId(currentUser) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.badge_outlined, color: Pallete.textSecondary, size: 16),
         const SizedBox(width: 4),
         Text(
-          "Member ID: #8392102",
+          "Member ID: ${currentUser?.id ?? '#8392102'}",
           style: TextStyle(color: Pallete.textSecondary, fontSize: 14),
         ),
       ],

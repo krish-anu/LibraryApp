@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from .database import engine
 from .models.base import Base
-from .routers import books, loans, general, category, favorites
+from .routers import books, loans, general, category, favorites, users
 
 
 @asynccontextmanager
@@ -26,3 +26,4 @@ app.include_router(books.router)
 app.include_router(loans.router)
 app.include_router(category.router)
 app.include_router(favorites.router)
+app.include_router(users.router)

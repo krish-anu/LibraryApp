@@ -87,6 +87,38 @@ class AuthViewModel extends _$AuthViewModel {
     return null;
   }
 
+  /// Fetch user by database id and update current user state.
+  Future<User?> fetchUserById(String id) async {
+    state = const AsyncValue.loading();
+    final res = await _authRemoteRepository.getUserById(id);
+    return switch (res) {
+      Left(value: final l) => () {
+        state = AsyncValue.error(l.message, StackTrace.current);
+        return null;
+      }(),
+      Right(value: final user) => () {
+        _getDataSuccess(user);
+        return user;
+      }(),
+    };
+  }
+
+  /// Fetch user by member_id and update current user state.
+  Future<User?> fetchUserByMemberId(String memberId) async {
+    state = const AsyncValue.loading();
+    final res = await _authRemoteRepository.getUserByMemberId(memberId);
+    return switch (res) {
+      Left(value: final l) => () {
+        state = AsyncValue.error(l.message, StackTrace.current);
+        return null;
+      }(),
+      Right(value: final user) => () {
+        _getDataSuccess(user);
+        return user;
+      }(),
+    };
+  }
+
   AsyncValue<User> _getDataSuccess(User user) {
     _currentUserNotifier.addUser(user);
     return state = AsyncValue.data(user);
