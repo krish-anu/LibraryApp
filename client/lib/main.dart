@@ -19,7 +19,7 @@ class MyApp extends ConsumerWidget {
     final isDark = ref.watch(isDarkProvider);
     return MaterialApp(
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-      title: 'Library XYZ',
+      title: 'XYZ Library',
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Pallete.primaryColor,
