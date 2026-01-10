@@ -1,4 +1,3 @@
-
 from .base import Base
 from sqlalchemy import Column, TEXT, NUMERIC, ForeignKey
 from sqlalchemy.orm import relationship
@@ -18,6 +17,7 @@ class Book(Base):
     image = Column(TEXT)
 
     category_rel = relationship("Category", back_populates="books")
+    authors = relationship("Author", secondary="book_author", back_populates="books")
 
     @property
     def category(self):

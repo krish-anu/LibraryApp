@@ -4,6 +4,9 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from .database import engine
 from .models.base import Base
+
+# Import models package to ensure all model modules are loaded and registered with SQLAlchemy
+from . import models  # noqa: F401
 from .routers import books, loans, general, category, favorites, users
 
 
