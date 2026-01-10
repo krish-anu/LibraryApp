@@ -66,28 +66,28 @@ class _SearchState extends ConsumerState<Search> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Pallete.scaffoldBackground,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.maybePop(context),
-      ),
-      title: const Text(
-        "Browse",
-        style: TextStyle(color: Colors.white, fontSize: 18),
-      ),
-      centerTitle: true,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.search, color: Colors.white),
-          onPressed: () =>
-              setState(() => showSearchResults = !showSearchResults),
-        ),
-      ],
-    );
-  }
+  // PreferredSizeWidget _buildAppBar() {
+  //   return AppBar(
+  //     backgroundColor: Pallete.scaffoldBackground,
+  //     elevation: 0,
+  //     leading: IconButton(
+  //       icon: const Icon(Icons.arrow_back, color: Colors.white),
+  //       onPressed: () => Navigator.maybePop(context),
+  //     ),
+  //     title: const Text(
+  //       "Browse",
+  //       style: TextStyle(color: Colors.white, fontSize: 18),
+  //     ),
+  //     centerTitle: true,
+  //     actions: [
+  //       IconButton(
+  //         icon: const Icon(Icons.search, color: Colors.white),
+  //         onPressed: () =>
+  //             setState(() => showSearchResults = !showSearchResults),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildContent(List<Book> books) {
     final categories = books.map((e) => e.category).toSet().toList();
