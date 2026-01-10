@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
+import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
 
 class BookViewAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -20,24 +21,10 @@ class BookViewAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: Pallete.scaffoldBackground,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.maybePop(context),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
+    return CommonAppBar(
+      title: title,
       centerTitle: true,
       actions: [
-        // Favorite button
         if (isLoadingFavorite)
           Container(
             width: 48,

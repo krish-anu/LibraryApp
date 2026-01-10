@@ -7,6 +7,7 @@ import 'package:libraryapp/home/widgets/search/sort_dropdown.dart';
 import 'package:libraryapp/home/widgets/search/search_text_field.dart';
 import 'package:libraryapp/home/widgets/search/genre_grid.dart';
 import 'package:libraryapp/home/widgets/search/search_results_grid.dart';
+import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
 import 'package:libraryapp/models/book.dart';
 
 /// Search page for browsing and filtering books.
@@ -46,7 +47,16 @@ class _SearchState extends ConsumerState<Search> {
 
     return Scaffold(
       backgroundColor: Pallete.scaffoldBackground,
-      appBar: _buildAppBar(),
+      appBar: CommonAppBar(
+        title: 'Browse',
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: () => setState(() => showSearchResults = !showSearchResults),
+          ),
+        ],
+      ),
       body: booksAsync.when(
         data: (books) => _buildContent(books),
         error: (err, stack) => _buildError(err.toString()),

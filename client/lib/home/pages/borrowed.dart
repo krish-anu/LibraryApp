@@ -7,6 +7,7 @@ import 'package:libraryapp/data/repository/loan_repository.dart';
 import 'package:libraryapp/home/widgets/borrowed/borrowed_book_card.dart';
 import 'package:libraryapp/home/widgets/borrowed/borrowed_stats.dart';
 import 'package:libraryapp/home/widgets/borrowed/borrowed_empty_state.dart';
+import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
 import 'package:libraryapp/models/book.dart';
 import 'package:libraryapp/models/loan.dart';
 
@@ -26,7 +27,18 @@ class _BorrowedState extends ConsumerState<Borrowed> {
 
     return Scaffold(
       backgroundColor: Pallete.scaffoldBackground,
-      appBar: _buildAppBar(context),
+      appBar: CommonAppBar(
+        title: 'My Books',
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () {
+              ref.invalidate(fetchAllLoansProvider);
+            },
+          ),
+        ],
+      ),
       body: loansAsync.when(
         data: (loans) => booksAsync.when(
           data: (books) => _buildContent(context, loans, books),
@@ -39,33 +51,7 @@ class _BorrowedState extends ConsumerState<Borrowed> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: Pallete.scaffoldBackground,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.maybePop(context),
-      ),
-      title: const Text(
-        "My Books",
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      centerTitle: true,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.refresh, color: Colors.white),
-          onPressed: () {
-            ref.invalidate(fetchAllLoansProvider);
-          },
-        ),
-      ],
-    );
-  }
+  // AppBar replaced by CommonAppBar to centralize styling and behavior.
 
   Widget _buildContent(
     BuildContext context,

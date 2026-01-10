@@ -7,6 +7,7 @@ import 'package:libraryapp/home/widgets/profile/profile_stats.dart';
 import 'package:libraryapp/home/widgets/profile/profile_menu_item.dart';
 import 'package:libraryapp/home/widgets/profile/profile_toggle_item.dart';
 import 'package:libraryapp/home/widgets/profile/profile_section_title.dart';
+import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
 
 /// User profile page with settings and preferences.
 class Profile extends ConsumerWidget {
@@ -21,7 +22,19 @@ class Profile extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Pallete.scaffoldBackground,
-      appBar: _buildAppBar(),
+      appBar: const CommonAppBar(
+        title: 'Profile',
+        centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: null,
+            child: Text(
+              'Edit',
+              style: TextStyle(color: Pallete.primaryLight),
+            ),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -46,32 +59,7 @@ class Profile extends ConsumerWidget {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Pallete.scaffoldBackground,
-      elevation: 0,
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-      ),
-      title: const Text(
-        "Profile",
-        style: TextStyle(color: Colors.white, fontSize: 18),
-      ),
-      centerTitle: true,
-      actions: [
-        TextButton(
-          onPressed: () {},
-          child: const Text(
-            "Edit",
-            style: TextStyle(color: Pallete.primaryLight),
-          ),
-        ),
-      ],
-    );
-  }
+  // AppBar moved to CommonAppBar to reduce duplication across pages.
 
   Widget _buildProfileHeader() {
     return Column(
