@@ -53,7 +53,8 @@ class _SearchState extends ConsumerState<Search> {
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () => setState(() => showSearchResults = !showSearchResults),
+            onPressed: () =>
+                setState(() => showSearchResults = !showSearchResults),
           ),
         ],
       ),

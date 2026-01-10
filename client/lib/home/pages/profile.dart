@@ -28,10 +28,7 @@ class Profile extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: null,
-            child: Text(
-              'Edit',
-              style: TextStyle(color: Pallete.primaryLight),
-            ),
+            child: Text('Edit', style: TextStyle(color: Pallete.primaryLight)),
           ),
         ],
       ),
