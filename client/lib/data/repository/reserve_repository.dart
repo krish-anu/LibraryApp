@@ -14,6 +14,16 @@ ReserveRepository reserveRepository(Ref ref) {
   return ReserveRepository();
 }
 
+@riverpod
+Future<List<Reserve>> fetchReservationsByMember(
+  Ref ref,
+  String memberId,
+) async {
+  final repository = ref.watch(reserveRepositoryProvider);
+  final res = await repository.getReservedByMember(memberId);
+  return res.fold((l) => [], (r) => r);
+}
+
 class ReserveRepository {
   Future<Either<AppFailure, List<Reserve>>> getAllReservedBooks() async {
     try {

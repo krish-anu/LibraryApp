@@ -4,12 +4,15 @@ import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
 import 'package:libraryapp/data/repository/book_repository.dart';
 import 'package:libraryapp/data/repository/loan_repository.dart';
+import 'package:libraryapp/data/repository/reserve_repository.dart';
 import 'package:libraryapp/home/widgets/borrowed/borrowed_book_card.dart';
 import 'package:libraryapp/home/widgets/borrowed/borrowed_stats.dart';
 import 'package:libraryapp/home/widgets/borrowed/borrowed_empty_state.dart';
+import 'package:libraryapp/home/widgets/borrowed/reserved_book_card.dart';
 import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
 import 'package:libraryapp/models/book.dart';
 import 'package:libraryapp/models/loan.dart';
+import 'package:libraryapp/models/reserve.dart';
 
 /// Page displaying user's borrowed books with loan information.
 class Borrowed extends ConsumerStatefulWidget {
@@ -19,12 +22,24 @@ class Borrowed extends ConsumerStatefulWidget {
   ConsumerState<Borrowed> createState() => _BorrowedState();
 }
 
-class _BorrowedState extends ConsumerState<Borrowed> {
+class _BorrowedState extends ConsumerState<Borrowed>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final loansAsync = ref.watch(fetchAllLoansProvider);
-    final booksAsync = ref.watch(fetchAllBooksProvider);
-
     return Scaffold(
       backgroundColor: Pallete.scaffoldBackground,
       appBar: CommonAppBar(
@@ -35,25 +50,61 @@ class _BorrowedState extends ConsumerState<Borrowed> {
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () {
               ref.invalidate(fetchAllLoansProvider);
+              ref.invalidate(fetchReservationsByMemberProvider('m1'));
             },
           ),
         ],
-      ),
-      body: loansAsync.when(
-        data: (loans) => booksAsync.when(
-          data: (books) => _buildContent(context, loans, books),
-          error: (err, _) => _buildError('Error loading books: $err'),
-          loading: () => _buildLoading(),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Pallete.primaryLight,
+          labelColor: Pallete.primaryLight,
+          unselectedLabelColor: Pallete.textSecondary,
+          tabs: const [
+            Tab(text: 'Borrowed'),
+            Tab(text: 'Reserved'),
+          ],
         ),
-        error: (err, _) => _buildError('Error loading loans: $err'),
-        loading: () => _buildLoading(),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [_buildBorrowedTab(), _buildReservedTab()],
       ),
     );
   }
 
-  // AppBar replaced by CommonAppBar to centralize styling and behavior.
+  Widget _buildBorrowedTab() {
+    final loansAsync = ref.watch(fetchAllLoansProvider);
+    final booksAsync = ref.watch(fetchAllBooksProvider);
 
-  Widget _buildContent(
+    return loansAsync.when(
+      data: (loans) => booksAsync.when(
+        data: (books) => _buildBorrowedContent(context, loans, books),
+        error: (err, _) => _buildError('Error loading books: $err'),
+        loading: () => _buildLoading(),
+      ),
+      error: (err, _) => _buildError('Error loading loans: $err'),
+      loading: () => _buildLoading(),
+    );
+  }
+
+  Widget _buildReservedTab() {
+    final reservationsAsync = ref.watch(
+      fetchReservationsByMemberProvider('m1'),
+    );
+    final booksAsync = ref.watch(fetchAllBooksProvider);
+
+    return reservationsAsync.when(
+      data: (reservations) => booksAsync.when(
+        data: (books) => _buildReservedContent(context, reservations, books),
+        error: (err, _) => _buildError('Error loading books: $err'),
+        loading: () => _buildLoading(),
+      ),
+      error: (err, _) => _buildError('Error loading reservations: $err'),
+      loading: () => _buildLoading(),
+    );
+  }
+
+  Widget _buildBorrowedContent(
     BuildContext context,
     List<Loan> loans,
     List<Book> books,
@@ -166,6 +217,105 @@ class _BorrowedState extends ConsumerState<Borrowed> {
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
+    );
+  }
+
+  Widget _buildReservedContent(
+    BuildContext context,
+    List<Reserve> reservations,
+    List<Book> books,
+  ) {
+    if (reservations.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.bookmark_border,
+              size: 64,
+              color: Pallete.textSecondary.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No Reserved Books',
+              style: TextStyle(
+                color: Pallete.textSecondary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Books you reserve will appear here',
+              style: TextStyle(
+                color: Pallete.textSecondary.withOpacity(0.7),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: reservations.length,
+      itemBuilder: (context, index) {
+        final reservation = reservations[index];
+        final book = books.firstWhere(
+          (b) => b.id == reservation.bookId,
+          orElse: () => books.first,
+        );
+        return ReservedBookCard(
+          book: book,
+          reservationDate: reservation.reservationDate,
+          status: reservation.status,
+          onTap: () => _navigateToBookView(context, book),
+          onCancel: () => _showCancelReservationDialog(context, reservation),
+        );
+      },
+    );
+  }
+
+  void _showCancelReservationDialog(BuildContext context, Reserve reservation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Pallete.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Cancel Reservation',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Are you sure you want to cancel this reservation?',
+          style: TextStyle(color: Pallete.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Keep', style: TextStyle(color: Pallete.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // TODO: Implement cancel reservation API
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Reservation cancelled'),
+                  backgroundColor: Pallete.primaryLight,
+                ),
+              );
+              ref.invalidate(fetchReservationsByMemberProvider('m1'));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Pallete.error),
+            child: const Text(
+              'Cancel Reservation',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

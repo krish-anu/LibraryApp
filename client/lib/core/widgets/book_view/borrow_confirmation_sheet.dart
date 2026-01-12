@@ -1,15 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/utils/image_helper.dart';
+import 'package:libraryapp/data/repository/book_repository.dart';
+import 'package:libraryapp/data/repository/loan_repository.dart';
+import 'package:libraryapp/data/repository/reserve_repository.dart';
 import 'package:libraryapp/models/book.dart';
+import 'package:libraryapp/models/reserve.dart';
 
-class BorrowConfirmationSheet extends StatelessWidget {
+class BorrowConfirmationSheet extends ConsumerStatefulWidget {
   final Book book;
 
   const BorrowConfirmationSheet({super.key, required this.book});
 
   @override
+  ConsumerState<BorrowConfirmationSheet> createState() =>
+      _BorrowConfirmationSheetState();
+}
+
+class _BorrowConfirmationSheetState
+    extends ConsumerState<BorrowConfirmationSheet> {
+  bool _isLoading = false;
+
+  @override
   Widget build(BuildContext context) {
+    final isAvailable = widget.book.copiesOwned > 0;
     final returnDate = DateTime.now().add(const Duration(days: 14));
     final dateStr =
         '${_monthName(returnDate.month)} ${returnDate.day}, ${returnDate.year}';
@@ -27,17 +42,21 @@ class BorrowConfirmationSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const _ReadyToBorrowBadge(),
+          _ReadyToBorrowBadge(isAvailable: isAvailable),
           const SizedBox(height: 20),
-          const _SheetTitle(),
+          _SheetTitle(isAvailable: isAvailable),
           const SizedBox(height: 24),
-          _BookInfoCard(book: book),
+          _BookInfoCard(book: widget.book),
           const SizedBox(height: 20),
-          _LoanDetailsRow(dateStr: dateStr),
+          _LoanDetailsRow(dateStr: dateStr, isAvailable: isAvailable),
           const SizedBox(height: 20),
-          const _WarningNote(),
+          _WarningNote(isAvailable: isAvailable),
           const SizedBox(height: 24),
-          _ConfirmButton(onPressed: () => _onConfirm(context)),
+          _ConfirmButton(
+            isAvailable: isAvailable,
+            isLoading: _isLoading,
+            onPressed: () => _onConfirm(context, isAvailable),
+          ),
           const SizedBox(height: 12),
           _CancelButton(onPressed: () => Navigator.pop(context)),
           const SizedBox(height: 8),
@@ -46,14 +65,76 @@ class BorrowConfirmationSheet extends StatelessWidget {
     );
   }
 
-  void _onConfirm(BuildContext context) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Book borrowed successfully!'),
-        backgroundColor: Pallete.primaryLight,
-      ),
-    );
+  Future<void> _onConfirm(BuildContext context, bool isAvailable) async {
+    setState(() => _isLoading = true);
+
+    if (isAvailable) {
+      // Borrow the book
+      final loanRepo = ref.read(loanRepositoryProvider);
+      final result = await loanRepo.borrowBook(widget.book.id, 'm1');
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        result.fold(
+          (failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to borrow: ${failure.message}'),
+                backgroundColor: Pallete.error,
+              ),
+            );
+          },
+          (loan) {
+            // Refresh providers
+            ref.invalidate(fetchAllLoansProvider);
+            ref.invalidate(fetchAllBooksProvider);
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Book borrowed successfully!'),
+                backgroundColor: Pallete.primaryLight,
+              ),
+            );
+          },
+        );
+      }
+    } else {
+      // Reserve the book
+      final reserveRepo = ref.read(reserveRepositoryProvider);
+      final reservation = Reserve(
+        id: '',
+        bookId: widget.book.id,
+        memberId: 'm1',
+        reservationDate: DateTime.now().toIso8601String().split('T')[0],
+        status: 'pending',
+      );
+      final result = await reserveRepo.addReserve(reservation);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        result.fold(
+          (failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to reserve: ${failure.message}'),
+                backgroundColor: Pallete.error,
+              ),
+            );
+          },
+          (reserve) {
+            // Refresh providers
+            ref.invalidate(fetchReservationsByMemberProvider('m1'));
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Book reserved successfully!'),
+                backgroundColor: Pallete.primaryLight,
+              ),
+            );
+          },
+        );
+      }
+    }
   }
 
   String _monthName(int month) {
@@ -76,7 +157,9 @@ class BorrowConfirmationSheet extends StatelessWidget {
 }
 
 class _ReadyToBorrowBadge extends StatelessWidget {
-  const _ReadyToBorrowBadge();
+  final bool isAvailable;
+
+  const _ReadyToBorrowBadge({required this.isAvailable});
 
   @override
   Widget build(BuildContext context) {
@@ -84,19 +167,27 @@ class _ReadyToBorrowBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         // ignore: deprecated_member_use
-        color: Pallete.primaryLight.withOpacity(0.2),
+        color: (isAvailable ? Pallete.primaryLight : Colors.orange).withOpacity(
+          0.2,
+        ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Pallete.primaryLight),
+        border: Border.all(
+          color: isAvailable ? Pallete.primaryLight : Colors.orange,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle, color: Pallete.primaryLight, size: 16),
+          Icon(
+            isAvailable ? Icons.check_circle : Icons.schedule,
+            color: isAvailable ? Pallete.primaryLight : Colors.orange,
+            size: 16,
+          ),
           const SizedBox(width: 6),
-          const Text(
-            'READY TO BORROW',
+          Text(
+            isAvailable ? 'READY TO BORROW' : 'RESERVE THIS BOOK',
             style: TextStyle(
-              color: Pallete.primaryLight,
+              color: isAvailable ? Pallete.primaryLight : Colors.orange,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 1,
@@ -109,13 +200,15 @@ class _ReadyToBorrowBadge extends StatelessWidget {
 }
 
 class _SheetTitle extends StatelessWidget {
-  const _SheetTitle();
+  final bool isAvailable;
+
+  const _SheetTitle({required this.isAvailable});
 
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      'Confirm Request',
-      style: TextStyle(
+    return Text(
+      isAvailable ? 'Confirm Borrow' : 'Confirm Reservation',
+      style: const TextStyle(
         color: Colors.white,
         fontSize: 24,
         fontWeight: FontWeight.bold,
@@ -211,8 +304,9 @@ class _SmallChip extends StatelessWidget {
 
 class _LoanDetailsRow extends StatelessWidget {
   final String dateStr;
+  final bool isAvailable;
 
-  const _LoanDetailsRow({required this.dateStr});
+  const _LoanDetailsRow({required this.dateStr, required this.isAvailable});
 
   @override
   Widget build(BuildContext context) {
@@ -221,18 +315,18 @@ class _LoanDetailsRow extends StatelessWidget {
         Expanded(
           child: _InfoCard(
             icon: Icons.calendar_today,
-            title: 'RETURN BY',
+            title: isAvailable ? 'RETURN BY' : 'RESERVED ON',
             value: dateStr,
-            subtitle: '14 days loan period',
+            subtitle: isAvailable ? '14 days loan period' : 'Queue position: 1',
           ),
         ),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: _InfoCard(
-            icon: Icons.attach_money,
-            title: 'LATE FEE',
-            value: '\$0.25/day',
-            subtitle: 'After due date',
+            icon: isAvailable ? Icons.attach_money : Icons.notifications,
+            title: isAvailable ? 'LATE FEE' : 'NOTIFICATION',
+            value: isAvailable ? '\$0.25/day' : 'Email',
+            subtitle: isAvailable ? 'After due date' : 'When book is available',
           ),
         ),
       ],
@@ -309,7 +403,9 @@ class _InfoCard extends StatelessWidget {
 }
 
 class _WarningNote extends StatelessWidget {
-  const _WarningNote();
+  final bool isAvailable;
+
+  const _WarningNote({required this.isAvailable});
 
   @override
   Widget build(BuildContext context) {
@@ -328,7 +424,9 @@ class _WarningNote extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Note: Items not picked up within 48 hours of reservation approval will be released to the next person in queue.',
+              isAvailable
+                  ? 'Note: Items not picked up within 48 hours of reservation approval will be released to the next person in queue.'
+                  : 'Note: You will be notified when this book becomes available. Your reservation will be held for 48 hours.',
               style: TextStyle(
                 color: Pallete.warning,
                 fontSize: 11,
@@ -343,38 +441,57 @@ class _WarningNote extends StatelessWidget {
 }
 
 class _ConfirmButton extends StatelessWidget {
+  final bool isAvailable;
+  final bool isLoading;
   final VoidCallback onPressed;
 
-  const _ConfirmButton({required this.onPressed});
+  const _ConfirmButton({
+    required this.isAvailable,
+    required this.isLoading,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Pallete.primaryLight,
+          backgroundColor: isAvailable ? Pallete.primaryLight : Colors.orange,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Confirm Borrow',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.black,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    isAvailable ? 'Confirm Borrow' : 'Confirm Reservation',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward,
+                    color: Colors.black,
+                    size: 20,
+                  ),
+                ],
               ),
-            ),
-            SizedBox(width: 8),
-            Icon(Icons.arrow_forward, color: Colors.black, size: 20),
-          ],
-        ),
       ),
     );
   }
