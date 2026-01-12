@@ -47,7 +47,8 @@ class Reserve {
 
   String toJson() => json.encode(toMap());
 
-  factory Reserve.fromJson(String source) => Reserve.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory Reserve.fromJson(String source) =>
+      Reserve.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
@@ -57,19 +58,18 @@ class Reserve {
   @override
   bool operator ==(covariant Reserve other) {
     if (identical(this, other)) return true;
-  
-    return 
-      other.id == id &&
-      other.bookId == bookId &&
-      other.reservationDate == reservationDate &&
-      other.status == status;
+
+    return other.id == id &&
+        other.bookId == bookId &&
+        other.reservationDate == reservationDate &&
+        other.status == status;
   }
 
   @override
   int get hashCode {
     return id.hashCode ^
-      bookId.hashCode ^
-      reservationDate.hashCode ^
-      status.hashCode;
+        bookId.hashCode ^
+        reservationDate.hashCode ^
+        status.hashCode;
   }
 }
