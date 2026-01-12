@@ -12,9 +12,9 @@ class CategoryChips extends StatelessWidget {
       child: Wrap(
         spacing: 8,
         children: [
-          _CategoryChip(label: 'Classic'),
+          // _CategoryChip(label: 'Classic'),
           _CategoryChip(label: category),
-          _CategoryChip(label: 'American Lit'),
+          // _CategoryChip(label: 'American Lit'),
         ],
       ),
     );
