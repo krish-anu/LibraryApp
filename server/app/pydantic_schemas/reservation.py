@@ -21,7 +21,7 @@ class Reservation(BaseModel):
     reservation_date: Optional[date] = None
     status: Optional[str] = None
 
-    @field_serializer('reservation_date')
+    @field_serializer("reservation_date")
     def serialize_date(self, value: date | None) -> str | None:
         if value is None:
             return None
