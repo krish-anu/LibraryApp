@@ -42,6 +42,9 @@ class BookRepository {
             publicationYear: e['publication_year'] as int? ?? 0,
             copiesOwned: e['copies_owned'] as int? ?? 0,
             image: e['image']?.toString() ?? 'https://via.placeholder.com/150',
+            language: e['language']?.toString() ?? 'English',
+            pages: e['pages'] as int? ?? 200,
+            ratingCount: e['rating_count'] as int? ?? 0,
           );
         }).toList();
         return right(books);

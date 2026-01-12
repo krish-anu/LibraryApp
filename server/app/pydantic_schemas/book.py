@@ -11,6 +11,9 @@ class BookBase(BaseModel):
     publication_year: int
     copies_owned: int
     image: str
+    language: str = "English"
+    pages: int = 200
+    rating_count: int = 0
 
 
 class BookCreate(BookBase):

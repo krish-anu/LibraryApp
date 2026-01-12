@@ -11,6 +11,9 @@ class Book {
   final int publicationYear;
   final int copiesOwned;
   final String image;
+  final String language;
+  final int pages;
+  final int ratingCount;
   Book({
     required this.id,
     required this.title,
@@ -21,6 +24,9 @@ class Book {
     required this.publicationYear,
     required this.copiesOwned,
     required this.image,
+    this.language = "English",
+    this.pages = 200,
+    this.ratingCount = 0,
   });
 
   Book copyWith({
@@ -33,6 +39,9 @@ class Book {
     int? publicationYear,
     int? copiesOwned,
     String? image,
+    String? language,
+    int? pages,
+    int? ratingCount,
   }) {
     return Book(
       id: id ?? this.id,
@@ -44,6 +53,9 @@ class Book {
       publicationYear: publicationYear ?? this.publicationYear,
       copiesOwned: copiesOwned ?? this.copiesOwned,
       image: image ?? this.image,
+      language: language ?? this.language,
+      pages: pages ?? this.pages,
+      ratingCount: ratingCount ?? this.ratingCount,
     );
   }
 
@@ -58,6 +70,9 @@ class Book {
       'publicationYear': publicationYear,
       'copiesOwned': copiesOwned,
       'image': image,
+      'language': language,
+      'pages': pages,
+      'ratingCount': ratingCount,
     };
   }
 
@@ -72,6 +87,9 @@ class Book {
       publicationYear: map['publicationYear'] as int,
       copiesOwned: map['copiesOwned'] as int,
       image: map['image'] as String,
+      language: (map['language'] as String?) ?? "English",
+      pages: (map['pages'] as int?) ?? 200,
+      ratingCount: (map['ratingCount'] as int?) ?? 0,
     );
   }
 
@@ -82,7 +100,7 @@ class Book {
 
   @override
   String toString() {
-    return 'Book(id: $id, title: $title, author: $author, category: $category, description: $description, rating: $rating, publicationYear: $publicationYear, copiesOwned: $copiesOwned, image: $image)';
+    return 'Book(id: $id, title: $title, author: $author, category: $category, description: $description, rating: $rating, publicationYear: $publicationYear, copiesOwned: $copiesOwned, image: $image, language: $language, pages: $pages, ratingCount: $ratingCount)';
   }
 
   @override
@@ -97,7 +115,10 @@ class Book {
         other.rating == rating &&
         other.publicationYear == publicationYear &&
         other.copiesOwned == copiesOwned &&
-        other.image == image;
+        other.image == image &&
+        other.language == language &&
+        other.pages == pages &&
+        other.ratingCount == ratingCount;
   }
 
   @override
@@ -110,6 +131,9 @@ class Book {
         rating.hashCode ^
         publicationYear.hashCode ^
         copiesOwned.hashCode ^
-        image.hashCode;
+        image.hashCode ^
+        language.hashCode ^
+        pages.hashCode ^
+        ratingCount.hashCode;
   }
 }

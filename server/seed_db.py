@@ -77,6 +77,9 @@ books_data = [
         "publication_year": 2008,
         "copies_owned": 0,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 464,
+        "rating_count": 12500,
     },
     {
         "id": "2",
@@ -88,6 +91,9 @@ books_data = [
         "publication_year": 2019,
         "copies_owned": 0,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 368,
+        "rating_count": 890,
     },
     {
         "id": "3",
@@ -99,6 +105,9 @@ books_data = [
         "publication_year": 2011,
         "copies_owned": 4,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 443,
+        "rating_count": 45200,
     },
     {
         "id": "4",
@@ -110,6 +119,9 @@ books_data = [
         "publication_year": 1988,
         "copies_owned": 1,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 212,
+        "rating_count": 38700,
     },
     {
         "id": "5",
@@ -121,6 +133,9 @@ books_data = [
         "publication_year": 1988,
         "copies_owned": 5,
         "image": "client/assets/book/book_cover.webp",
+        "language": "Portuguese",
+        "pages": 197,
+        "rating_count": 98500,
     },
     {
         "id": "6",
@@ -132,6 +147,9 @@ books_data = [
         "publication_year": 2017,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 432,
+        "rating_count": 8900,
     },
     {
         "id": "7",
@@ -143,6 +161,9 @@ books_data = [
         "publication_year": 2020,
         "copies_owned": 6,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 324,
+        "rating_count": 1250,
     },
     {
         "id": "8",
@@ -154,6 +175,9 @@ books_data = [
         "publication_year": 2015,
         "copies_owned": 2,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 450,
+        "rating_count": 28300,
     },
     {
         "id": "9",
@@ -165,6 +189,9 @@ books_data = [
         "publication_year": 2001,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 224,
+        "rating_count": 15600,
     },
     {
         "id": "10",
@@ -176,6 +203,9 @@ books_data = [
         "publication_year": 2003,
         "copies_owned": 4,
         "image": "client/assets/book/book_cover.webp",
+        "language": "Portuguese",
+        "pages": 273,
+        "rating_count": 21400,
     },
     {
         "id": "11",
@@ -187,6 +217,9 @@ books_data = [
         "publication_year": 1999,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 448,
+        "rating_count": 9800,
     },
     {
         "id": "12",
@@ -198,6 +231,9 @@ books_data = [
         "publication_year": 1994,
         "copies_owned": 5,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 395,
+        "rating_count": 14200,
     },
     {
         "id": "13",
@@ -209,6 +245,9 @@ books_data = [
         "publication_year": 1999,
         "copies_owned": 4,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 352,
+        "rating_count": 18700,
     },
     {
         "id": "14",
@@ -220,6 +259,9 @@ books_data = [
         "publication_year": 2009,
         "copies_owned": 2,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 1312,
+        "rating_count": 7800,
     },
     {
         "id": "15",
@@ -231,6 +273,9 @@ books_data = [
         "publication_year": 2017,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 416,
+        "rating_count": 11200,
     },
     {
         "id": "16",
@@ -242,6 +287,9 @@ books_data = [
         "publication_year": 1949,
         "copies_owned": 6,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 328,
+        "rating_count": 67500,
     },
     {
         "id": "17",
@@ -253,6 +301,9 @@ books_data = [
         "publication_year": 1960,
         "copies_owned": 5,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 376,
+        "rating_count": 95300,
     },
     {
         "id": "18",
@@ -264,6 +315,9 @@ books_data = [
         "publication_year": 1925,
         "copies_owned": 4,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 180,
+        "rating_count": 54200,
     },
     {
         "id": "19",
@@ -275,6 +329,9 @@ books_data = [
         "publication_year": 1813,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 432,
+        "rating_count": 48900,
     },
     {
         "id": "20",
@@ -286,6 +343,9 @@ books_data = [
         "publication_year": 1951,
         "copies_owned": 2,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 277,
+        "rating_count": 32100,
     },
     {
         "id": "21",
@@ -297,6 +357,9 @@ books_data = [
         "publication_year": 1980,
         "copies_owned": 4,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 365,
+        "rating_count": 29800,
     },
     {
         "id": "22",
@@ -308,6 +371,9 @@ books_data = [
         "publication_year": 1976,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 544,
+        "rating_count": 25600,
     },
     {
         "id": "23",
@@ -319,6 +385,9 @@ books_data = [
         "publication_year": 1962,
         "copies_owned": 2,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 400,
+        "rating_count": 18400,
     },
     {
         "id": "24",
@@ -330,6 +399,9 @@ books_data = [
         "publication_year": 2011,
         "copies_owned": 5,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 499,
+        "rating_count": 42100,
     },
     {
         "id": "25",
@@ -341,6 +413,9 @@ books_data = [
         "publication_year": 1997,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 528,
+        "rating_count": 35700,
     },
     {
         "id": "26",
@@ -352,6 +427,9 @@ books_data = [
         "publication_year": 2015,
         "copies_owned": 4,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 636,
+        "rating_count": 19200,
     },
     {
         "id": "27",
@@ -363,6 +441,9 @@ books_data = [
         "publication_year": 2005,
         "copies_owned": 2,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 541,
+        "rating_count": 12800,
     },
     {
         "id": "28",
@@ -374,6 +455,9 @@ books_data = [
         "publication_year": 2011,
         "copies_owned": 5,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 656,
+        "rating_count": 56400,
     },
     {
         "id": "29",
@@ -385,6 +469,9 @@ books_data = [
         "publicationYear": 2007,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 704,
+        "rating_count": 38900,
     },
     {
         "id": "30",
@@ -396,6 +483,9 @@ books_data = [
         "publication_year": 1947,
         "copies_owned": 6,
         "image": "client/assets/book/book_cover.webp",
+        "language": "Dutch",
+        "pages": 283,
+        "rating_count": 72300,
     },
     {
         "id": "31",
@@ -407,6 +497,9 @@ books_data = [
         "publication_year": 1994,
         "copies_owned": 4,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 656,
+        "rating_count": 31500,
     },
     {
         "id": "32",
@@ -418,6 +511,9 @@ books_data = [
         "publication_year": 1965,
         "copies_owned": 5,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 688,
+        "rating_count": 87600,
     },
     {
         "id": "33",
@@ -429,6 +525,9 @@ books_data = [
         "publication_year": 1984,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 271,
+        "rating_count": 23400,
     },
     {
         "id": "34",
@@ -440,6 +539,9 @@ books_data = [
         "publication_year": 1951,
         "copies_owned": 4,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 244,
+        "rating_count": 45800,
     },
     {
         "id": "35",
@@ -451,6 +553,9 @@ books_data = [
         "publication_year": 1985,
         "copies_owned": 5,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 324,
+        "rating_count": 62100,
     },
     {
         "id": "36",
@@ -462,6 +567,9 @@ books_data = [
         "publication_year": 1937,
         "copies_owned": 6,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 310,
+        "rating_count": 115000,
     },
     {
         "id": "37",
@@ -473,6 +581,9 @@ books_data = [
         "publication_year": 1997,
         "copies_owned": 8,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 309,
+        "rating_count": 145000,
     },
     {
         "id": "38",
@@ -484,6 +595,9 @@ books_data = [
         "publication_year": 1954,
         "copies_owned": 7,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 1178,
+        "rating_count": 98700,
     },
     {
         "id": "39",
@@ -495,6 +609,9 @@ books_data = [
         "publication_year": 2003,
         "copiesOwned": 4,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 489,
+        "rating_count": 68400,
     },
     {
         "id": "40",
@@ -506,6 +623,9 @@ books_data = [
         "publication_year": 2012,
         "copies_owned": 3,
         "image": "client/assets/book/book_cover.webp",
+        "language": "English",
+        "pages": 415,
+        "rating_count": 52300,
     },
 ]
 

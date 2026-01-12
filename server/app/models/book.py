@@ -15,6 +15,9 @@ class Book(Base):
     publication_year = Column(NUMERIC)
     copies_owned = Column(NUMERIC)
     image = Column(TEXT)
+    language = Column(TEXT, default="English")
+    pages = Column(NUMERIC, default=200)
+    rating_count = Column(NUMERIC, default=0)
 
     category_rel = relationship("Category", back_populates="books")
     authors = relationship("Author", secondary="book_author", back_populates="books")

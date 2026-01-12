@@ -5,12 +5,18 @@ class BookInfoSection extends StatelessWidget {
   final String title;
   final String author;
   final double rating;
+  final int ratingCount;
+  final int pages;
+  final String language;
 
   const BookInfoSection({
     super.key,
     required this.title,
     required this.author,
     required this.rating,
+    this.ratingCount = 0,
+    this.pages = 200,
+    this.language = "English",
   });
 
   @override
@@ -44,6 +50,14 @@ class BookInfoSection extends StatelessWidget {
   }
 
   Widget _buildStatsRow() {
+    // Format rating count (e.g., 12500 -> "12.5k")
+    String formatRatingCount(int count) {
+      if (count >= 1000) {
+        return '${(count / 1000).toStringAsFixed(1)}k';
+      }
+      return count.toString();
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Row(
@@ -53,19 +67,19 @@ class BookInfoSection extends StatelessWidget {
             icon: Icons.star,
             iconColor: Colors.amber,
             value: '$rating',
-            label: '(1.2k)',
+            label: '(${formatRatingCount(ratingCount)})',
           ),
           const _Divider(),
-          const _InfoItem(
+          _InfoItem(
             icon: Icons.menu_book,
             iconColor: Pallete.textSecondary,
-            value: '208 Pages',
+            value: '$pages Pages',
           ),
           const _Divider(),
-          const _InfoItem(
+          _InfoItem(
             icon: Icons.language,
             iconColor: Pallete.textSecondary,
-            value: 'English',
+            value: language,
           ),
         ],
       ),
