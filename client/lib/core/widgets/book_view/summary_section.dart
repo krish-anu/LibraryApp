@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
-import 'package:libraryapp/core/widgets/book_view/review_card.dart';
+// import 'package:libraryapp/core/widgets/book_view/review_card.dart';
 
 class SummarySection extends StatelessWidget {
   final String description;
@@ -46,7 +46,7 @@ class SummarySection extends StatelessWidget {
           const SizedBox(height: 24),
           _BorrowButton(isAvailable: isAvailable, onPressed: onBorrowPressed),
           const SizedBox(height: 24),
-          const _ReviewsSection(),
+          // const _ReviewsSection(),
           const SizedBox(height: 20),
         ],
       ),
@@ -87,58 +87,58 @@ class _BorrowButton extends StatelessWidget {
   }
 }
 
-class _ReviewsSection extends StatelessWidget {
-  const _ReviewsSection();
+// class _ReviewsSection extends StatelessWidget {
+//   const _ReviewsSection();
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Reviews',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            TextButton(
-              onPressed: () {},
-              child: const Text(
-                'View All',
-                style: TextStyle(color: Pallete.primaryLight),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 140,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: const [
-              ReviewCard(
-                name: 'Sarah M.',
-                rating: 5,
-                review:
-                    'An absolute masterpiece. Fitzgerald\'s prose is poetic and the symbolism is rich. A must-read for anyone who loves...',
-                timeAgo: '2 days ago',
-              ),
-              SizedBox(width: 12),
-              ReviewCard(
-                name: 'John D.',
-                rating: 4,
-                review:
-                    'Great story! The ending is touching. Highly recommend.',
-                timeAgo: '1 week ago',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       children: [
+//         Row(
+//           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//           children: [
+//             const Text(
+//               'Reviews',
+//               style: TextStyle(
+//                 color: Colors.white,
+//                 fontSize: 18,
+//                 fontWeight: FontWeight.bold,
+//               ),
+//             ),
+//             TextButton(
+//               onPressed: () {},
+//               child: const Text(
+//                 'View All',
+//                 style: TextStyle(color: Pallete.primaryLight),
+//               ),
+//             ),
+//           ],
+//         ),
+//         const SizedBox(height: 12),
+//         SizedBox(
+//           height: 140,
+//           child: ListView(
+//             scrollDirection: Axis.horizontal,
+//             children: const [
+//               ReviewCard(
+//                 name: 'Sarah M.',
+//                 rating: 5,
+//                 review:
+//                     'An absolute masterpiece. Fitzgerald\'s prose is poetic and the symbolism is rich. A must-read for anyone who loves...',
+//                 timeAgo: '2 days ago',
+//               ),
+//               SizedBox(width: 12),
+//               ReviewCard(
+//                 name: 'John D.',
+//                 rating: 4,
+//                 review:
+//                     'Great story! The ending is touching. Highly recommend.',
+//                 timeAgo: '1 week ago',
+//               ),
+//             ],
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+// }
