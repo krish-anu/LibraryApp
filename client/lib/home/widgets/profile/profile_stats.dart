@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
+import 'package:libraryapp/models/profile_stats.dart' as model;
 
 /// Statistics row displaying user activity metrics.
 class ProfileStats extends StatelessWidget {
-  final int borrows;
-  final int read;
-  final String fines;
+  final model.ProfileStats? stats;
 
-  const ProfileStats({
-    super.key,
-    this.borrows = 3,
-    this.read = 42,
-    this.fines = '\$0.00',
-  });
+  const ProfileStats({super.key, this.stats});
 
   @override
   Widget build(BuildContext context) {
+    final displayStats = stats ?? model.ProfileStats();
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -23,26 +19,50 @@ class ProfileStats extends StatelessWidget {
         color: Pallete.cardBackground,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Column(
         children: [
-          _buildStatItem(
-            Icons.menu_book,
-            borrows.toString(),
-            "BORROWS",
-            Pallete.primaryLight,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatItem(
+                Icons.menu_book,
+                displayStats.activeLoans.toString(),
+                "BORROWS",
+                Pallete.primaryLight,
+              ),
+              _buildStatItem(
+                Icons.history,
+                displayStats.booksRead.toString(),
+                "READ",
+                Pallete.textSecondary,
+              ),
+              _buildStatItem(
+                Icons.attach_money,
+                displayStats.formattedFines,
+                "FINES",
+                displayStats.totalFines > 0
+                    ? Colors.redAccent
+                    : Pallete.primaryLight,
+              ),
+            ],
           ),
-          _buildStatItem(
-            Icons.history,
-            read.toString(),
-            "READ",
-            Pallete.textSecondary,
-          ),
-          _buildStatItem(
-            Icons.attach_money,
-            fines,
-            "FINES",
-            Pallete.primaryLight,
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatItem(
+                Icons.bookmark_outline,
+                displayStats.activeReservations.toString(),
+                "RESERVED",
+                Pallete.textSecondary,
+              ),
+              _buildStatItem(
+                Icons.library_books,
+                displayStats.totalBorrows.toString(),
+                "TOTAL LOANS",
+                Pallete.primaryLight,
+              ),
+            ],
           ),
         ],
       ),
