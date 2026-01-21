@@ -102,10 +102,12 @@ class BorrowedState {
 
     // Sort: overdue first, then due soon, then by due date
     items.sort((a, b) {
-      if (a.status == BorrowStatus.overdue && b.status != BorrowStatus.overdue) {
+      if (a.status == BorrowStatus.overdue &&
+          b.status != BorrowStatus.overdue) {
         return -1;
       }
-      if (b.status == BorrowStatus.overdue && a.status != BorrowStatus.overdue) {
+      if (b.status == BorrowStatus.overdue &&
+          a.status != BorrowStatus.overdue) {
         return 1;
       }
       return a.dueDate.compareTo(b.dueDate);
