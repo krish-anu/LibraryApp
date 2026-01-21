@@ -72,14 +72,18 @@ class WishlistState {
 class WishlistViewModel extends _$WishlistViewModel {
   @override
   WishlistState build() {
-    _loadFavorites();
+    // Defer loading until after build completes to avoid accessing state before initialization
+    Future.microtask(() => _loadFavorites());
     return const WishlistState(isLoading: true);
   }
 
   Future<void> _loadFavorites() async {
+    if (!ref.mounted) return;
     try {
+      final memberId = state.memberId;
       final repository = ref.read(favoritesRepositoryProvider);
-      final result = await repository.getFavorites(state.memberId);
+      final result = await repository.getFavorites(memberId);
+      if (!ref.mounted) return;
       result.fold(
         (failure) =>
             state = state.copyWith(isLoading: false, error: failure.message),
@@ -87,6 +91,7 @@ class WishlistViewModel extends _$WishlistViewModel {
             state = state.copyWith(favorites: favorites, isLoading: false),
       );
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }

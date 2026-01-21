@@ -57,19 +57,23 @@ class ProfileState {
 class ProfileViewModel extends _$ProfileViewModel {
   @override
   ProfileState build() {
-    loadProfileData();
+    // Defer loading until after build completes to avoid accessing state before initialization
+    Future.microtask(() => loadProfileData());
     return const ProfileState(isLoading: true);
   }
 
   Future<void> loadProfileData() async {
+    if (!ref.mounted) return;
     state = state.copyWith(isLoading: true, clearError: true);
 
     final currentUser = ref.read(currentUserProvider);
     if (currentUser == null) {
+      if (!ref.mounted) return;
       state = state.copyWith(isLoading: false, error: 'User not logged in');
       return;
     }
 
+    if (!ref.mounted) return;
     state = state.copyWith(currentUser: currentUser);
 
     await Future.wait([
@@ -77,26 +81,32 @@ class ProfileViewModel extends _$ProfileViewModel {
       _loadUserStats(currentUser.id),
     ]);
 
+    if (!ref.mounted) return;
     state = state.copyWith(isLoading: false);
   }
 
   Future<void> _loadUserProfile(String userId) async {
+    if (!ref.mounted) return;
     try {
       final repository = ref.read(userRepositoryProvider);
       final result = await repository.getUserById(userId);
+      if (!ref.mounted) return;
       result.fold(
         (failure) => state = state.copyWith(error: failure.message),
         (profile) => state = state.copyWith(userProfile: profile),
       );
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(error: e.toString());
     }
   }
 
   Future<void> _loadUserStats(String userId) async {
+    if (!ref.mounted) return;
     try {
       final repository = ref.read(userRepositoryProvider);
       final result = await repository.getUserStats(userId);
+      if (!ref.mounted) return;
       result.fold((failure) {
         // Stats may not be critical, don't set error
       }, (stats) => state = state.copyWith(profileStats: stats));

@@ -152,50 +152,66 @@ class BorrowedState {
 class BorrowedViewModel extends _$BorrowedViewModel {
   @override
   BorrowedState build() {
-    _loadInitialData();
+    // Defer loading until after build completes to avoid accessing state before initialization
+    Future.microtask(() => _loadInitialData());
     return const BorrowedState(isLoading: true);
   }
 
   Future<void> _loadInitialData() async {
-    await Future.wait([_loadBooks(), _loadLoans(), _loadReservations()]);
+    if (!ref.mounted) return;
+    final memberId = state.memberId;
+    await Future.wait([
+      _loadBooks(),
+      _loadLoans(),
+      _loadReservations(memberId),
+    ]);
   }
 
   Future<void> _loadBooks() async {
+    if (!ref.mounted) return;
     try {
       final repository = ref.read(bookRepositoryProvider);
       final result = await repository.getAllBooks();
+      if (!ref.mounted) return;
       result.fold(
         (failure) => state = state.copyWith(error: failure.message),
         (books) => state = state.copyWith(books: books),
       );
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(error: e.toString());
     }
   }
 
   Future<void> _loadLoans() async {
+    if (!ref.mounted) return;
     try {
       final repository = ref.read(loanRepositoryProvider);
       final result = await repository.getAllLoans();
+      if (!ref.mounted) return;
       result.fold(
         (failure) => state = state.copyWith(error: failure.message),
         (loans) => state = state.copyWith(loans: loans),
       );
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(error: e.toString());
     }
   }
 
-  Future<void> _loadReservations() async {
+  Future<void> _loadReservations(String memberId) async {
+    if (!ref.mounted) return;
     try {
       final repository = ref.read(reserveRepositoryProvider);
-      final result = await repository.getReservedByMember(state.memberId);
+      final result = await repository.getReservedByMember(memberId);
+      if (!ref.mounted) return;
       result.fold((failure) {
         // Reservations might be empty, don't treat as error
       }, (reservations) => state = state.copyWith(reservations: reservations));
     } catch (e) {
       // Don't fail completely for reservation errors
     }
+    if (!ref.mounted) return;
     state = state.copyWith(isLoading: false);
   }
 

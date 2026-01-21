@@ -126,7 +126,8 @@ class SearchState {
 class SearchViewModel extends _$SearchViewModel {
   @override
   SearchState build({String? initialCategory}) {
-    _loadBooks();
+    // Defer loading until after build completes to avoid accessing state before initialization
+    Future.microtask(() => _loadBooks());
     return SearchState(
       isLoading: true,
       selectedCategory: initialCategory,
@@ -135,15 +136,18 @@ class SearchViewModel extends _$SearchViewModel {
   }
 
   Future<void> _loadBooks() async {
+    if (!ref.mounted) return;
     try {
       final repository = ref.read(bookRepositoryProvider);
       final result = await repository.getAllBooks();
+      if (!ref.mounted) return;
       result.fold(
         (failure) =>
             state = state.copyWith(isLoading: false, error: failure.message),
         (books) => state = state.copyWith(allBooks: books, isLoading: false),
       );
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }

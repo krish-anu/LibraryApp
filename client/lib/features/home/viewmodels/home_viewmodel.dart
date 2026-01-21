@@ -45,18 +45,22 @@ class HomeState {
 class HomeViewModel extends _$HomeViewModel {
   @override
   HomeState build() {
-    _loadInitialData();
+    // Defer loading until after build completes to avoid accessing state before initialization
+    Future.microtask(() => _loadInitialData());
     return const HomeState(isLoading: true);
   }
 
   Future<void> _loadInitialData() async {
+    if (!ref.mounted) return;
     await Future.wait([_loadBooks(), _loadCategories()]);
   }
 
   Future<void> _loadBooks() async {
+    if (!ref.mounted) return;
     try {
       final repository = ref.read(bookRepositoryProvider);
       final result = await repository.getAllBooks();
+      if (!ref.mounted) return;
       result.fold(
         (failure) =>
             state = state.copyWith(isLoading: false, error: failure.message),
@@ -66,18 +70,22 @@ class HomeViewModel extends _$HomeViewModel {
         ),
       );
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
   Future<void> _loadCategories() async {
+    if (!ref.mounted) return;
     try {
       final categories = await ref.read(fetchCategoriesProvider.future);
+      if (!ref.mounted) return;
       state = state.copyWith(
         categories: categories,
         isLoading: state.books.isEmpty,
       );
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
