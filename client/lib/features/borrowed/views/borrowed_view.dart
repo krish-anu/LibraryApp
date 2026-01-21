@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, strict_top_level_inference
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
@@ -165,7 +167,7 @@ class _BorrowedViewState extends ConsumerState<BorrowedView>
             Icon(
               Icons.bookmark_border,
               size: 64,
-              color: Pallete.textSecondary.withOpacity(0.5),
+              color: Pallete.textSecondary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(

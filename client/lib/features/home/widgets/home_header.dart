@@ -32,7 +32,7 @@ class HomeHeader extends StatelessWidget {
             Text(
               'Ready to dive into a new world?',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 14,
               ),
             ),

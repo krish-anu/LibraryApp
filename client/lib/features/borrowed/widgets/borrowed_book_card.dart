@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/utils/image_helper.dart';
@@ -35,9 +37,9 @@ class BorrowedBookCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isOverdue
-                ? Pallete.error.withOpacity(0.5)
+                ? Pallete.error.withValues(alpha: 0.5)
                 : isDueSoon
-                ? Pallete.warning.withOpacity(0.5)
+                ? Pallete.warning.withValues(alpha: 0.5)
                 : Pallete.border,
             width: isOverdue || isDueSoon ? 2 : 1,
           ),
@@ -100,7 +102,7 @@ class BorrowedBookCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -123,17 +125,17 @@ class BorrowedBookCard extends StatelessWidget {
     final IconData icon;
 
     if (isOverdue) {
-      bgColor = Pallete.error.withOpacity(0.2);
+      bgColor = Pallete.error.withValues(alpha: 0.2);
       textColor = Pallete.error;
       text = 'OVERDUE';
       icon = Icons.warning_amber_rounded;
     } else if (isDueSoon) {
-      bgColor = Pallete.warning.withOpacity(0.2);
+      bgColor = Pallete.warning.withValues(alpha: 0.2);
       textColor = Pallete.warning;
       text = 'DUE SOON';
       icon = Icons.schedule;
     } else {
-      bgColor = Pallete.success.withOpacity(0.2);
+      bgColor = Pallete.success.withValues(alpha: 0.2);
       textColor = Pallete.success;
       text = 'ON LOAN';
       icon = Icons.check_circle_outline;

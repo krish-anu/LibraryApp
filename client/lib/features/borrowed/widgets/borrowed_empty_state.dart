@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 
@@ -24,7 +26,7 @@ class BorrowedEmptyState extends StatelessWidget {
               child: Icon(
                 Icons.library_books_outlined,
                 size: 64,
-                color: Pallete.primaryLight.withOpacity(0.5),
+                color: Pallete.primaryLight.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: 24),

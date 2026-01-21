@@ -150,11 +150,9 @@ class ReservedBookCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        // ignore: deprecated_member_use
-        color: chipColor.withOpacity(0.2),
+        color: chipColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
-        // ignore: deprecated_member_use
-        border: Border.all(color: chipColor.withOpacity(0.5)),
+        border: Border.all(color: chipColor.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

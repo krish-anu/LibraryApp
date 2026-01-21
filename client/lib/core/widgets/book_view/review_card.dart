@@ -45,8 +45,7 @@ class ReviewCard extends StatelessWidget {
           Text(
             timeAgo,
             style: TextStyle(
-              // ignore: deprecated_member_use
-              color: Pallete.textSecondary.withOpacity(0.6),
+              color: Pallete.textSecondary.withValues(alpha: 0.6),
               fontSize: 10,
             ),
           ),

@@ -46,8 +46,7 @@ class BookSection extends StatelessWidget {
               child: Text(
                 'See all',
                 style: TextStyle(
-                  // ignore: deprecated_member_use
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 14,
                 ),
               ),

@@ -24,7 +24,7 @@ class FavoritesEmptyState extends StatelessWidget {
               child: Icon(
                 Icons.favorite_border,
                 size: 64,
-                color: Pallete.primaryLight.withOpacity(0.5),
+                color: Pallete.primaryLight.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: 24),

@@ -233,8 +233,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
             Icon(
               Icons.bookmark_border,
               size: 64,
-              // ignore: deprecated_member_use
-              color: Pallete.textSecondary.withOpacity(0.5),
+              color: Pallete.textSecondary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -249,8 +248,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
             Text(
               'Books you reserve will appear here',
               style: TextStyle(
-                // ignore: deprecated_member_use
-                color: Pallete.textSecondary.withOpacity(0.7),
+                color: Pallete.textSecondary.withValues(alpha: 0.7),
                 fontSize: 14,
               ),
             ),
