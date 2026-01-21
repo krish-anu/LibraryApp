@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/auth/pages/login_page.dart';
+import 'package:libraryapp/auth/repositories/auth_local_repository.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/providers/theme_provider.dart';
 import 'package:libraryapp/core/providers/current_user_notifier.dart';
@@ -31,6 +33,7 @@ class _ProfileState extends ConsumerState<Profile> {
   model.ProfileStats? _profileStats;
   bool _isLoading = true;
   String? _error;
+  bool _isSigningOut = false;
 
   @override
   void initState() {
@@ -369,11 +372,20 @@ class _ProfileState extends ConsumerState<Profile> {
 
   Widget _buildSignOutButton() {
     return TextButton(
-      onPressed: () => _showSignOutDialog(),
-      child: const Text(
-        "← Sign Out",
-        style: TextStyle(color: Color(0xFFE57373), fontSize: 16),
-      ),
+      onPressed: _isSigningOut ? null : _showSignOutDialog,
+      child: _isSigningOut
+          ? const SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFFE57373),
+              ),
+            )
+          : const Text(
+              "← Sign Out",
+              style: TextStyle(color: Color(0xFFE57373), fontSize: 16),
+            ),
     );
   }
 
@@ -391,6 +403,45 @@ class _ProfileState extends ConsumerState<Profile> {
         backgroundColor: Pallete.primaryLight,
       ),
     );
+  }
+
+  Future<void> _signOut() async {
+    if (_isSigningOut) return;
+    setState(() => _isSigningOut = true);
+
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final authLocalRepository = ref.read(authLocalRepositoryProvider);
+      await authLocalRepository.clearToken();
+      ref.read(currentUserProvider.notifier).clearUser();
+
+      if (!mounted) return;
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Signed out successfully'),
+          backgroundColor: Pallete.primaryLight,
+        ),
+      );
+
+      await Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const Login()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Failed to sign out. Please try again.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSigningOut = false);
+      }
+    }
   }
 
   void _showSignOutDialog() {
@@ -412,16 +463,12 @@ class _ProfileState extends ConsumerState<Profile> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Implement sign out logic
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Signed out successfully'),
-                  backgroundColor: Pallete.primaryLight,
-                ),
-              );
-            },
+            onPressed: _isSigningOut
+                ? null
+                : () async {
+                    Navigator.pop(context);
+                    await _signOut();
+                  },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE57373),
             ),

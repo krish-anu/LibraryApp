@@ -31,4 +31,9 @@ class AuthLocalRepository {
     final prefs = await init();
     return prefs.getString('x-auth-token');
   }
+
+  Future<void> clearToken() async {
+    final prefs = await init();
+    await prefs.remove('x-auth-token');
+  }
 }

@@ -13,4 +13,8 @@ class CurrentUserNotifier extends _$CurrentUserNotifier {
   void addUser(User user) {
     state = user;
   }
+
+  void clearUser() {
+    state = null;
+  }
 }
