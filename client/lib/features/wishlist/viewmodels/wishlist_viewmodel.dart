@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:libraryapp/models/book.dart';
-import 'package:libraryapp/data/repository/favorites_repository.dart';
+import 'package:libraryapp/core/providers/favorites_notifier.dart';
 
 part 'wishlist_viewmodel.g.dart';
 
@@ -72,28 +72,15 @@ class WishlistState {
 class WishlistViewModel extends _$WishlistViewModel {
   @override
   WishlistState build() {
-    // Defer loading until after build completes to avoid accessing state before initialization
-    Future.microtask(() => _loadFavorites());
-    return const WishlistState(isLoading: true);
-  }
+    // Watch the global favorites notifier for reactive updates
+    final favoritesState = ref.watch(favoritesProvider);
 
-  Future<void> _loadFavorites() async {
-    if (!ref.mounted) return;
-    try {
-      final memberId = state.memberId;
-      final repository = ref.read(favoritesRepositoryProvider);
-      final result = await repository.getFavorites(memberId);
-      if (!ref.mounted) return;
-      result.fold(
-        (failure) =>
-            state = state.copyWith(isLoading: false, error: failure.message),
-        (favorites) =>
-            state = state.copyWith(favorites: favorites, isLoading: false),
-      );
-    } catch (e) {
-      if (!ref.mounted) return;
-      state = state.copyWith(isLoading: false, error: e.toString());
-    }
+    return WishlistState(
+      favorites: favoritesState.favorites,
+      isLoading: favoritesState.isLoading,
+      error: favoritesState.error,
+      memberId: favoritesState.memberId,
+    );
   }
 
   void setFilter(String filter) {
@@ -105,48 +92,18 @@ class WishlistViewModel extends _$WishlistViewModel {
   }
 
   Future<void> refresh() async {
-    state = state.copyWith(isLoading: true, error: null);
-    await _loadFavorites();
+    await ref.read(favoritesProvider.notifier).loadFavorites();
   }
 
   Future<bool> removeFavorite(String bookId) async {
-    try {
-      final repository = ref.read(favoritesRepositoryProvider);
-      final result = await repository.removeFavorite(state.memberId, bookId);
-      return result.fold((failure) => false, (success) {
-        // Remove from local state
-        final updatedFavorites = state.favorites
-            .where((book) => book.id != bookId)
-            .toList();
-        state = state.copyWith(favorites: updatedFavorites);
-        return true;
-      });
-    } catch (e) {
-      return false;
-    }
+    return ref.read(favoritesProvider.notifier).removeFavorite(bookId);
   }
 
   Future<bool> addFavorite(Book book) async {
-    try {
-      final repository = ref.read(favoritesRepositoryProvider);
-      final result = await repository.addFavorite(state.memberId, book.id);
-      return result.fold((failure) => false, (success) {
-        // Add to local state
-        final updatedFavorites = [...state.favorites, book];
-        state = state.copyWith(favorites: updatedFavorites);
-        return true;
-      });
-    } catch (e) {
-      return false;
-    }
+    return ref.read(favoritesProvider.notifier).addFavorite(book);
   }
 
   Future<bool> toggleFavorite(Book book) async {
-    final isFavorite = state.favorites.any((b) => b.id == book.id);
-    if (isFavorite) {
-      return removeFavorite(book.id);
-    } else {
-      return addFavorite(book);
-    }
+    return ref.read(favoritesProvider.notifier).toggleFavorite(book);
   }
 }

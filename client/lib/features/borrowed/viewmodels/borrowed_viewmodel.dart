@@ -3,8 +3,7 @@ import 'package:libraryapp/models/book.dart';
 import 'package:libraryapp/models/loan.dart';
 import 'package:libraryapp/models/reserve.dart';
 import 'package:libraryapp/data/repository/book_repository.dart';
-import 'package:libraryapp/data/repository/loan_repository.dart';
-import 'package:libraryapp/data/repository/reserve_repository.dart';
+import 'package:libraryapp/core/providers/loans_notifier.dart';
 
 part 'borrowed_viewmodel.g.dart';
 
@@ -152,19 +151,19 @@ class BorrowedState {
 class BorrowedViewModel extends _$BorrowedViewModel {
   @override
   BorrowedState build() {
-    // Defer loading until after build completes to avoid accessing state before initialization
-    Future.microtask(() => _loadInitialData());
-    return const BorrowedState(isLoading: true);
-  }
+    // Watch the global loans notifier for reactive updates
+    final loansState = ref.watch(loansProvider);
 
-  Future<void> _loadInitialData() async {
-    if (!ref.mounted) return;
-    final memberId = state.memberId;
-    await Future.wait([
-      _loadBooks(),
-      _loadLoans(),
-      _loadReservations(memberId),
-    ]);
+    // Load books separately (they're not part of shared state)
+    Future.microtask(() => _loadBooks());
+
+    return BorrowedState(
+      loans: loansState.loans,
+      reservations: loansState.reservations,
+      isLoading: loansState.isLoading,
+      error: loansState.error,
+      memberId: loansState.memberId,
+    );
   }
 
   Future<void> _loadBooks() async {
@@ -175,74 +174,36 @@ class BorrowedViewModel extends _$BorrowedViewModel {
       if (!ref.mounted) return;
       result.fold(
         (failure) => state = state.copyWith(error: failure.message),
-        (books) => state = state.copyWith(books: books),
+        (books) => state = state.copyWith(books: books, isLoading: false),
       );
     } catch (e) {
       if (!ref.mounted) return;
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: e.toString(), isLoading: false);
     }
-  }
-
-  Future<void> _loadLoans() async {
-    if (!ref.mounted) return;
-    try {
-      final repository = ref.read(loanRepositoryProvider);
-      final result = await repository.getAllLoans();
-      if (!ref.mounted) return;
-      result.fold(
-        (failure) => state = state.copyWith(error: failure.message),
-        (loans) => state = state.copyWith(loans: loans),
-      );
-    } catch (e) {
-      if (!ref.mounted) return;
-      state = state.copyWith(error: e.toString());
-    }
-  }
-
-  Future<void> _loadReservations(String memberId) async {
-    if (!ref.mounted) return;
-    try {
-      final repository = ref.read(reserveRepositoryProvider);
-      final result = await repository.getReservedByMember(memberId);
-      if (!ref.mounted) return;
-      result.fold((failure) {
-        // Reservations might be empty, don't treat as error
-      }, (reservations) => state = state.copyWith(reservations: reservations));
-    } catch (e) {
-      // Don't fail completely for reservation errors
-    }
-    if (!ref.mounted) return;
-    state = state.copyWith(isLoading: false);
   }
 
   Future<void> refresh() async {
     state = state.copyWith(isLoading: true, error: null);
-    await _loadInitialData();
+    await Future.wait(<Future<void>>[
+      _loadBooks(),
+      ref.read(loansProvider.notifier).loadLoansAndReservations(),
+    ]);
   }
 
   Future<bool> returnBook(String loanId) async {
-    try {
-      final repository = ref.read(loanRepositoryProvider);
-      final result = await repository.returnBook(loanId);
-      return result.fold((failure) => false, (message) {
-        refresh();
-        return true;
-      });
-    } catch (e) {
-      return false;
-    }
+    final success = await ref.read(loansProvider.notifier).returnBook(loanId);
+    return success;
   }
 
   Future<bool> renewLoan(String loanId) async {
-    try {
-      final repository = ref.read(loanRepositoryProvider);
-      final result = await repository.renewLoan(loanId);
-      return result.fold((failure) => false, (loan) {
-        refresh();
-        return true;
-      });
-    } catch (e) {
-      return false;
-    }
+    final success = await ref.read(loansProvider.notifier).renewLoan(loanId);
+    return success;
+  }
+
+  Future<bool> cancelReservation(String reserveId) async {
+    final success = await ref
+        .read(loansProvider.notifier)
+        .cancelReservation(reserveId);
+    return success;
   }
 }

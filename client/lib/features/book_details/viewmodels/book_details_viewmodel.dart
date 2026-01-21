@@ -1,8 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:libraryapp/models/book.dart';
-import 'package:libraryapp/data/repository/favorites_repository.dart';
-import 'package:libraryapp/data/repository/loan_repository.dart';
-import 'package:libraryapp/data/repository/reserve_repository.dart';
+import 'package:libraryapp/core/providers/favorites_notifier.dart';
+import 'package:libraryapp/core/providers/loans_notifier.dart';
 import 'package:libraryapp/models/reserve.dart';
 
 part 'book_details_viewmodel.g.dart';
@@ -62,56 +61,44 @@ class BookDetailsState {
 class BookDetailsViewModel extends _$BookDetailsViewModel {
   @override
   BookDetailsState build(Book book) {
-    _checkFavoriteStatus(book.id);
-    return BookDetailsState(book: book);
-  }
+    // Watch the global favorites state for reactive updates
+    final favoritesState = ref.watch(favoritesProvider);
+    final isFavorite = favoritesState.isFavorite(book.id);
 
-  Future<void> _checkFavoriteStatus(String bookId) async {
-    try {
-      final repository = ref.read(favoritesRepositoryProvider);
-      final result = await repository.checkFavorite(state.memberId, bookId);
-      result.fold(
-        (failure) => state = state.copyWith(isLoadingFavorite: false),
-        (isFav) =>
-            state = state.copyWith(isFavorite: isFav, isLoadingFavorite: false),
-      );
-    } catch (e) {
-      state = state.copyWith(isLoadingFavorite: false);
-    }
+    return BookDetailsState(
+      book: book,
+      isFavorite: isFavorite,
+      isLoadingFavorite: favoritesState.isLoading,
+    );
   }
 
   Future<bool> toggleFavorite() async {
     state = state.copyWith(isLoadingFavorite: true);
     try {
-      final repository = ref.read(favoritesRepositoryProvider);
-      final result = await repository.toggleFavorite(
-        state.memberId,
-        state.book.id,
-        state.isFavorite,
-      );
-      return result.fold(
-        (failure) {
-          state = state.copyWith(
-            isLoadingFavorite: false,
-            error: failure.message,
-          );
-          return false;
-        },
-        (newStatus) {
-          state = state.copyWith(
-            isFavorite: newStatus,
-            isLoadingFavorite: false,
-            successMessage: newStatus
-                ? 'Added "${state.book.title}" to favorites'
-                : 'Removed "${state.book.title}" from favorites',
-          );
-          // Invalidate favorites providers
-          ref.invalidate(fetchFavoritesProvider(state.memberId));
-          ref.invalidate(fetchFavoriteIdsProvider(state.memberId));
-          return true;
-        },
-      );
+      final favoritesNotifier = ref.read(favoritesProvider.notifier);
+      final success = await favoritesNotifier.toggleFavorite(state.book);
+
+      if (!ref.mounted) return success;
+
+      if (success) {
+        final newStatus = !state.isFavorite;
+        state = state.copyWith(
+          isFavorite: newStatus,
+          isLoadingFavorite: false,
+          successMessage: newStatus
+              ? 'Added "${state.book.title}" to favorites'
+              : 'Removed "${state.book.title}" from favorites',
+        );
+        return true;
+      } else {
+        state = state.copyWith(
+          isLoadingFavorite: false,
+          error: 'Failed to update favorites',
+        );
+        return false;
+      }
     } catch (e) {
+      if (!ref.mounted) return false;
       state = state.copyWith(isLoadingFavorite: false, error: e.toString());
       return false;
     }
@@ -125,22 +112,29 @@ class BookDetailsViewModel extends _$BookDetailsViewModel {
 
     state = state.copyWith(isBorrowing: true, clearError: true);
     try {
-      final repository = ref.read(loanRepositoryProvider);
-      final result = await repository.borrowBook(state.book.id, state.memberId);
-      return result.fold(
-        (failure) {
-          state = state.copyWith(isBorrowing: false, error: failure.message);
-          return false;
-        },
-        (loan) {
-          state = state.copyWith(
-            isBorrowing: false,
-            successMessage: 'Successfully borrowed "${state.book.title}"',
-          );
-          return true;
-        },
+      final loansNotifier = ref.read(loansProvider.notifier);
+      final success = await loansNotifier.borrowBook(
+        state.book.id,
+        state.memberId,
       );
+
+      if (!ref.mounted) return success;
+
+      if (success) {
+        state = state.copyWith(
+          isBorrowing: false,
+          successMessage: 'Successfully borrowed "${state.book.title}"',
+        );
+        return true;
+      } else {
+        state = state.copyWith(
+          isBorrowing: false,
+          error: 'Failed to borrow book',
+        );
+        return false;
+      }
     } catch (e) {
+      if (!ref.mounted) return false;
       state = state.copyWith(isBorrowing: false, error: e.toString());
       return false;
     }
@@ -149,7 +143,7 @@ class BookDetailsViewModel extends _$BookDetailsViewModel {
   Future<bool> reserveBook() async {
     state = state.copyWith(isReserving: true, clearError: true);
     try {
-      final repository = ref.read(reserveRepositoryProvider);
+      final loansNotifier = ref.read(loansProvider.notifier);
       final reserve = Reserve(
         id: '',
         bookId: state.book.id,
@@ -157,21 +151,25 @@ class BookDetailsViewModel extends _$BookDetailsViewModel {
         reservationDate: DateTime.now().toIso8601String(),
         status: 'pending',
       );
-      final result = await repository.addReserve(reserve);
-      return result.fold(
-        (failure) {
-          state = state.copyWith(isReserving: false, error: failure.message);
-          return false;
-        },
-        (reservation) {
-          state = state.copyWith(
-            isReserving: false,
-            successMessage: 'Successfully reserved "${state.book.title}"',
-          );
-          return true;
-        },
-      );
+      final success = await loansNotifier.reserveBook(reserve);
+
+      if (!ref.mounted) return success;
+
+      if (success) {
+        state = state.copyWith(
+          isReserving: false,
+          successMessage: 'Successfully reserved "${state.book.title}"',
+        );
+        return true;
+      } else {
+        state = state.copyWith(
+          isReserving: false,
+          error: 'Failed to reserve book',
+        );
+        return false;
+      }
     } catch (e) {
+      if (!ref.mounted) return false;
       state = state.copyWith(isReserving: false, error: e.toString());
       return false;
     }

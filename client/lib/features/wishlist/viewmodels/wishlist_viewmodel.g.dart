@@ -41,7 +41,7 @@ final class WishlistViewModelProvider
   }
 }
 
-String _$wishlistViewModelHash() => r'db6b7ad60e56abdb82550d5b85cab9699d824fb0';
+String _$wishlistViewModelHash() => r'3c0ad16babdb7e1b223421d5a3c58a76fad884ad';
 
 abstract class _$WishlistViewModel extends $Notifier<WishlistState> {
   WishlistState build();
