@@ -1,0 +1,62 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'profile_viewmodel.dart';
+
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(ProfileViewModel)
+final profileViewModelProvider = ProfileViewModelProvider._();
+
+final class ProfileViewModelProvider
+    extends $NotifierProvider<ProfileViewModel, ProfileState> {
+  ProfileViewModelProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'profileViewModelProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$profileViewModelHash();
+
+  @$internal
+  @override
+  ProfileViewModel create() => ProfileViewModel();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ProfileState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ProfileState>(value),
+    );
+  }
+}
+
+String _$profileViewModelHash() => r'41727b2aae462fb50a840bc2ae60b728051ae6ed';
+
+abstract class _$ProfileViewModel extends $Notifier<ProfileState> {
+  ProfileState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<ProfileState, ProfileState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<ProfileState, ProfileState>,
+              ProfileState,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
-import 'package:libraryapp/home/pages/borrowed.dart';
-import 'package:libraryapp/home/pages/home.dart';
-import 'package:libraryapp/home/pages/profile.dart';
-import 'package:libraryapp/home/pages/search.dart';
-import 'package:libraryapp/home/pages/wishlist.dart';
+import 'package:libraryapp/features/home/views/home_view.dart';
+import 'package:libraryapp/features/search/views/search_view.dart';
+import 'package:libraryapp/features/borrowed/views/borrowed_view.dart';
+import 'package:libraryapp/features/wishlist/views/wishlist_view.dart';
+import 'package:libraryapp/features/profile/views/profile_view.dart';
 
 class BottomNav extends ConsumerWidget {
   const BottomNav({super.key});
@@ -26,23 +26,23 @@ class BottomNav extends ConsumerWidget {
           children: [
             _TabNavigator(
               navigatorKey: _tabNavigatorKeys[0],
-              child: const Home(),
+              child: const HomeView(),
             ),
             _TabNavigator(
               navigatorKey: _tabNavigatorKeys[1],
-              child: const Search(),
+              child: const SearchView(),
             ),
             _TabNavigator(
               navigatorKey: _tabNavigatorKeys[2],
-              child: const Borrowed(),
+              child: const BorrowedView(),
             ),
             _TabNavigator(
               navigatorKey: _tabNavigatorKeys[3],
-              child: const Wishlist(),
+              child: const WishlistView(),
             ),
             _TabNavigator(
               navigatorKey: _tabNavigatorKeys[4],
-              child: const Profile(),
+              child: const ProfileView(),
             ),
           ],
         ),
