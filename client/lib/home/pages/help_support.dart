@@ -500,6 +500,7 @@ class HelpSupport extends StatelessWidget {
           await Clipboard.setData(
             const ClipboardData(text: 'support@libraryapp.com'),
           );
+          // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Email copied to clipboard'),
@@ -531,6 +532,7 @@ class HelpSupport extends StatelessWidget {
           await Clipboard.setData(
             const ClipboardData(text: '+1 (555) 123-4567'),
           );
+          // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Phone number copied to clipboard'),
