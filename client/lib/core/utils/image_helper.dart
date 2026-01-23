@@ -6,7 +6,7 @@ import 'package:flutter/widgets.dart';
 /// - Otherwise treats it as an asset path and returns [AssetImage].
 ImageProvider imageProviderFromPath(String? path) {
   final p = path ?? '';
-  if (p.isEmpty) return const AssetImage('assets/placeholder.png');
+  if (p.isEmpty) return const AssetImage('assets/person.webp');
 
   final uri = Uri.tryParse(p);
   if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/models/user.dart';
 import 'package:libraryapp/models/user_profile.dart';
+import 'package:libraryapp/auth/providers/asgardeo_auth_provider.dart';
 import 'profile_avatar.dart';
 
 /// Profile header displaying user info.
@@ -11,20 +12,36 @@ class ProfileHeader extends StatelessWidget {
 
   final UserProfile? userProfile;
   final User? currentUser;
+  final AsgardeoUserInfo? asgardeoUserInfo;
 
-  const ProfileHeader({super.key, this.userProfile, this.currentUser});
+  const ProfileHeader({
+    super.key,
+    this.userProfile,
+    this.currentUser,
+    this.asgardeoUserInfo,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final displayName = userProfile?.name ?? currentUser?.userName ?? "User";
-    final displayEmail = userProfile?.email ?? currentUser?.email ?? "";
-    final memberId = userProfile?.memberId ?? currentUser?.id ?? "";
+    final displayName = asgardeoUserInfo?.fullName.isNotEmpty == true
+        ? asgardeoUserInfo!.fullName
+        : userProfile?.name ?? currentUser?.userName ?? "User";
+    final displayEmail =
+        asgardeoUserInfo?.email ??
+        userProfile?.email ??
+        currentUser?.email ??
+        "";
+    final memberId =
+        asgardeoUserInfo?.sub ?? userProfile?.memberId ?? currentUser?.id ?? "";
+    final phone = asgardeoUserInfo?.mobile ?? userProfile?.phone;
+    final profileImage =
+        asgardeoUserInfo?.photo ??
+        userProfile?.profileImage ??
+        _defaultProfileImageUrl;
 
     return Column(
       children: [
-        ProfileAvatar(
-          imageUrl: userProfile?.profileImage ?? _defaultProfileImageUrl,
-        ),
+        ProfileAvatar(imageUrl: profileImage),
         const SizedBox(height: 16),
         Text(
           displayName,
@@ -42,7 +59,7 @@ class ProfileHeader extends StatelessWidget {
         const SizedBox(height: 4),
         _buildMemberId(memberId),
         const SizedBox(height: 8),
-        if (userProfile?.phone != null && userProfile!.phone!.isNotEmpty)
+        if (phone != null && phone.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Row(
@@ -55,7 +72,45 @@ class ProfileHeader extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  userProfile!.phone!,
+                  phone,
+                  style: TextStyle(color: Pallete.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        if (asgardeoUserInfo?.country != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  color: Pallete.textSecondary,
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  asgardeoUserInfo!.country!,
+                  style: TextStyle(color: Pallete.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        if (asgardeoUserInfo?.dateOfBirth != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.cake_outlined,
+                  color: Pallete.textSecondary,
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  asgardeoUserInfo!.dateOfBirth!,
                   style: TextStyle(color: Pallete.textSecondary, fontSize: 12),
                 ),
               ],

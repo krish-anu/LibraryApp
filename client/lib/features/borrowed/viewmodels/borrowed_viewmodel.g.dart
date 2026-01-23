@@ -41,7 +41,7 @@ final class BorrowedViewModelProvider
   }
 }
 
-String _$borrowedViewModelHash() => r'c493056af7ac5f1f5fec44ea67385a29307893f3';
+String _$borrowedViewModelHash() => r'02e38bbc2ee4ff6daff395ceb50460b0755db7c8';
 
 abstract class _$BorrowedViewModel extends $Notifier<BorrowedState> {
   BorrowedState build();

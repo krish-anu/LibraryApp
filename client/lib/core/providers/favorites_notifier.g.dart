@@ -44,7 +44,7 @@ final class FavoritesNotifierProvider
   }
 }
 
-String _$favoritesNotifierHash() => r'5019e5a8fa5601c8672f5a5d92a3757c244ff826';
+String _$favoritesNotifierHash() => r'04305a70625ba5a61830538d991d20194cf1155c';
 
 /// Global favorites notifier - single source of truth for favorites
 

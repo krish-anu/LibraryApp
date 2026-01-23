@@ -51,6 +51,7 @@ class ProfileView extends ConsumerWidget {
                     ProfileHeader(
                       userProfile: state.userProfile,
                       currentUser: state.currentUser,
+                      asgardeoUserInfo: state.asgardeoUserInfo,
                     ),
                     const SizedBox(height: 24),
                     ProfileStatsWidget(stats: state.profileStats),

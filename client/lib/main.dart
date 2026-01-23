@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/auth/pages/login_page.dart';
+import 'package:libraryapp/auth/providers/asgardeo_auth_provider.dart';
 import 'package:libraryapp/core/providers/theme_provider.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_bar.dart';
-// import 'package:libraryapp/core/widgets/book_view.dart';
-// import 'package:libraryapp/home/pages/home.dart';
 
 void main() {
   runApp(ProviderScope(child: const MyApp()));
@@ -17,6 +17,8 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = ref.watch(isDarkProvider);
+    final authState = ref.watch(asgardeoAuthProvider);
+
     return MaterialApp(
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       title: 'XYZ Library',
@@ -32,8 +34,8 @@ class MyApp extends ConsumerWidget {
         brightness: Brightness.dark,
         colorSchemeSeed: Pallete.primaryColor,
       ),
-      // home: BottomNav(),
-      home: BottomNav(),
+      // Show login page if not logged in, otherwise show home
+      home: authState.isLoggedIn ? const BottomNav() : const Login(),
     );
   }
 }
