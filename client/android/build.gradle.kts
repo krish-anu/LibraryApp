@@ -7,6 +7,14 @@ allprojects {
 
 // Fix for flutter_appauth namespace issue with AGP 8.x
 subprojects {
+    project.configurations.all {
+        resolutionStrategy {
+            force("androidx.browser:browser:1.8.0")
+            force("androidx.core:core:1.15.0")
+            force("androidx.core:core-ktx:1.15.0")
+        }
+    }
+
     afterEvaluate {
         if (project.hasProperty("android")) {
             val androidExtension = project.extensions.findByName("android")
@@ -17,6 +25,7 @@ subprojects {
                         "flutter_appauth" -> android.namespace = "io.crossingthestreams.flutterappauth"
                     }
                 }
+                android.compileSdkVersion(35)
             }
         }
     }
