@@ -12,7 +12,13 @@ class AsgardeoDirectConfig {
   static const String userInfoEndpoint = '$baseUrl/oauth2/userinfo';
   static const String registerEndpoint = '$baseUrl/scim2/Me';
   static const String introspectEndpoint = '$baseUrl/oauth2/introspect';
-  static const List<String> scopes = ['openid', 'profile', 'email'];
+  static const List<String> scopes = [
+    'openid',
+    'profile',
+    'email',
+    'phone',
+    'address',
+  ];
 }
 
 /// Response from token endpoint
@@ -50,8 +56,16 @@ class AsgardeoUser {
   final String? lastName;
   final String? username;
   final String? phoneNumber;
+  final bool phoneNumberVerified;
   final String? picture;
   final bool emailVerified;
+  // Address fields
+  final String? streetAddress;
+  final String? locality; // city
+  final String? region; // state/province
+  final String? postalCode;
+  final String? country;
+  final String? formattedAddress;
 
   AsgardeoUser({
     this.sub,
@@ -60,11 +74,21 @@ class AsgardeoUser {
     this.lastName,
     this.username,
     this.phoneNumber,
+    this.phoneNumberVerified = false,
     this.picture,
     this.emailVerified = false,
+    this.streetAddress,
+    this.locality,
+    this.region,
+    this.postalCode,
+    this.country,
+    this.formattedAddress,
   });
 
   factory AsgardeoUser.fromJson(Map<String, dynamic> json) {
+    // Parse address object if present
+    final address = json['address'] as Map<String, dynamic>?;
+
     return AsgardeoUser(
       sub: json['sub'] as String?,
       email: json['email'] as String?,
@@ -72,8 +96,15 @@ class AsgardeoUser {
       lastName: json['family_name'] as String?,
       username: json['username'] ?? json['preferred_username'] as String?,
       phoneNumber: json['phone_number'] as String?,
+      phoneNumberVerified: json['phone_number_verified'] as bool? ?? false,
       picture: json['picture'] as String?,
       emailVerified: json['email_verified'] as bool? ?? false,
+      streetAddress: address?['street_address'] as String?,
+      locality: address?['locality'] as String?,
+      region: address?['region'] as String?,
+      postalCode: address?['postal_code'] as String?,
+      country: address?['country'] as String?,
+      formattedAddress: address?['formatted'] as String?,
     );
   }
 
@@ -129,6 +160,36 @@ class AsgardeoDirectAuthService {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final tokenResponse = AsgardeoTokenResponse.fromJson(json);
         debugPrint('Login successful!');
+
+        // Print ID Token details for debugging
+        if (tokenResponse.idToken != null) {
+          debugPrint('=== ID TOKEN RECEIVED ===');
+          debugPrint('ID Token: ${tokenResponse.idToken}');
+
+          // Decode and print JWT payload (ID tokens are JWTs)
+          try {
+            final parts = tokenResponse.idToken!.split('.');
+            if (parts.length == 3) {
+              // Decode the payload (second part)
+              final payload = parts[1];
+              // Add padding if needed for base64 decoding
+              final normalizedPayload = base64Url.normalize(payload);
+              final decodedPayload = utf8.decode(
+                base64Url.decode(normalizedPayload),
+              );
+              debugPrint('=== ID TOKEN PAYLOAD (DECODED) ===');
+              debugPrint(decodedPayload);
+            }
+          } catch (e) {
+            debugPrint('Could not decode ID token: $e');
+          }
+          debugPrint('=== END ID TOKEN ===');
+        }
+
+        debugPrint('Access Token: ${tokenResponse.accessToken}');
+        debugPrint('Refresh Token: ${tokenResponse.refreshToken}');
+        debugPrint('Expires In: ${tokenResponse.expiresIn} seconds');
+
         return AuthResult.success(tokenResponse);
       } else {
         final errorJson = jsonDecode(response.body) as Map<String, dynamic>;
