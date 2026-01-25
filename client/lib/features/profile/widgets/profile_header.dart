@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/models/user.dart';
 import 'package:libraryapp/models/user_profile.dart';
-import 'package:libraryapp/auth/providers/asgardeo_auth_provider.dart';
+import 'package:libraryapp/auth/services/asgardeo_direct_auth_service.dart';
 import 'profile_avatar.dart';
 
 /// Profile header displaying user info.
@@ -12,7 +12,7 @@ class ProfileHeader extends StatelessWidget {
 
   final UserProfile? userProfile;
   final User? currentUser;
-  final AsgardeoUserInfo? asgardeoUserInfo;
+  final AsgardeoUser? asgardeoUserInfo;
 
   const ProfileHeader({
     super.key,
@@ -33,9 +33,9 @@ class ProfileHeader extends StatelessWidget {
         "";
     final memberId =
         asgardeoUserInfo?.sub ?? userProfile?.memberId ?? currentUser?.id ?? "";
-    final phone = asgardeoUserInfo?.mobile ?? userProfile?.phone;
+    final phone = asgardeoUserInfo?.phoneNumber ?? userProfile?.phone;
     final profileImage =
-        asgardeoUserInfo?.photo ??
+        asgardeoUserInfo?.picture ??
         userProfile?.profileImage ??
         _defaultProfileImageUrl;
 
@@ -73,44 +73,6 @@ class ProfileHeader extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   phone,
-                  style: TextStyle(color: Pallete.textSecondary, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        if (asgardeoUserInfo?.country != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.location_on_outlined,
-                  color: Pallete.textSecondary,
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  asgardeoUserInfo!.country!,
-                  style: TextStyle(color: Pallete.textSecondary, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        if (asgardeoUserInfo?.dateOfBirth != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.cake_outlined,
-                  color: Pallete.textSecondary,
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  asgardeoUserInfo!.dateOfBirth!,
                   style: TextStyle(color: Pallete.textSecondary, fontSize: 12),
                 ),
               ],

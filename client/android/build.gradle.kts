@@ -15,6 +15,15 @@ subprojects {
         }
     }
 
+    // Set compileSdk early for plugins that need it during configuration
+    project.plugins.whenPluginAdded {
+        if (this is com.android.build.gradle.api.AndroidBasePlugin) {
+            project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.apply {
+                compileSdkVersion(35)
+            }
+        }
+    }
+
     afterEvaluate {
         if (project.hasProperty("android")) {
             val androidExtension = project.extensions.findByName("android")
@@ -23,6 +32,7 @@ subprojects {
                 if (android.namespace == null) {
                     when (project.name) {
                         "flutter_appauth" -> android.namespace = "io.crossingthestreams.flutterappauth"
+                        "url_launcher_android" -> android.namespace = "io.flutter.plugins.urllauncher"
                     }
                 }
                 android.compileSdkVersion(35)

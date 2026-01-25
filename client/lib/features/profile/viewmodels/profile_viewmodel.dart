@@ -5,7 +5,8 @@ import 'package:libraryapp/models/user.dart';
 import 'package:libraryapp/data/repository/user_repository.dart';
 import 'package:libraryapp/core/providers/current_user_notifier.dart';
 import 'package:libraryapp/auth/repositories/auth_local_repository.dart';
-import 'package:libraryapp/auth/providers/asgardeo_auth_provider.dart';
+import 'package:libraryapp/auth/providers/asgardeo_direct_provider.dart';
+import 'package:libraryapp/auth/services/asgardeo_direct_auth_service.dart';
 
 part 'profile_viewmodel.g.dart';
 
@@ -14,7 +15,7 @@ class ProfileState {
   final UserProfile? userProfile;
   final ProfileStats? profileStats;
   final User? currentUser;
-  final AsgardeoUserInfo? asgardeoUserInfo;
+  final AsgardeoUser? asgardeoUserInfo;
   final bool isLoading;
   final bool isSigningOut;
   final String? error;
@@ -33,7 +34,7 @@ class ProfileState {
     UserProfile? userProfile,
     ProfileStats? profileStats,
     User? currentUser,
-    AsgardeoUserInfo? asgardeoUserInfo,
+    AsgardeoUser? asgardeoUserInfo,
     bool? isLoading,
     bool? isSigningOut,
     String? error,
@@ -58,10 +59,10 @@ class ProfileState {
   String get memberId =>
       asgardeoUserInfo?.sub ?? userProfile?.memberId ?? currentUser?.id ?? '';
   String? get profileImage =>
-      asgardeoUserInfo?.photo ?? userProfile?.profileImage;
-  String? get phone => asgardeoUserInfo?.mobile ?? userProfile?.phone;
-  String? get country => asgardeoUserInfo?.country;
-  String? get dateOfBirth => asgardeoUserInfo?.dateOfBirth;
+      asgardeoUserInfo?.picture ?? userProfile?.profileImage;
+  String? get phone => asgardeoUserInfo?.phoneNumber ?? userProfile?.phone;
+  String? get country => null; // AsgardeoUser doesn't have country field
+  String? get dateOfBirth => null; // AsgardeoUser doesn't have DOB field
   DateTime? get joinedDate => userProfile?.joinedDate;
 }
 
@@ -79,17 +80,16 @@ class ProfileViewModel extends _$ProfileViewModel {
     state = state.copyWith(isLoading: true, clearError: true);
 
     // First, check for Asgardeo user info
-    final asgardeoState = ref.read(asgardeoAuthProvider);
+    final asgardeoState = ref.read(asgardeoDirectAuthProvider);
     if (asgardeoState.isLoggedIn) {
-      state = state.copyWith(asgardeoUserInfo: asgardeoState.userInfo);
+      state = state.copyWith(asgardeoUserInfo: asgardeoState.user);
 
       // If we don't have user info yet, try to retrieve it
-      if (asgardeoState.userInfo == null && asgardeoState.accessToken != null) {
-        final userInfo = await ref
-            .read(asgardeoAuthProvider.notifier)
-            .retrieveUserDetails();
+      if (asgardeoState.user == null && asgardeoState.accessToken != null) {
+        await ref.read(asgardeoDirectAuthProvider.notifier).getUserInfo();
         if (!ref.mounted) return;
-        state = state.copyWith(asgardeoUserInfo: userInfo);
+        final updatedState = ref.read(asgardeoDirectAuthProvider);
+        state = state.copyWith(asgardeoUserInfo: updatedState.user);
       }
 
       if (!ref.mounted) return;
@@ -186,9 +186,9 @@ class ProfileViewModel extends _$ProfileViewModel {
     state = state.copyWith(isSigningOut: true);
     try {
       // Check if logged in via Asgardeo
-      final asgardeoState = ref.read(asgardeoAuthProvider);
+      final asgardeoState = ref.read(asgardeoDirectAuthProvider);
       if (asgardeoState.isLoggedIn) {
-        await ref.read(asgardeoAuthProvider.notifier).logout();
+        await ref.read(asgardeoDirectAuthProvider.notifier).logout();
       }
 
       final authLocal = ref.read(authLocalRepositoryProvider);
