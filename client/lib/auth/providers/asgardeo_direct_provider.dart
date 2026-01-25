@@ -160,6 +160,12 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
     required String firstName,
     required String lastName,
     String? username,
+    String? phoneNumber,
+    String? streetAddress,
+    String? locality,
+    String? region,
+    String? postalCode,
+    String? country,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
@@ -169,6 +175,12 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
       firstName: firstName,
       lastName: lastName,
       username: username,
+      phoneNumber: phoneNumber,
+      streetAddress: streetAddress,
+      locality: locality,
+      region: region,
+      postalCode: postalCode,
+      country: country,
     );
 
     if (result.success) {
@@ -178,6 +190,52 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
       state = state.copyWith(
         isLoading: false,
         error: result.error ?? 'Registration failed',
+      );
+      return false;
+    }
+  }
+
+  /// Update user information
+  Future<bool> updateUserInfo({
+    String? firstName,
+    String? lastName,
+    String? phoneNumber,
+    String? streetAddress,
+    String? locality,
+    String? region,
+    String? postalCode,
+    String? country,
+    String? picture,
+  }) async {
+    if (state.accessToken == null) {
+      state = state.copyWith(error: 'No access token available');
+      return false;
+    }
+
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    final result = await _authService.updateUserInfo(
+      accessToken: state.accessToken!,
+      firstName: firstName,
+      lastName: lastName,
+      phoneNumber: phoneNumber,
+      streetAddress: streetAddress,
+      locality: locality,
+      region: region,
+      postalCode: postalCode,
+      country: country,
+      picture: picture,
+    );
+
+    if (result.success) {
+      // Refresh user info after update
+      await getUserInfo();
+      state = state.copyWith(isLoading: false);
+      return true;
+    } else {
+      state = state.copyWith(
+        isLoading: false,
+        error: result.error ?? 'Update failed',
       );
       return false;
     }

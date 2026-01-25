@@ -7,7 +7,16 @@ from .models.base import Base
 
 # Import models package to ensure all model modules are loaded and registered with SQLAlchemy
 from . import models  # noqa: F401
-from .routers import books, loans, general, category, favorites, users, reservations
+from .routers import (
+    books,
+    loans,
+    general,
+    category,
+    favorites,
+    users,
+    reservations,
+    auth,
+)
 
 
 @asynccontextmanager
@@ -20,11 +29,12 @@ app = FastAPI(title="Library App API", lifespan=lifespan)
 
 # Serve client assets (book covers etc.) at /assets
 project_root = Path(__file__).resolve().parents[1].parent
-client_assets = project_root / "client" / "assets" 
+client_assets = project_root / "client" / "assets"
 if client_assets.exists():
     app.mount("/assets", StaticFiles(directory=str(client_assets)), name="assets")
 
 app.include_router(general.router)
+app.include_router(auth.router)
 app.include_router(books.router)
 app.include_router(loans.router)
 app.include_router(category.router)

@@ -1,17 +1,37 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 /// Asgardeo Direct Authentication Configuration
 /// Uses Resource Owner Password Credentials (ROPC) grant for in-app authentication
 class AsgardeoDirectConfig {
   static const String clientId = '1O70sZaVwlin70uGYeJlfKhvv2sa';
-  static const String clientSecret = ''; // Add if required by your Asgardeo app
+  // Public client - no client secret needed for mobile apps
+  static const String clientSecret = '';
   static const String baseUrl = 'https://api.eu.asgardeo.io/t/orgd2ib6';
   static const String tokenEndpoint = '$baseUrl/oauth2/token';
   static const String userInfoEndpoint = '$baseUrl/oauth2/userinfo';
-  static const String registerEndpoint = '$baseUrl/scim2/Me';
+  static const String scim2Endpoint = '$baseUrl/scim2';
+  static const String scim2MeEndpoint = '$baseUrl/scim2/Me';
+  static const String scim2UsersEndpoint = '$baseUrl/scim2/Users';
+  // Self-registration endpoint
+  static const String selfRegisterEndpoint =
+      '$baseUrl/api/identity/user/v1.0/me';
+  // Alternative registration endpoint
+  static const String publicRegisterEndpoint =
+      '$baseUrl/api/asgardeo/selfservice/v1/self-register';
   static const String introspectEndpoint = '$baseUrl/oauth2/introspect';
+
+  // Browser-based registration URL (Asgardeo hosted page)
+  // This is the officially supported way for Asgardeo cloud
+  static const String registrationUrl =
+      '$baseUrl/accountrecoveryendpoint/register.do?client_id=$clientId';
+
+  // Alternative: Asgardeo's self-service portal
+  static const String selfServicePortalUrl =
+      'https://myaccount.eu.asgardeo.io/t/orgd2ib6';
+
   static const List<String> scopes = [
     'openid',
     'profile',
@@ -227,44 +247,165 @@ class AsgardeoDirectAuthService {
     }
   }
 
-  /// Register a new user using SCIM2 endpoint
-  /// Note: This requires the SCIM2 API to be enabled in Asgardeo
+  /// Register a new user - opens Asgardeo's registration page in browser
+  /// Asgardeo's cloud user store is read-only for API writes,
+  /// so browser-based registration is the officially supported method
   Future<AuthResult<Map<String, dynamic>>> register({
     required String email,
     required String password,
     required String firstName,
     required String lastName,
     String? username,
+    String? phoneNumber,
+    String? streetAddress,
+    String? locality,
+    String? region,
+    String? postalCode,
+    String? country,
   }) async {
     try {
-      debugPrint('Attempting to register user in Asgardeo...');
+      debugPrint('Opening Asgardeo registration page in browser...');
 
-      // SCIM2 user schema
-      final scimUser = {
-        'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
-        'userName': username ?? email,
-        'password': password,
-        'emails': [
-          {'value': email, 'primary': true},
-        ],
-        'name': {'givenName': firstName, 'familyName': lastName},
+      // Open Asgardeo's self-service portal for registration
+      final url = Uri.parse(AsgardeoDirectConfig.selfServicePortalUrl);
+
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+        return AuthResult.success({
+          'success': true,
+          'message':
+              'Registration page opened in browser. Please complete registration there, then return to login.',
+          'browser_registration': true,
+        });
+      } else {
+        debugPrint('Could not launch registration URL');
+        return AuthResult.failure(
+          'Could not open registration page. Please try again.',
+        );
+      }
+    } catch (e, s) {
+      debugPrint('Registration error: $e\n$s');
+      return AuthResult.failure('Error opening registration: ${e.toString()}');
+    }
+  }
+
+  /// Get the server URL based on platform
+  // ignore: unused_element
+  String _getServerUrl() {
+    // For Android emulator, use 10.0.2.2 to access host machine
+    // For iOS simulator, use localhost
+    // For physical devices, use actual server IP
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000';
+    }
+    return 'http://127.0.0.1:8000';
+  }
+
+  /// Update user information using SCIM2 endpoint
+  /// Requires a valid access token
+  Future<AuthResult<Map<String, dynamic>>> updateUserInfo({
+    required String accessToken,
+    String? firstName,
+    String? lastName,
+    String? phoneNumber,
+    String? streetAddress,
+    String? locality,
+    String? region,
+    String? postalCode,
+    String? country,
+    String? picture,
+  }) async {
+    try {
+      debugPrint('Attempting to update user info in Asgardeo...');
+
+      // Build SCIM2 patch operations
+      final operations = <Map<String, dynamic>>[];
+
+      // Update name if provided
+      if (firstName != null || lastName != null) {
+        final nameOp = <String, dynamic>{
+          'op': 'replace',
+          'path': 'name',
+          'value': <String, dynamic>{},
+        };
+        if (firstName != null) {
+          (nameOp['value'] as Map<String, dynamic>)['givenName'] = firstName;
+        }
+        if (lastName != null) {
+          (nameOp['value'] as Map<String, dynamic>)['familyName'] = lastName;
+        }
+        operations.add(nameOp);
+      }
+
+      // Update phone number if provided
+      if (phoneNumber != null) {
+        operations.add({
+          'op': 'replace',
+          'path': 'phoneNumbers',
+          'value': [
+            {'value': phoneNumber, 'type': 'mobile', 'primary': true},
+          ],
+        });
+      }
+
+      // Update address if any address field is provided
+      if (streetAddress != null ||
+          locality != null ||
+          region != null ||
+          postalCode != null ||
+          country != null) {
+        final addressValue = <String, dynamic>{'type': 'home', 'primary': true};
+        if (streetAddress != null) {
+          addressValue['streetAddress'] = streetAddress;
+        }
+        if (locality != null) addressValue['locality'] = locality;
+        if (region != null) addressValue['region'] = region;
+        if (postalCode != null) addressValue['postalCode'] = postalCode;
+        if (country != null) addressValue['country'] = country;
+
+        operations.add({
+          'op': 'replace',
+          'path': 'addresses',
+          'value': [addressValue],
+        });
+      }
+
+      // Update profile picture if provided
+      if (picture != null) {
+        operations.add({
+          'op': 'replace',
+          'path': 'photos',
+          'value': [
+            {'value': picture, 'type': 'photo', 'primary': true},
+          ],
+        });
+      }
+
+      if (operations.isEmpty) {
+        return AuthResult.failure('No fields to update');
+      }
+
+      final patchRequest = {
+        'schemas': ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+        'Operations': operations,
       };
 
-      final response = await http.post(
-        Uri.parse(AsgardeoDirectConfig.registerEndpoint),
+      final response = await http.patch(
+        Uri.parse(AsgardeoDirectConfig.scim2MeEndpoint), // /scim2/Me endpoint
         headers: {
           'Content-Type': 'application/scim+json',
           'Accept': 'application/scim+json',
+          'Authorization': 'Bearer $accessToken',
         },
-        body: jsonEncode(scimUser),
+        body: jsonEncode(patchRequest),
       );
 
-      debugPrint('Register response status: ${response.statusCode}');
-      debugPrint('Register response body: ${response.body}');
+      debugPrint('Update response status: ${response.statusCode}');
+      debugPrint('Update response body: ${response.body}');
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
+      if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
-        debugPrint('Registration successful!');
+        debugPrint('Update successful!');
         return AuthResult.success(json);
       } else {
         final errorJson = jsonDecode(response.body) as Map<String, dynamic>;
@@ -272,12 +413,12 @@ class AsgardeoDirectAuthService {
             errorJson['detail'] ??
             errorJson['scimType'] ??
             errorJson['description'] ??
-            'Registration failed';
-        debugPrint('Registration failed: $errorDetail');
+            'Update failed';
+        debugPrint('Update failed: $errorDetail');
         return AuthResult.failure(errorDetail.toString());
       }
     } catch (e, s) {
-      debugPrint('Registration error: $e\n$s');
+      debugPrint('Update error: $e\n$s');
       return AuthResult.failure('Connection error: ${e.toString()}');
     }
   }

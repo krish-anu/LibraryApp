@@ -20,8 +20,15 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _streetAddressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _stateController = TextEditingController();
+  final _postalCodeController = TextEditingController();
+  final _countryController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _showAddressFields = false;
 
   @override
   void dispose() {
@@ -31,37 +38,49 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _phoneController.dispose();
+    _streetAddressController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _postalCodeController.dispose();
+    _countryController.dispose();
     super.dispose();
   }
 
   Future<void> _handleSignup() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
     final asgardeoAuth = ref.read(asgardeoDirectAuthProvider.notifier);
 
+    // Browser-based registration will be used
     final success = await asgardeoAuth.register(
       email: _emailController.text.trim(),
       password: _passwordController.text,
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
-      username: _usernameController.text.trim().isNotEmpty
-          ? _usernameController.text.trim()
-          : null,
     );
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration successful! Please login.'),
-          backgroundColor: Colors.green,
+      // Show dialog explaining the registration flow
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Registration'),
+          content: const Text(
+            'Registration page has been opened in your browser.\n\n'
+            'Please complete the registration there, then return here to login.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Login()),
+                );
+              },
+              child: const Text('Go to Login'),
+            ),
+          ],
         ),
-      );
-      // Navigate to login page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Login()),
       );
     }
   }
@@ -201,6 +220,109 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   ),
                   textInputAction: TextInputAction.next,
                 ),
+                const SizedBox(height: 16),
+
+                // Phone Number (optional)
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: const InputDecoration(
+                    hintText: "Phone Number (optional)",
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
+
+                // Address Section (collapsible)
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _showAddressFields = !_showAddressFields;
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _showAddressFields
+                              ? Icons.expand_less
+                              : Icons.expand_more,
+                          color: Pallete.textSecondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Add Address (optional)",
+                          style: TextStyle(
+                            color: Pallete.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Address Fields (shown when expanded)
+                if (_showAddressFields) ...[
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _streetAddressController,
+                    decoration: const InputDecoration(
+                      hintText: "Street Address",
+                      prefixIcon: Icon(Icons.home_outlined),
+                    ),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _cityController,
+                          decoration: const InputDecoration(hintText: "City"),
+                          textInputAction: TextInputAction.next,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _stateController,
+                          decoration: const InputDecoration(
+                            hintText: "State/Region",
+                          ),
+                          textInputAction: TextInputAction.next,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _postalCodeController,
+                          decoration: const InputDecoration(
+                            hintText: "Postal Code",
+                          ),
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.next,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _countryController,
+                          decoration: const InputDecoration(
+                            hintText: "Country",
+                          ),
+                          textInputAction: TextInputAction.next,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
 
                 // Password
