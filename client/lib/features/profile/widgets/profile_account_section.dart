@@ -5,13 +5,8 @@ import 'profile_menu_item.dart';
 /// Account section with menu items.
 class ProfileAccountSection extends StatelessWidget {
   final VoidCallback onEditProfile;
-  
 
-  const ProfileAccountSection({
-    super.key,
-    required this.onEditProfile,
-    
-  });
+  const ProfileAccountSection({super.key, required this.onEditProfile});
 
   @override
   Widget build(BuildContext context) {
