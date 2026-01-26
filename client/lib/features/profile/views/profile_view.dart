@@ -138,6 +138,7 @@ class ProfileView extends ConsumerWidget {
     );
   }
 
+  // ignore: unused_element
   void _showComingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

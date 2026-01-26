@@ -387,6 +387,7 @@ class _ProfileState extends ConsumerState<Profile> {
     );
   }
 
+  // ignore: unused_element
   void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
