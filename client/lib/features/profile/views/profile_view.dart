@@ -58,10 +58,6 @@ class ProfileView extends ConsumerWidget {
                     const SizedBox(height: 24),
                     ProfileAccountSection(
                       onEditProfile: () => _navigateToEditProfile(context, ref),
-                      onChangePassword: () =>
-                          _showComingSoon(context, 'Change Password'),
-                      onDigitalCard: () =>
-                          _showComingSoon(context, 'Digital Card'),
                     ),
                     const SizedBox(height: 16),
                     ProfilePreferencesSection(

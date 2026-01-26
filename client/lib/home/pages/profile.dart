@@ -323,16 +323,7 @@ class _ProfileState extends ConsumerState<Profile> {
           title: "Personal Information",
           onTap: _navigateToEditProfile,
         ),
-        ProfileMenuItem(
-          icon: Icons.lock_outline,
-          title: "Change Password",
-          onTap: () => _showComingSoon('Change Password'),
-        ),
-        ProfileMenuItem(
-          icon: Icons.credit_card,
-          title: "My Digital Card",
-          onTap: () => _showComingSoon('Digital Card'),
-        ),
+        // Removed Change Password and My Digital Card options per request.
       ],
     );
   }
