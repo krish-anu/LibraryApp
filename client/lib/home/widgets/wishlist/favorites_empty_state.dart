@@ -31,7 +31,7 @@ class FavoritesEmptyState extends StatelessWidget {
             const Text(
               'No Favorites Yet',
               style: TextStyle(
-                color: Colors.white,
+                color: Pallete.textPrimary,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),

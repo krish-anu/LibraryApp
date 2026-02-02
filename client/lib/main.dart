@@ -24,8 +24,14 @@ class MyApp extends ConsumerWidget {
       title: 'XYZ Library',
       theme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.light,
         colorSchemeSeed: Pallete.primaryColor,
         scaffoldBackgroundColor: Pallete.scaffoldBackground,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Pallete.appBarBackground,
+          foregroundColor: Pallete.textPrimary,
+          elevation: 0,
+        ),
       ),
 
       // 🌙 Dark theme (Material 3)

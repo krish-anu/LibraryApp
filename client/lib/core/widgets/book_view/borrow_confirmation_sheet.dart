@@ -208,7 +208,7 @@ class _SheetTitle extends StatelessWidget {
     return Text(
       isAvailable ? 'Confirm Borrow' : 'Confirm Reservation',
       style: const TextStyle(
-        color: Colors.white,
+        color: Pallete.textPrimary,
         fontSize: 24,
         fontWeight: FontWeight.bold,
       ),
@@ -249,7 +249,7 @@ class _BookInfoCard extends StatelessWidget {
                 Text(
                   book.title,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Pallete.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -292,7 +292,7 @@ class _SmallChip extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: const TextStyle(
-          color: Colors.white,
+          color: Pallete.textPrimary,
           fontSize: 9,
           fontWeight: FontWeight.bold,
         ),
@@ -384,7 +384,7 @@ class _InfoCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: Pallete.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),

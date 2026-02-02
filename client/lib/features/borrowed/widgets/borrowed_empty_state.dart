@@ -33,7 +33,7 @@ class BorrowedEmptyState extends StatelessWidget {
             const Text(
               'No Borrowed Books',
               style: TextStyle(
-                color: Colors.white,
+                color: Pallete.textPrimary,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),

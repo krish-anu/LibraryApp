@@ -47,7 +47,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: Pallete.iconColor),
             onPressed: () {
               ref.invalidate(fetchAllLoansProvider);
               ref.invalidate(fetchReservationsByMemberProvider('m1'));
@@ -164,7 +164,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
                 const Text(
                   'Currently Borrowed',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Pallete.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -285,7 +285,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Cancel Reservation',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Pallete.textPrimary),
         ),
         content: Text(
           'Are you sure you want to cancel this reservation?',
@@ -331,7 +331,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
       builder: (context) => AlertDialog(
         backgroundColor: Pallete.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Renew Book', style: TextStyle(color: Colors.white)),
+        title: const Text('Renew Book', style: TextStyle(color: Pallete.textPrimary)),
         content: Text(
           'Would you like to renew "${item.book.title}" for another 14 days?',
           style: TextStyle(color: Pallete.textSecondary),
@@ -365,7 +365,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
       builder: (context) => AlertDialog(
         backgroundColor: Pallete.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Return Book', style: TextStyle(color: Colors.white)),
+        title: const Text('Return Book', style: TextStyle(color: Pallete.textPrimary)),
         content: Text(
           'Are you sure you want to return "${item.book.title}"?',
           style: TextStyle(color: Pallete.textSecondary),
@@ -455,7 +455,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
           const SizedBox(height: 16),
           Text(
             message,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Pallete.textPrimary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),

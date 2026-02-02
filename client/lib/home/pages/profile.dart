@@ -200,7 +200,7 @@ class _ProfileState extends ConsumerState<Profile> {
         Text(
           displayName,
           style: const TextStyle(
-            color: Colors.white,
+            color: Pallete.textPrimary,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -441,7 +441,7 @@ class _ProfileState extends ConsumerState<Profile> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Pallete.cardBackground,
-        title: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+        title: const Text('Sign Out', style: TextStyle(color: Pallete.textPrimary)),
         content: Text(
           'Are you sure you want to sign out?',
           style: TextStyle(color: Pallete.textSecondary),

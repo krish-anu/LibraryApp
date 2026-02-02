@@ -55,7 +55,7 @@ class _AvailabilityBadge extends StatelessWidget {
           child: const Text(
             'AVAILABLE',
             style: TextStyle(
-              color: Colors.white,
+              color: Pallete.btnTextColor,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),

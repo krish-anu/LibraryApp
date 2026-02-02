@@ -40,7 +40,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
+            icon: const Icon(Icons.search, color: Pallete.iconColor),
             onPressed: () {
               ref
                   .read(
@@ -163,7 +163,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
 
   Widget _buildError(String message) {
     return Center(
-      child: Text(message, style: const TextStyle(color: Colors.white)),
+      child: Text(message, style: const TextStyle(color: Pallete.textPrimary)),
     );
   }
 }

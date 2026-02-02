@@ -49,7 +49,7 @@ class WishlistView extends ConsumerWidget {
       title: const Text(
         'Favorites',
         style: TextStyle(
-          color: Colors.white,
+          color: Pallete.textPrimary,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
@@ -156,7 +156,7 @@ class WishlistView extends ConsumerWidget {
           const Text(
             'Failed to load favorites',
             style: TextStyle(
-              color: Colors.white,
+              color: Pallete.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),

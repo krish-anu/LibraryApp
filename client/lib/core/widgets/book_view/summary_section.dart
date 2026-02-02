@@ -29,7 +29,7 @@ class SummarySection extends StatelessWidget {
           const Text(
             'Summary',
             style: TextStyle(
-              color: Colors.white,
+              color: Pallete.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),

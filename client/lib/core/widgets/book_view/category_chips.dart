@@ -38,7 +38,7 @@ class _CategoryChip extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-          color: Colors.white,
+          color: Pallete.categoryChipText,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),

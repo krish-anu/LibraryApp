@@ -52,7 +52,7 @@ class _SearchState extends ConsumerState<Search> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
+            icon: const Icon(Icons.search, color: Pallete.iconColor),
             onPressed: () =>
                 setState(() => showSearchResults = !showSearchResults),
           ),
@@ -245,7 +245,7 @@ class _SearchState extends ConsumerState<Search> {
     return Center(
       child: Text(
         'Error: $message',
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Pallete.textPrimary),
       ),
     );
   }

@@ -22,10 +22,10 @@ class BorrowedStats extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1A3D2E), Color(0xFF2D5A45)],
+          colors: [Pallete.primaryColor, Pallete.primaryLight],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [

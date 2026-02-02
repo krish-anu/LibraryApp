@@ -28,7 +28,7 @@ class FilterChipButton extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Pallete.textSecondary,
+            color: isSelected ? Pallete.btnTextColor : Pallete.textSecondary,
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),

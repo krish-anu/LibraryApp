@@ -28,7 +28,7 @@ class BookInfoSection extends StatelessWidget {
           child: Text(
             title,
             style: const TextStyle(
-              color: Colors.white,
+              color: Pallete.textPrimary,
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
@@ -110,7 +110,7 @@ class _InfoItem extends StatelessWidget {
         Text(
           value,
           style: const TextStyle(
-            color: Colors.white,
+            color: Pallete.textPrimary,
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),

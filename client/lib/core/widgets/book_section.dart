@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
 import 'package:libraryapp/core/widgets/see_all.dart';
 import 'package:libraryapp/models/book.dart';
@@ -31,7 +32,7 @@ class BookSection extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Pallete.textPrimary,
               ),
             ),
             TextButton(
@@ -46,7 +47,7 @@ class BookSection extends StatelessWidget {
               child: Text(
                 'See all',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: Pallete.textSecondary,
                   fontSize: 14,
                 ),
               ),

@@ -89,7 +89,7 @@ class ProfileStats extends StatelessWidget {
         Text(
           value,
           style: const TextStyle(
-            color: Colors.white,
+            color: Pallete.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),

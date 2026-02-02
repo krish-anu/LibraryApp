@@ -31,7 +31,7 @@ class GenreGrid extends StatelessWidget {
         const Text(
           "Top Genres",
           style: TextStyle(
-            color: Colors.white,
+            color: Pallete.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),

@@ -46,7 +46,7 @@ class _BorrowedViewState extends ConsumerState<BorrowedView>
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: Pallete.iconColor),
             onPressed: () =>
                 ref.read(borrowedViewModelProvider.notifier).refresh(),
           ),
@@ -102,7 +102,7 @@ class _BorrowedViewState extends ConsumerState<BorrowedView>
                   const Text(
                     'Currently Borrowed',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Pallete.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -245,7 +245,7 @@ class _BorrowedViewState extends ConsumerState<BorrowedView>
 
   Widget _buildError(String message) {
     return Center(
-      child: Text(message, style: const TextStyle(color: Colors.white)),
+      child: Text(message, style: const TextStyle(color: Pallete.textPrimary)),
     );
   }
 }

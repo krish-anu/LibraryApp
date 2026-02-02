@@ -17,17 +17,17 @@ class CategoriesSection extends StatelessWidget {
   static const _categoryData = {
     'Sci-Fi': {
       'icon': Icons.rocket_launch_outlined,
-      'color': Color(0xFF2D5A45),
+      'color': Color(0xFF4A90D9),
     },
     'History': {
       'icon': Icons.account_balance_outlined,
-      'color': Color(0xFF2D5A45),
+      'color': Color(0xFF4A90D9),
     },
     'Fiction': {
       'icon': Icons.auto_stories_outlined,
-      'color': Color(0xFF2D5A45),
+      'color': Color(0xFF4A90D9),
     },
-    'Mystery': {'icon': Icons.psychology_outlined, 'color': Color(0xFF2D5A45)},
+    'Mystery': {'icon': Icons.psychology_outlined, 'color': Color(0xFF4A90D9)},
   };
 
   @override
@@ -38,7 +38,7 @@ class CategoriesSection extends StatelessWidget {
         const Text(
           'Explore Categories',
           style: TextStyle(
-            color: Colors.white,
+            color: Pallete.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -64,7 +64,7 @@ class CategoriesSection extends StatelessWidget {
   Widget _buildCategoryChip(Category category) {
     final data =
         _categoryData[category.name] ??
-        {'icon': Icons.book_outlined, 'color': const Color(0xFF2D5A45)};
+        {'icon': Icons.book_outlined, 'color': const Color(0xFF4A90D9)};
 
     return GestureDetector(
       onTap: () => onCategoryTap(category.name),
@@ -82,7 +82,7 @@ class CategoriesSection extends StatelessWidget {
               child: Text(
                 category.name,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Pallete.categoryChipText,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -118,7 +118,7 @@ class CategoriesSection extends StatelessWidget {
         color: data['color'] as Color,
         shape: BoxShape.circle,
       ),
-      child: Icon(data['icon'] as IconData, color: Colors.white, size: 18),
+      child: Icon(data['icon'] as IconData, color: Pallete.btnTextColor, size: 18),
     );
   }
 }

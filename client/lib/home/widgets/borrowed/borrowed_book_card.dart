@@ -160,7 +160,7 @@ class BorrowedBookCard extends StatelessWidget {
     return Text(
       book.title,
       style: const TextStyle(
-        color: Colors.white,
+        color: Pallete.textPrimary,
         fontSize: 16,
         fontWeight: FontWeight.bold,
       ),
@@ -207,7 +207,7 @@ class BorrowedBookCard extends StatelessWidget {
             Text(
               formattedDate,
               style: TextStyle(
-                color: isOverdue ? Pallete.error : Colors.white,
+                color: isOverdue ? Pallete.error : Pallete.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),

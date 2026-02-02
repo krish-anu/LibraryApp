@@ -61,7 +61,7 @@ class ReservedBookCard extends StatelessWidget {
                     Text(
                       book.title,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Pallete.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),

@@ -75,7 +75,7 @@ class GenreCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             "$count books",
-            style: TextStyle(color: Pallete.textSecondary, fontSize: 12),
+            style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),

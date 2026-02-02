@@ -19,7 +19,7 @@ class SearchTextField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Pallete.textPrimary),
         decoration: InputDecoration(
           filled: true,
           fillColor: Pallete.cardBackground,

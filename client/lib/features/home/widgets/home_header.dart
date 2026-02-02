@@ -23,7 +23,7 @@ class HomeHeader extends StatelessWidget {
             Text(
               '${_getGreeting()}, Reader',
               style: const TextStyle(
-                color: Colors.white,
+                color: Pallete.textPrimary,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -32,7 +32,7 @@ class HomeHeader extends StatelessWidget {
             Text(
               'Ready to dive into a new world?',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: Pallete.textSecondary,
                 fontSize: 14,
               ),
             ),
@@ -52,7 +52,7 @@ class HomeHeader extends StatelessWidget {
       ),
       child: const Icon(
         Icons.notifications_outlined,
-        color: Colors.white,
+        color: Pallete.iconColor,
         size: 24,
       ),
     );

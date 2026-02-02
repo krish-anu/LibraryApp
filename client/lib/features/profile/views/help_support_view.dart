@@ -398,9 +398,9 @@ class HelpSupportView extends StatelessWidget {
             child: Column(
               children: [
                 _buildInfoRow('Version', '1.0.2'),
-                const Divider(color: Colors.white12),
+                Divider(color: Pallete.border),
                 _buildInfoRow('Build', '2024.01.15'),
-                const Divider(color: Colors.white12),
+                Divider(color: Pallete.border),
                 _buildInfoRow('Platform', 'Flutter'),
               ],
             ),
@@ -422,7 +422,7 @@ class HelpSupportView extends StatelessWidget {
           ),
           Text(
             value,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(color: Pallete.textPrimary, fontSize: 14),
           ),
         ],
       ),

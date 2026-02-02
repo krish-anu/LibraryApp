@@ -27,10 +27,10 @@ class SortDropdown extends StatelessWidget {
         isDense: true,
         icon: const Icon(
           Icons.keyboard_arrow_down,
-          color: Colors.white,
+          color: Pallete.textPrimary,
           size: 18,
         ),
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: const TextStyle(color: Pallete.textPrimary, fontSize: 14),
         items: ['Popular', 'Newest', 'A-Z', 'Rating'].map((String value) {
           return DropdownMenuItem<String>(
             value: value,

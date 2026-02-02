@@ -71,7 +71,7 @@ class _ReviewHeader extends StatelessWidget {
           child: Text(
             name[0],
             style: const TextStyle(
-              color: Colors.white,
+              color: Pallete.btnTextColor,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -82,7 +82,7 @@ class _ReviewHeader extends StatelessWidget {
           child: Text(
             name,
             style: const TextStyle(
-              color: Colors.white,
+              color: Pallete.textPrimary,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),

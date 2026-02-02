@@ -43,12 +43,12 @@ class BookViewAppBar extends StatelessWidget implements PreferredSizeWidget {
           IconButton(
             icon: Icon(
               isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: isFavorite ? Pallete.primaryLight : Colors.white,
+              color: isFavorite ? Pallete.primaryLight : Pallete.iconColor,
             ),
             onPressed: onFavoritePressed,
           ),
         IconButton(
-          icon: const Icon(Icons.ios_share, color: Colors.white),
+          icon: const Icon(Icons.ios_share, color: Pallete.iconColor),
           onPressed: () {},
         ),
       ],

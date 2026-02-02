@@ -28,7 +28,7 @@ class ProfileToggleItem extends StatelessWidget {
         leading: Icon(icon, color: Pallete.textSecondary),
         title: Text(
           title,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: const TextStyle(color: Pallete.textPrimary, fontSize: 16),
         ),
         trailing: Switch(
           value: value,

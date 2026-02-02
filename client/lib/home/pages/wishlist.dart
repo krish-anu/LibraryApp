@@ -57,7 +57,7 @@ class _WishlistState extends ConsumerState<Wishlist> {
       title: const Text(
         'Favorites',
         style: TextStyle(
-          color: Colors.white,
+          color: Pallete.textPrimary,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
@@ -173,7 +173,7 @@ class _WishlistState extends ConsumerState<Wishlist> {
             const Text(
               'Failed to load favorites',
               style: TextStyle(
-                color: Colors.white,
+                color: Pallete.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -218,7 +218,7 @@ class _WishlistState extends ConsumerState<Wishlist> {
             const Text(
               'Sort & Filter',
               style: TextStyle(
-                color: Colors.white,
+                color: Pallete.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -237,7 +237,7 @@ class _WishlistState extends ConsumerState<Wishlist> {
                   style: TextStyle(
                     color: _selectedFilter == item.$1
                         ? Pallete.primaryLight
-                        : Colors.white,
+                        : Pallete.textPrimary,
                     fontWeight: _selectedFilter == item.$1
                         ? FontWeight.bold
                         : FontWeight.normal,

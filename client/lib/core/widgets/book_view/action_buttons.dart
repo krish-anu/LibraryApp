@@ -50,7 +50,7 @@ class _ActionButton extends StatelessWidget {
     return OutlinedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, color: Pallete.primaryLight, size: 18),
-      label: Text(label, style: const TextStyle(color: Colors.white)),
+      label: Text(label, style: const TextStyle(color: Pallete.textPrimary)),
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: Pallete.border),
         padding: const EdgeInsets.symmetric(vertical: 12),
