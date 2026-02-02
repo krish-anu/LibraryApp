@@ -22,25 +22,25 @@ import {
 interface BookFormData {
   title: string;
   author: string;
-  isbn: string;
   category_id: string;
   description: string;
   copies_owned: number;
-  copies_available: number;
-  status: string;
-  cover_image_url: string;
+  publication_year: number;
+  image: string;
+  language: string;
+  pages: number;
 }
 
 const initialFormData: BookFormData = {
   title: "",
   author: "",
-  isbn: "",
   category_id: "",
   description: "",
   copies_owned: 1,
-  copies_available: 1,
-  status: "available",
-  cover_image_url: "",
+  publication_year: new Date().getFullYear(),
+  image: "",
+  language: "English",
+  pages: 0,
 };
 
 export default function BooksPage() {
@@ -110,13 +110,13 @@ export default function BooksPage() {
       setFormData({
         title: book.title,
         author: book.author,
-        isbn: book.isbn || "",
         category_id: book.category_id || "",
         description: book.description || "",
         copies_owned: book.copies_owned,
-        copies_available: book.copies_available,
-        status: book.status,
-        cover_image_url: book.cover_image_url || "",
+        publication_year: book.publication_year || new Date().getFullYear(),
+        image: book.image || "",
+        language: book.language || "English",
+        pages: book.pages || 0,
       });
     } else {
       setEditingBook(null);
@@ -256,16 +256,16 @@ export default function BooksPage() {
                   Book
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  ISBN
+                  Category
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
                   Copies
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Status
+                  Year
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Added
+                  Rating
                 </th>
                 <th className="text-right px-6 py-3 text-sm font-semibold text-gray-900">
                   Actions
@@ -300,9 +300,9 @@ export default function BooksPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-14 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
-                          {book.cover_image_url ? (
+                          {book.image ? (
                             <img
-                              src={book.cover_image_url}
+                              src={book.image}
                               alt={book.title}
                               className="w-full h-full object-cover"
                             />
@@ -319,14 +319,16 @@ export default function BooksPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {book.isbn || "-"}
+                      {book.category || "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {book.copies_available} / {book.copies_owned}
+                      {book.copies_owned}
                     </td>
-                    <td className="px-6 py-4">{getStatusBadge(book.status)}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatDate(book.created_at)}
+                      {book.publication_year || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {book.rating?.toFixed(1) || "-"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
@@ -408,13 +410,6 @@ export default function BooksPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="ISBN"
-              value={formData.isbn}
-              onChange={(e) =>
-                setFormData({ ...formData, isbn: e.target.value })
-              }
-            />
             <Select
               label="Category"
               value={formData.category_id}
@@ -426,8 +421,21 @@ export default function BooksPage() {
                 ...categories.map((c) => ({ value: c.id, label: c.name })),
               ]}
             />
+            <Input
+              label="Publication Year"
+              type="number"
+              min="1000"
+              max={new Date().getFullYear() + 1}
+              value={formData.publication_year}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  publication_year: parseInt(e.target.value) || new Date().getFullYear(),
+                })
+              }
+            />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <Input
               label="Copies Owned"
               type="number"
@@ -442,36 +450,30 @@ export default function BooksPage() {
               required
             />
             <Input
-              label="Copies Available"
+              label="Pages"
               type="number"
               min="0"
-              value={formData.copies_available}
+              value={formData.pages}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  copies_available: parseInt(e.target.value) || 0,
+                  pages: parseInt(e.target.value) || 0,
                 })
               }
-              required
+            />
+            <Input
+              label="Language"
+              value={formData.language}
+              onChange={(e) =>
+                setFormData({ ...formData, language: e.target.value })
+              }
             />
           </div>
-          <Select
-            label="Status"
-            value={formData.status}
-            onChange={(e) =>
-              setFormData({ ...formData, status: e.target.value })
-            }
-            options={[
-              { value: "available", label: "Available" },
-              { value: "checked_out", label: "Checked Out" },
-              { value: "reserved", label: "Reserved" },
-            ]}
-          />
           <Input
             label="Cover Image URL"
-            value={formData.cover_image_url}
+            value={formData.image}
             onChange={(e) =>
-              setFormData({ ...formData, cover_image_url: e.target.value })
+              setFormData({ ...formData, image: e.target.value })
             }
             placeholder="https://example.com/cover.jpg"
           />

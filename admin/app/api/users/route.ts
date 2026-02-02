@@ -1,48 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db";
+import { User } from "@/lib/types";
 
 // GET all users with pagination and filtering
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createAdminSupabaseClient();
     const { searchParams } = new URL(request.url);
 
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const status = searchParams.get("status");
     const search = searchParams.get("search");
 
     const offset = (page - 1) * limit;
 
-    let query = supabase.from("users").select("*", { count: "exact" });
-
-    if (status && status !== "all") {
-      query = query.eq("status", status);
-    }
+    let sql = `SELECT * FROM users WHERE 1=1`;
+    const params: unknown[] = [];
+    let paramIndex = 1;
 
     if (search) {
-      query = query.or(
-        `name.ilike.%${search}%,email.ilike.%${search}%,membership_id.ilike.%${search}%`,
-      );
+      sql += ` AND (name ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR member_id ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
     }
 
-    query = query
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Count total
+    const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countResult = await query<{ count: string }>(countSql, params);
+    const total = parseInt(countResult[0]?.count || '0');
 
-    const { data, error, count } = await query;
+    sql += ` ORDER BY name ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(limit, offset);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const data = await query<User>(sql, params);
 
     return NextResponse.json({
       data,
+      totalCount: total,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     });
   } catch (error) {
@@ -57,30 +55,26 @@ export async function GET(request: NextRequest) {
 // POST create new user
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createAdminSupabaseClient();
     const body = await request.json();
+    const id = crypto.randomUUID();
+    const memberId = `MEM-${Date.now().toString(36).toUpperCase()}`;
 
-    // Generate membership ID
-    const membershipId = `LIB-${String(Date.now()).slice(-6)}`;
+    const sql = `
+      INSERT INTO users (id, member_id, name, email, phone, address, joined_date)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE)
+      RETURNING *
+    `;
+    
+    const data = await query<User>(sql, [
+      id,
+      memberId,
+      body.name,
+      body.email,
+      body.phone || null,
+      body.address || null,
+    ]);
 
-    const { data, error } = await supabase
-      .from("users")
-      .insert({
-        name: body.name,
-        email: body.email,
-        membership_id: membershipId,
-        phone: body.phone,
-        status: body.status || "active",
-        joined_date: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ data }, { status: 201 });
+    return NextResponse.json({ data: data[0] }, { status: 201 });
   } catch (error) {
     console.error("Error creating user:", error);
     return NextResponse.json(

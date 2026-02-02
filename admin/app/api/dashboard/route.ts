@@ -1,105 +1,66 @@
 import { NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { query, queryOne } from "@/lib/db";
 
 export async function GET() {
   try {
-    const supabase = await createAdminSupabaseClient();
+    // Get total users count
+    const usersResult = await queryOne<{ count: string }>(
+      "SELECT COUNT(*) as count FROM users"
+    );
+    const activeUsers = parseInt(usersResult?.count || '0');
 
-    // Get active users count
-    const { count: activeUsers } = await supabase
-      .from("users")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "active");
+    // Get total inventory (sum of copies_owned)
+    const inventoryResult = await queryOne<{ total: string }>(
+      "SELECT COALESCE(SUM(copies_owned), 0) as total FROM books"
+    );
+    const totalInventory = parseInt(inventoryResult?.total || '0');
 
-    // Get total inventory
-    const { data: inventoryData } = await supabase
-      .from("books")
-      .select("copies_owned");
-    const totalInventory =
-      inventoryData?.reduce((sum, book) => sum + (book.copies_owned || 0), 0) ||
-      0;
+    // Get pending fines total
+    const finesResult = await queryOne<{ total: string; count: string }>(
+      "SELECT COALESCE(SUM(fine_amount), 0) as total, COUNT(*) as count FROM fines"
+    );
+    const pendingFines = parseFloat(finesResult?.total || '0');
+    const fineCount = parseInt(finesResult?.count || '0');
 
-    // Get pending fines
-    const { data: finesData } = await supabase
-      .from("fines")
-      .select("amount")
-      .eq("status", "unpaid");
-    const pendingFines =
-      finesData?.reduce((sum, fine) => sum + fine.amount, 0) || 0;
-    const fineCount = finesData?.length || 0;
+    // Get avg checkout time from completed loans
+    const avgResult = await queryOne<{ avg_days: string }>(
+      `SELECT ROUND(AVG(returned_date - loan_date), 1) as avg_days 
+       FROM loans 
+       WHERE returned_date IS NOT NULL`
+    );
+    const avgCheckoutTime = parseFloat(avgResult?.avg_days || '14');
 
-    // Get active loans for avg checkout time
-    const { data: loansData } = await supabase
-      .from("loans")
-      .select("loan_date, return_date")
-      .not("return_date", "is", null);
-
-    let avgCheckoutTime = 14;
-    if (loansData && loansData.length > 0) {
-      const totalDays = loansData.reduce((sum, loan) => {
-        const loanDate = new Date(loan.loan_date);
-        const returnDate = new Date(loan.return_date);
-        const days = Math.ceil(
-          (returnDate.getTime() - loanDate.getTime()) / (1000 * 60 * 60 * 24),
-        );
-        return sum + days;
-      }, 0);
-      avgCheckoutTime = Math.round((totalDays / loansData.length) * 10) / 10;
-    }
-
-    // Get most viewed/borrowed books
-    const { data: mostViewedBooks } = await supabase
-      .from("loans")
-      .select("book_id, books(id, title)")
-      .limit(100);
-
-    const bookCounts: Record<string, { title: string; count: number }> = {};
-    mostViewedBooks?.forEach((loan) => {
-      const book = loan.books as unknown as {
-        id: string;
-        title: string;
-      } | null;
-      if (book) {
-        if (!bookCounts[book.id]) {
-          bookCounts[book.id] = { title: book.title, count: 0 };
-        }
-        bookCounts[book.id].count++;
-      }
-    });
-
-    const topBooks = Object.entries(bookCounts)
-      .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 5)
-      .map(([id, data]) => ({
-        id,
-        title: data.title,
-        count: data.count,
-      }));
+    // Get most borrowed books
+    const topBooks = await query<{ id: string; title: string; count: string }>(
+      `SELECT b.id, b.title, COUNT(l.id) as count
+       FROM loans l
+       JOIN books b ON l.book_id = b.id
+       GROUP BY b.id, b.title
+       ORDER BY count DESC
+       LIMIT 5`
+    );
 
     // Get recent fines
-    const { data: recentFines } = await supabase
-      .from("fines")
-      .select(
-        `
-        *,
-        users:user_id (id, name)
-      `,
-      )
-      .order("created_at", { ascending: false })
-      .limit(5);
+    const recentFines = await query<{ id: string; member_id: string; fine_amount: number; fine_date: string; user_name: string }>(
+      `SELECT f.id, f.member_id, f.fine_amount, f.fine_date, u.name as user_name
+       FROM fines f
+       LEFT JOIN users u ON f.member_id = u.id
+       ORDER BY f.fine_date DESC
+       LIMIT 5`
+    );
 
     return NextResponse.json({
       stats: {
-        activeUsers: activeUsers || 0,
+        activeUsers,
         totalInventory,
         pendingFines,
-        avgCheckoutTime,
-        userGrowth: 12, // Placeholder - would need historical data
+        avgCheckoutTime: avgCheckoutTime || 14,
+        userGrowth: 12, // Placeholder
         inventoryGrowth: 2, // Placeholder
         fineCount,
         checkoutImprovement: 8, // Placeholder
       },
-      topBooks,
+      topBooks: topBooks.map(b => ({ ...b, count: parseInt(b.count) })),
       recentFines,
     });
   } catch (error) {
@@ -110,3 +71,4 @@ export async function GET() {
     );
   }
 }
+

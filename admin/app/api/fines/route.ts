@@ -1,48 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db";
+import { Fine } from "@/lib/types";
+
+interface FineWithDetails extends Fine {
+  user_name?: string;
+  user_email?: string;
+  book_title?: string;
+}
 
 // GET all fines with pagination and filtering
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createAdminSupabaseClient();
     const { searchParams } = new URL(request.url);
 
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const status = searchParams.get("status");
-
     const offset = (page - 1) * limit;
 
-    let query = supabase.from("fines").select(
-      `
-        *,
-        users:user_id (id, name, email, membership_id),
-        books:book_id (id, title, author)
-      `,
-      { count: "exact" },
+    // Get fines with user and loan/book info
+    const data = await query<FineWithDetails>(
+      `SELECT 
+        f.*,
+        u.name as user_name,
+        u.email as user_email,
+        b.title as book_title
+      FROM fines f
+      LEFT JOIN users u ON f.member_id = u.id
+      LEFT JOIN loans l ON f.loan_id = l.id
+      LEFT JOIN books b ON l.book_id = b.id
+      ORDER BY f.fine_date DESC
+      LIMIT $1 OFFSET $2`,
+      [limit, offset]
     );
 
-    if (status && status !== "all") {
-      query = query.eq("status", status);
-    }
-
-    query = query
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    // Get total count
+    const countResult = await query<{ count: string }>(
+      "SELECT COUNT(*) as count FROM fines"
+    );
+    const total = parseInt(countResult[0]?.count || '0');
 
     return NextResponse.json({
       data,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     });
   } catch (error) {
@@ -57,28 +60,22 @@ export async function GET(request: NextRequest) {
 // POST create new fine
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createAdminSupabaseClient();
     const body = await request.json();
 
-    const { data, error } = await supabase
-      .from("fines")
-      .insert({
-        user_id: body.user_id,
-        book_id: body.book_id,
-        loan_id: body.loan_id,
-        amount: body.amount,
-        reason: body.reason,
-        status: body.status || "unpaid",
-        due_date: body.due_date,
-      })
-      .select()
-      .single();
+    const data = await query<Fine>(
+      `INSERT INTO fines (id, member_id, loan_id, fine_date, fine_amount)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *`,
+      [
+        crypto.randomUUID(),
+        body.member_id,
+        body.loan_id,
+        body.fine_date || new Date().toISOString(),
+        body.fine_amount,
+      ]
+    );
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ data }, { status: 201 });
+    return NextResponse.json({ data: data[0] }, { status: 201 });
   } catch (error) {
     console.error("Error creating fine:", error);
     return NextResponse.json(

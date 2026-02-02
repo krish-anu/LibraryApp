@@ -26,7 +26,6 @@ interface UserFormData {
   email: string;
   phone: string;
   address: string;
-  status: string;
 }
 
 const initialFormData: UserFormData = {
@@ -34,7 +33,6 @@ const initialFormData: UserFormData = {
   email: "",
   phone: "",
   address: "",
-  status: "active",
 };
 
 export default function UsersPage() {
@@ -87,7 +85,6 @@ export default function UsersPage() {
         email: user.email,
         phone: user.phone || "",
         address: user.address || "",
-        status: user.status,
       });
     } else {
       setEditingUser(null);
@@ -215,13 +212,10 @@ export default function UsersPage() {
                   User
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Membership ID
+                  Member ID
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
                   Contact
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Status
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
                   Joined
@@ -275,7 +269,7 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {user.membership_id || "-"}
+                      {user.member_id || "-"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm">
@@ -293,9 +287,8 @@ export default function UsersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">{getStatusBadge(user.status)}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatDate(user.created_at)}
+                      {user.joined_date ? formatDate(user.joined_date) : "-"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
@@ -394,18 +387,6 @@ export default function UsersPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
-          <Select
-            label="Status"
-            value={formData.status}
-            onChange={(e) =>
-              setFormData({ ...formData, status: e.target.value })
-            }
-            options={[
-              { value: "active", label: "Active" },
-              { value: "suspended", label: "Suspended" },
-              { value: "inactive", label: "Inactive" },
-            ]}
-          />
           <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"

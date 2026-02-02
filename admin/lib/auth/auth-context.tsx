@@ -7,7 +7,6 @@ import React, {
   useState,
   ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
 
 interface User {
   sub: string;
@@ -28,55 +27,99 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
+  const [asgardeoClient, setAsgardeoClient] = useState<any>(null);
 
   useEffect(() => {
-    checkAuth();
+    // Initialize Asgardeo on client-side only
+    const initAuth = async () => {
+      if (typeof window === 'undefined') return;
+      
+      try {
+        const { AsgardeoSPAClient } = await import("@asgardeo/auth-spa");
+        
+        const client = AsgardeoSPAClient.getInstance();
+        if (!client) {
+          setIsLoading(false);
+          return;
+        }
+        
+        await client.initialize({
+          signInRedirectURL: `${window.location.origin}/`,
+          signOutRedirectURL: `${window.location.origin}/`,
+          clientID: process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_ID || '',
+          baseUrl: process.env.NEXT_PUBLIC_ASGARDEO_BASE_URL || '',
+          scope: ["openid", "profile", "email"],
+        });
+        
+        setAsgardeoClient(client);
+
+        // Check if user is already authenticated
+        const isAuth = await client.isAuthenticated();
+        setIsAuthenticated(!!isAuth);
+        
+        if (isAuth) {
+          const userInfo = await client.getBasicUserInfo();
+          if (userInfo) {
+            setUser({
+              sub: userInfo.sub || '',
+              email: userInfo.email || '',
+              name: userInfo.displayName || userInfo.username || '',
+              picture: userInfo.picture,
+            });
+          }
+        }
+
+        // Handle sign-in callback
+        if (window.location.search.includes('code=')) {
+          try {
+            await client.signIn({ callOnlyOnRedirect: true });
+            const userInfo = await client.getBasicUserInfo();
+            if (userInfo) {
+              setUser({
+                sub: userInfo.sub || '',
+                email: userInfo.email || '',
+                name: userInfo.displayName || userInfo.username || '',
+                picture: userInfo.picture,
+              });
+              setIsAuthenticated(true);
+            }
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch (e) {
+            console.error("Sign-in callback error:", e);
+          }
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      const response = await fetch("/api/auth/me");
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-      } else {
-        setUser(null);
+  const login = async () => {
+    if (asgardeoClient) {
+      try {
+        await asgardeoClient.signIn();
+      } catch (error) {
+        console.error("Login error:", error);
       }
-    } catch (error) {
-      console.error("Auth check failed:", error);
-      setUser(null);
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const login = () => {
-    const clientId = process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_ID;
-    const baseUrl = process.env.NEXT_PUBLIC_ASGARDEO_BASE_URL;
-    const redirectUrl = process.env.NEXT_PUBLIC_ASGARDEO_SIGN_IN_REDIRECT_URL;
-    const scope =
-      process.env.NEXT_PUBLIC_ASGARDEO_SCOPE || "openid profile email";
-
-    const authUrl =
-      `${baseUrl}/oauth2/authorize?` +
-      `response_type=code&` +
-      `client_id=${clientId}&` +
-      `redirect_uri=${encodeURIComponent(redirectUrl || "")}&` +
-      `scope=${encodeURIComponent(scope)}&` +
-      `state=${crypto.randomUUID()}`;
-
-    window.location.href = authUrl;
-  };
-
   const logout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      setUser(null);
-      router.push("/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
+    if (asgardeoClient) {
+      try {
+        await asgardeoClient.signOut();
+        setUser(null);
+        setIsAuthenticated(false);
+      } catch (error) {
+        console.error("Logout error:", error);
+      }
     }
   };
 
@@ -84,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated,
         isLoading,
         login,
         logout,

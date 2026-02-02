@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { query, queryOne } from "@/lib/db";
+import { Book } from "@/lib/types";
 
 // GET single book
 export async function GET(
@@ -8,16 +9,17 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createAdminSupabaseClient();
+    
+    const data = await queryOne<Book>(
+      `SELECT b.*, c.name as category 
+       FROM books b 
+       LEFT JOIN categories c ON b.category_id = c.id 
+       WHERE b.id = $1`,
+      [id]
+    );
 
-    const { data, error } = await supabase
-      .from("books")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
+    if (!data) {
+      return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
     return NextResponse.json({ data });
@@ -37,32 +39,42 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createAdminSupabaseClient();
     const body = await request.json();
 
-    const { data, error } = await supabase
-      .from("books")
-      .update({
-        title: body.title,
-        author: body.author,
-        isbn: body.isbn,
-        category: body.category,
-        description: body.description,
-        image: body.image,
-        copies_owned: body.copies_owned,
-        copies_available: body.copies_available,
-        status: body.status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .select()
-      .single();
+    const data = await query<Book>(
+      `UPDATE books SET 
+        title = COALESCE($1, title),
+        author = COALESCE($2, author),
+        category_id = COALESCE($3, category_id),
+        description = COALESCE($4, description),
+        rating = COALESCE($5, rating),
+        publication_year = COALESCE($6, publication_year),
+        copies_owned = COALESCE($7, copies_owned),
+        image = COALESCE($8, image),
+        language = COALESCE($9, language),
+        pages = COALESCE($10, pages)
+      WHERE id = $11
+      RETURNING *`,
+      [
+        body.title,
+        body.author,
+        body.category_id,
+        body.description,
+        body.rating,
+        body.publication_year,
+        body.copies_owned,
+        body.image,
+        body.language,
+        body.pages,
+        id
+      ]
+    );
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (!data.length) {
+      return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: data[0] });
   } catch (error) {
     console.error("Error updating book:", error);
     return NextResponse.json(
@@ -79,13 +91,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createAdminSupabaseClient();
-
-    const { error } = await supabase.from("books").delete().eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+    
+    await query("DELETE FROM books WHERE id = $1", [id]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -20,22 +20,23 @@ import {
 } from "lucide-react";
 
 interface FineWithRelations extends Fine {
-  users?: { id: string; name: string; email: string } | null;
-  books?: { id: string; title: string } | null;
+  user_name?: string;
+  user_email?: string;
+  book_title?: string;
 }
 
 interface FineFormData {
-  user_id: string;
-  book_id: string;
-  amount: number;
-  reason: string;
+  member_id: string;
+  loan_id: string;
+  fine_amount: number;
+  fine_date: string;
 }
 
 const initialFormData: FineFormData = {
-  user_id: "",
-  book_id: "",
-  amount: 0,
-  reason: "",
+  member_id: "",
+  loan_id: "",
+  fine_amount: 0,
+  fine_date: new Date().toISOString().split('T')[0],
 };
 
 export default function FinesPage() {
@@ -265,13 +266,7 @@ export default function FinesPage() {
                   Book
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Reason
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
                   Amount
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Status
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
                   Date
@@ -285,7 +280,7 @@ export default function FinesPage() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={5}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <div className="flex justify-center">
@@ -296,7 +291,7 @@ export default function FinesPage() {
               ) : fines.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={5}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -309,45 +304,39 @@ export default function FinesPage() {
                     <td className="px-6 py-4">
                       <div>
                         <p className="font-medium text-gray-900">
-                          {fine.users?.name || "Unknown User"}
+                          {fine.user_name || "Unknown User"}
                         </p>
                         <p className="text-sm text-gray-500">
-                          {fine.users?.email}
+                          {fine.user_email}
                         </p>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {fine.books?.title || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {fine.reason}
+                      {fine.book_title || "-"}
                     </td>
                     <td className="px-6 py-4 font-semibold text-gray-900">
-                      {formatCurrency(fine.amount)}
+                      {formatCurrency(fine.fine_amount)}
                     </td>
-                    <td className="px-6 py-4">{getStatusBadge(fine.status)}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatDate(fine.created_at)}
+                      {formatDate(fine.fine_date)}
                     </td>
                     <td className="px-6 py-4">
-                      {fine.status === "unpaid" && (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleMarkPaid(fine)}
-                            className="p-2 hover:bg-green-100 rounded-lg transition-colors"
-                            title="Mark as Paid"
-                          >
-                            <Check className="w-4 h-4 text-green-600" />
-                          </button>
-                          <button
-                            onClick={() => handleWaive(fine)}
-                            className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                            title="Waive Fine"
-                          >
-                            <X className="w-4 h-4 text-red-600" />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleMarkPaid(fine)}
+                          className="p-2 hover:bg-green-100 rounded-lg transition-colors"
+                          title="Mark as Paid"
+                        >
+                          <Check className="w-4 h-4 text-green-600" />
+                        </button>
+                        <button
+                          onClick={() => handleWaive(fine)}
+                          className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                          title="Delete Fine"
+                        >
+                          <X className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -396,9 +385,9 @@ export default function FinesPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <Select
             label="User"
-            value={formData.user_id}
+            value={formData.member_id}
             onChange={(e) =>
-              setFormData({ ...formData, user_id: e.target.value })
+              setFormData({ ...formData, member_id: e.target.value })
             }
             options={[
               { value: "", label: "Select User" },
@@ -406,46 +395,29 @@ export default function FinesPage() {
             ]}
             required
           />
-          <Select
-            label="Book (Optional)"
-            value={formData.book_id}
-            onChange={(e) =>
-              setFormData({ ...formData, book_id: e.target.value })
-            }
-            options={[
-              { value: "", label: "Select Book" },
-              ...books.map((b) => ({ value: b.id, label: b.title })),
-            ]}
-          />
           <Input
             label="Amount"
             type="number"
             step="0.01"
             min="0"
-            value={formData.amount}
+            value={formData.fine_amount}
             onChange={(e) =>
               setFormData({
                 ...formData,
-                amount: parseFloat(e.target.value) || 0,
+                fine_amount: parseFloat(e.target.value) || 0,
               })
             }
             required
           />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Reason
-            </label>
-            <textarea
-              value={formData.reason}
-              onChange={(e) =>
-                setFormData({ ...formData, reason: e.target.value })
-              }
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="Reason for the fine..."
-              required
-            />
-          </div>
+          <Input
+            label="Fine Date"
+            type="date"
+            value={formData.fine_date}
+            onChange={(e) =>
+              setFormData({ ...formData, fine_date: e.target.value })
+            }
+            required
+          />
           <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"

@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db";
+import { Category } from "@/lib/types";
 
 export async function GET() {
   try {
-    const supabase = await createAdminSupabaseClient();
-
-    const { data, error } = await supabase
-      .from("categories")
-      .select("*")
-      .order("name");
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const data = await query<Category>(
+      "SELECT * FROM categories ORDER BY name"
+    );
 
     return NextResponse.json({ data });
   } catch (error) {

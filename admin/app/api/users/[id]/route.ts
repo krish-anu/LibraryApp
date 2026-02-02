@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { query, queryOne } from "@/lib/db";
+import { User } from "@/lib/types";
 
 // GET single user with stats
 export async function GET(
@@ -8,39 +9,30 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createAdminSupabaseClient();
 
-    const { data: user, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", id)
-      .single();
+    const user = await queryOne<User>("SELECT * FROM users WHERE id = $1", [id]);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get user's active loans
-    const { count: activeLoans } = await supabase
-      .from("loans")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", id)
-      .eq("status", "active");
+    // Get user's active loans count
+    const loansResult = await queryOne<{ count: string }>(
+      "SELECT COUNT(*) as count FROM loans WHERE member_id = $1 AND returned_date IS NULL",
+      [id]
+    );
 
-    // Get user's total fines
-    const { data: fines } = await supabase
-      .from("fines")
-      .select("amount")
-      .eq("user_id", id)
-      .eq("status", "unpaid");
-
-    const totalFines = fines?.reduce((sum, fine) => sum + fine.amount, 0) || 0;
+    // Get user's total unpaid fines
+    const finesResult = await queryOne<{ total: string }>(
+      "SELECT COALESCE(SUM(fine_amount), 0) as total FROM fines WHERE member_id = $1",
+      [id]
+    );
 
     return NextResponse.json({
       data: {
         ...user,
-        active_loans: activeLoans || 0,
-        total_fines: totalFines,
+        active_loans: parseInt(loansResult?.count || '0'),
+        total_fines: parseFloat(finesResult?.total || '0'),
       },
     });
   } catch (error) {
@@ -59,27 +51,25 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createAdminSupabaseClient();
     const body = await request.json();
 
-    const { data, error } = await supabase
-      .from("users")
-      .update({
-        name: body.name,
-        email: body.email,
-        phone: body.phone,
-        status: body.status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .select()
-      .single();
+    const data = await query<User>(
+      `UPDATE users SET 
+        name = COALESCE($1, name),
+        email = COALESCE($2, email),
+        phone = COALESCE($3, phone),
+        address = COALESCE($4, address),
+        updated_at = NOW()
+      WHERE id = $5
+      RETURNING *`,
+      [body.name, body.email, body.phone, body.address, id]
+    );
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (!data.length) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: data[0] });
   } catch (error) {
     console.error("Error updating user:", error);
     return NextResponse.json(
@@ -89,23 +79,15 @@ export async function PUT(
   }
 }
 
-// DELETE user (soft delete - set status to inactive)
+// DELETE user
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const supabase = await createAdminSupabaseClient();
 
-    const { error } = await supabase
-      .from("users")
-      .update({ status: "inactive", updated_at: new Date().toISOString() })
-      .eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+    await query("DELETE FROM users WHERE id = $1", [id]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

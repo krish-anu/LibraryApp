@@ -9,13 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@asgardeo/auth-react": "^5.4.3",
+    "@asgardeo/auth-spa": "^3.3.2",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.93.3",
+    "@types/pg": "^8.16.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
+    "pg": "^8.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",

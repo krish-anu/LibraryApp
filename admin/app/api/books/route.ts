@@ -1,55 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db";
+import { Book } from "@/lib/types";
 
 // GET all books with pagination and filtering
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createAdminSupabaseClient();
     const { searchParams } = new URL(request.url);
 
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const status = searchParams.get("status");
     const category = searchParams.get("category");
     const search = searchParams.get("search");
-    const sortBy = searchParams.get("sortBy") || "created_at";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
 
     const offset = (page - 1) * limit;
 
-    let query = supabase.from("books").select("*", { count: "exact" });
-
-    if (status && status !== "all") {
-      query = query.eq("status", status);
-    }
+    let sql = `
+      SELECT b.*, c.name as category 
+      FROM books b 
+      LEFT JOIN categories c ON b.category_id = c.id 
+      WHERE 1=1
+    `;
+    const params: unknown[] = [];
+    let paramIndex = 1;
 
     if (category && category !== "all") {
-      query = query.eq("category", category);
+      sql += ` AND b.category_id = $${paramIndex}`;
+      params.push(category);
+      paramIndex++;
     }
 
     if (search) {
-      query = query.or(
-        `title.ilike.%${search}%,author.ilike.%${search}%,isbn.ilike.%${search}%`,
-      );
+      sql += ` AND (b.title ILIKE $${paramIndex} OR b.author ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
     }
 
-    query = query
-      .order(sortBy, { ascending: sortOrder === "asc" })
-      .range(offset, offset + limit - 1);
+    // Count total
+    const countSql = sql.replace('SELECT b.*, c.name as category', 'SELECT COUNT(*) as count');
+    const countResult = await query<{ count: string }>(countSql, params);
+    const total = parseInt(countResult[0]?.count || '0');
 
-    const { data, error, count } = await query;
+    sql += ` ORDER BY b.title ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(limit, offset);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const data = await query<Book>(sql, params);
 
     return NextResponse.json({
       data,
+      totalCount: total,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     });
   } catch (error) {
@@ -64,30 +67,30 @@ export async function GET(request: NextRequest) {
 // POST create new book
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createAdminSupabaseClient();
     const body = await request.json();
+    const id = crypto.randomUUID();
 
-    const { data, error } = await supabase
-      .from("books")
-      .insert({
-        title: body.title,
-        author: body.author,
-        isbn: body.isbn,
-        category: body.category,
-        description: body.description,
-        image: body.image,
-        copies_owned: body.copies_owned || 1,
-        copies_available: body.copies_available || body.copies_owned || 1,
-        status: body.status || "available",
-      })
-      .select()
-      .single();
+    const sql = `
+      INSERT INTO books (id, title, author, category_id, description, rating, publication_year, copies_owned, image, language, pages)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `;
+    
+    const data = await query<Book>(sql, [
+      id,
+      body.title,
+      body.author,
+      body.category_id || null,
+      body.description || null,
+      body.rating || null,
+      body.publication_year || null,
+      body.copies_owned || 1,
+      body.image || null,
+      body.language || 'English',
+      body.pages || null,
+    ]);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ data }, { status: 201 });
+    return NextResponse.json({ data: data[0] }, { status: 201 });
   } catch (error) {
     console.error("Error creating book:", error);
     return NextResponse.json(

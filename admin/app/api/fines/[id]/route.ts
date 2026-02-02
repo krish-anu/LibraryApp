@@ -1,37 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db";
+import { Fine } from "@/lib/types";
 
-// PUT update fine (mark as paid, waived, etc.)
+// GET single fine
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+
+    const data = await query<Fine>(
+      `SELECT 
+        f.*,
+        u.name as user_name,
+        u.email as user_email,
+        b.title as book_title
+      FROM fines f
+      LEFT JOIN users u ON f.member_id = u.id
+      LEFT JOIN loans l ON f.loan_id = l.id
+      LEFT JOIN books b ON l.book_id = b.id
+      WHERE f.id = $1`,
+      [id]
+    );
+
+    if (!data.length) {
+      return NextResponse.json({ error: "Fine not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ data: data[0] });
+  } catch (error) {
+    console.error("Error fetching fine:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+// PUT update fine
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const supabase = await createAdminSupabaseClient();
     const body = await request.json();
 
-    const updateData: Record<string, unknown> = {
-      status: body.status,
-      updated_at: new Date().toISOString(),
-    };
+    const data = await query<Fine>(
+      `UPDATE fines SET 
+        fine_amount = COALESCE($1, fine_amount),
+        fine_date = COALESCE($2, fine_date)
+      WHERE id = $3
+      RETURNING *`,
+      [body.fine_amount, body.fine_date, id]
+    );
 
-    if (body.status === "paid") {
-      updateData.paid_date = new Date().toISOString();
+    if (!data.length) {
+      return NextResponse.json({ error: "Fine not found" }, { status: 404 });
     }
 
-    const { data, error } = await supabase
-      .from("fines")
-      .update(updateData)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: data[0] });
   } catch (error) {
     console.error("Error updating fine:", error);
     return NextResponse.json(
@@ -48,13 +77,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createAdminSupabaseClient();
 
-    const { error } = await supabase.from("fines").delete().eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+    await query("DELETE FROM fines WHERE id = $1", [id]);
 
     return NextResponse.json({ success: true });
   } catch (error) {
