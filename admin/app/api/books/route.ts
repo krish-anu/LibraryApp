@@ -36,9 +36,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Count total
-    const countSql = sql.replace('SELECT b.*, c.name as category', 'SELECT COUNT(*) as count');
+    const countSql = sql.replace(
+      "SELECT b.*, c.name as category",
+      "SELECT COUNT(*) as count",
+    );
     const countResult = await query<{ count: string }>(countSql, params);
-    const total = parseInt(countResult[0]?.count || '0');
+    const total = parseInt(countResult[0]?.count || "0");
 
     sql += ` ORDER BY b.title ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
@@ -75,7 +78,7 @@ export async function POST(request: NextRequest) {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
-    
+
     const data = await query<Book>(sql, [
       id,
       body.title,
@@ -86,7 +89,7 @@ export async function POST(request: NextRequest) {
       body.publication_year || null,
       body.copies_owned || 1,
       body.image || null,
-      body.language || 'English',
+      body.language || "English",
       body.pages || null,
     ]);
 

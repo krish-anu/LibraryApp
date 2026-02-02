@@ -30,14 +30,14 @@ export async function GET(request: NextRequest) {
       LEFT JOIN books b ON l.book_id = b.id
       ORDER BY f.fine_date DESC
       LIMIT $1 OFFSET $2`,
-      [limit, offset]
+      [limit, offset],
     );
 
     // Get total count
     const countResult = await query<{ count: string }>(
-      "SELECT COUNT(*) as count FROM fines"
+      "SELECT COUNT(*) as count FROM fines",
     );
-    const total = parseInt(countResult[0]?.count || '0');
+    const total = parseInt(countResult[0]?.count || "0");
 
     return NextResponse.json({
       data,
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         body.loan_id,
         body.fine_date || new Date().toISOString(),
         body.fine_amount,
-      ]
+      ],
     );
 
     return NextResponse.json({ data: data[0] }, { status: 201 });

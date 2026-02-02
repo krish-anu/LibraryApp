@@ -34,59 +34,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Initialize Asgardeo on client-side only
     const initAuth = async () => {
-      if (typeof window === 'undefined') return;
-      
+      if (typeof window === "undefined") return;
+
       try {
         const { AsgardeoSPAClient } = await import("@asgardeo/auth-spa");
-        
+
         const client = AsgardeoSPAClient.getInstance();
         if (!client) {
           setIsLoading(false);
           return;
         }
-        
+
         await client.initialize({
           signInRedirectURL: `${window.location.origin}/`,
           signOutRedirectURL: `${window.location.origin}/`,
-          clientID: process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_ID || '',
-          baseUrl: process.env.NEXT_PUBLIC_ASGARDEO_BASE_URL || '',
+          clientID: process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_ID || "",
+          baseUrl: process.env.NEXT_PUBLIC_ASGARDEO_BASE_URL || "",
           scope: ["openid", "profile", "email"],
         });
-        
+
         setAsgardeoClient(client);
 
         // Check if user is already authenticated
         const isAuth = await client.isAuthenticated();
         setIsAuthenticated(!!isAuth);
-        
+
         if (isAuth) {
           const userInfo = await client.getBasicUserInfo();
           if (userInfo) {
             setUser({
-              sub: userInfo.sub || '',
-              email: userInfo.email || '',
-              name: userInfo.displayName || userInfo.username || '',
+              sub: userInfo.sub || "",
+              email: userInfo.email || "",
+              name: userInfo.displayName || userInfo.username || "",
               picture: userInfo.picture,
             });
           }
         }
 
         // Handle sign-in callback
-        if (window.location.search.includes('code=')) {
+        if (window.location.search.includes("code=")) {
           try {
             await client.signIn({ callOnlyOnRedirect: true });
             const userInfo = await client.getBasicUserInfo();
             if (userInfo) {
               setUser({
-                sub: userInfo.sub || '',
-                email: userInfo.email || '',
-                name: userInfo.displayName || userInfo.username || '',
+                sub: userInfo.sub || "",
+                email: userInfo.email || "",
+                name: userInfo.displayName || userInfo.username || "",
                 picture: userInfo.picture,
               });
               setIsAuthenticated(true);
             }
             // Clean up URL
-            window.history.replaceState({}, document.title, window.location.pathname);
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname,
+            );
           } catch (e) {
             console.error("Sign-in callback error:", e);
           }

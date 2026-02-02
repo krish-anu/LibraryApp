@@ -9,13 +9,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    
+
     const data = await queryOne<Book>(
       `SELECT b.*, c.name as category 
        FROM books b 
        LEFT JOIN categories c ON b.category_id = c.id 
        WHERE b.id = $1`,
-      [id]
+      [id],
     );
 
     if (!data) {
@@ -66,8 +66,8 @@ export async function PUT(
         body.image,
         body.language,
         body.pages,
-        id
-      ]
+        id,
+      ],
     );
 
     if (!data.length) {
@@ -91,7 +91,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    
+
     await query("DELETE FROM books WHERE id = $1", [id]);
 
     return NextResponse.json({ success: true });

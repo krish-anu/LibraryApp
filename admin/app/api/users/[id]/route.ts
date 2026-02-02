@@ -10,7 +10,9 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const user = await queryOne<User>("SELECT * FROM users WHERE id = $1", [id]);
+    const user = await queryOne<User>("SELECT * FROM users WHERE id = $1", [
+      id,
+    ]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -19,20 +21,20 @@ export async function GET(
     // Get user's active loans count
     const loansResult = await queryOne<{ count: string }>(
       "SELECT COUNT(*) as count FROM loans WHERE member_id = $1 AND returned_date IS NULL",
-      [id]
+      [id],
     );
 
     // Get user's total unpaid fines
     const finesResult = await queryOne<{ total: string }>(
       "SELECT COALESCE(SUM(fine_amount), 0) as total FROM fines WHERE member_id = $1",
-      [id]
+      [id],
     );
 
     return NextResponse.json({
       data: {
         ...user,
-        active_loans: parseInt(loansResult?.count || '0'),
-        total_fines: parseFloat(finesResult?.total || '0'),
+        active_loans: parseInt(loansResult?.count || "0"),
+        total_fines: parseFloat(finesResult?.total || "0"),
       },
     });
   } catch (error) {
@@ -62,7 +64,7 @@ export async function PUT(
         updated_at = NOW()
       WHERE id = $5
       RETURNING *`,
-      [body.name, body.email, body.phone, body.address, id]
+      [body.name, body.email, body.phone, body.address, id],
     );
 
     if (!data.length) {

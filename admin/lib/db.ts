@@ -1,4 +1,4 @@
-import { Pool, PoolClient } from 'pg';
+import { Pool, PoolClient } from "pg";
 
 // Use DATABASE_URL if available, otherwise fall back to individual env vars
 const pool = new Pool({
@@ -22,7 +22,10 @@ export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
   }
 }
 
-export async function queryOne<T>(text: string, params?: unknown[]): Promise<T | null> {
+export async function queryOne<T>(
+  text: string,
+  params?: unknown[],
+): Promise<T | null> {
   const rows = await query<T>(text, params);
   return rows[0] || null;
 }

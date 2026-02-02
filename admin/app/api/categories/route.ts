@@ -5,7 +5,7 @@ import { Category } from "@/lib/types";
 export async function GET() {
   try {
     const data = await query<Category>(
-      "SELECT * FROM categories ORDER BY name"
+      "SELECT * FROM categories ORDER BY name",
     );
 
     return NextResponse.json({ data });

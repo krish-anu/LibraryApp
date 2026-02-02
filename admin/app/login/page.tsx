@@ -51,11 +51,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <Button
-              onClick={handleAsgardeoLogin}
-              className="w-full"
-              size="lg"
-            >
+            <Button onClick={handleAsgardeoLogin} className="w-full" size="lg">
               <Lock className="w-4 h-4 mr-2" />
               Sign in with Asgardeo
             </Button>

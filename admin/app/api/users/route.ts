@@ -24,9 +24,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Count total
-    const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countSql = sql.replace("SELECT *", "SELECT COUNT(*) as count");
     const countResult = await query<{ count: string }>(countSql, params);
-    const total = parseInt(countResult[0]?.count || '0');
+    const total = parseInt(countResult[0]?.count || "0");
 
     sql += ` ORDER BY name ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE)
       RETURNING *
     `;
-    
+
     const data = await query<User>(sql, [
       id,
       memberId,

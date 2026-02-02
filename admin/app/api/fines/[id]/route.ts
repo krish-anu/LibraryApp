@@ -21,7 +21,7 @@ export async function GET(
       LEFT JOIN loans l ON f.loan_id = l.id
       LEFT JOIN books b ON l.book_id = b.id
       WHERE f.id = $1`,
-      [id]
+      [id],
     );
 
     if (!data.length) {
@@ -53,7 +53,7 @@ export async function PUT(
         fine_date = COALESCE($2, fine_date)
       WHERE id = $3
       RETURNING *`,
-      [body.fine_amount, body.fine_date, id]
+      [body.fine_amount, body.fine_date, id],
     );
 
     if (!data.length) {

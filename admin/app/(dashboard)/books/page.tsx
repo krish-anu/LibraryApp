@@ -430,7 +430,8 @@ export default function BooksPage() {
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  publication_year: parseInt(e.target.value) || new Date().getFullYear(),
+                  publication_year:
+                    parseInt(e.target.value) || new Date().getFullYear(),
                 })
               }
             />

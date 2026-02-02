@@ -36,7 +36,7 @@ const initialFormData: FineFormData = {
   member_id: "",
   loan_id: "",
   fine_amount: 0,
-  fine_date: new Date().toISOString().split('T')[0],
+  fine_date: new Date().toISOString().split("T")[0],
 };
 
 export default function FinesPage() {
