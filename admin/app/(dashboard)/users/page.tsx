@@ -169,7 +169,7 @@ export default function UsersPage() {
         {/* Filters */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
           <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative flex-1 min-w-50">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
