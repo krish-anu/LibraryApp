@@ -41,7 +41,9 @@ class FavoriteFilterChips extends StatelessWidget {
                 child: Text(
                   filter,
                   style: TextStyle(
-                    color: isSelected ? Pallete.btnTextColor : Pallete.textSecondary,
+                    color: isSelected
+                        ? Pallete.btnTextColor
+                        : Pallete.textSecondary,
                     fontSize: 13,
                     fontWeight: isSelected
                         ? FontWeight.w600
