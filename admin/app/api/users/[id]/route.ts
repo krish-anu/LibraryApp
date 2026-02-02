@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 // GET single user with stats
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const supabase = await createAdminSupabaseClient();
 
     const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
+      .from("users")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) {
@@ -22,17 +22,17 @@ export async function GET(
 
     // Get user's active loans
     const { count: activeLoans } = await supabase
-      .from('loans')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', id)
-      .eq('status', 'active');
+      .from("loans")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", id)
+      .eq("status", "active");
 
     // Get user's total fines
     const { data: fines } = await supabase
-      .from('fines')
-      .select('amount')
-      .eq('user_id', id)
-      .eq('status', 'unpaid');
+      .from("fines")
+      .select("amount")
+      .eq("user_id", id)
+      .eq("status", "unpaid");
 
     const totalFines = fines?.reduce((sum, fine) => sum + fine.amount, 0) || 0;
 
@@ -44,15 +44,18 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error fetching user:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching user:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 // PUT update user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -60,7 +63,7 @@ export async function PUT(
     const body = await request.json();
 
     const { data, error } = await supabase
-      .from('users')
+      .from("users")
       .update({
         name: body.name,
         email: body.email,
@@ -68,7 +71,7 @@ export async function PUT(
         status: body.status,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -78,24 +81,27 @@ export async function PUT(
 
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error updating user:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error updating user:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 // DELETE user (soft delete - set status to inactive)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const supabase = await createAdminSupabaseClient();
 
     const { error } = await supabase
-      .from('users')
-      .update({ status: 'inactive', updated_at: new Date().toISOString() })
-      .eq('id', id);
+      .from("users")
+      .update({ status: "inactive", updated_at: new Date().toISOString() })
+      .eq("id", id);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -103,7 +109,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting user:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error deleting user:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

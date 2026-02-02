@@ -1,17 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Header } from '@/components/layout/header';
-import { StatCard } from '@/components/ui/stat-card';
-import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatRelativeDate } from '@/lib/utils';
-import {
-  Users,
-  BookOpen,
-  AlertCircle,
-  Clock,
-  TrendingUp,
-} from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Header } from "@/components/layout/header";
+import { StatCard } from "@/components/ui/stat-card";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency, formatRelativeDate } from "@/lib/utils";
+import { Users, BookOpen, AlertCircle, Clock, TrendingUp } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -20,7 +14,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts';
+} from "recharts";
 
 interface DashboardData {
   stats: {
@@ -54,11 +48,11 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      const res = await fetch('/api/dashboard');
+      const res = await fetch("/api/dashboard");
       const json = await res.json();
       setData(json);
     } catch (error) {
-      console.error('Error fetching dashboard:', error);
+      console.error("Error fetching dashboard:", error);
     } finally {
       setLoading(false);
     }
@@ -72,21 +66,26 @@ export default function DashboardPage() {
     );
   }
 
-  const chartData = data?.topBooks.map((book) => ({
-    name: book.title.length > 15 ? book.title.slice(0, 15) + '...' : book.title,
-    views: book.count,
-  })) || [];
+  const chartData =
+    data?.topBooks.map((book) => ({
+      name:
+        book.title.length > 15 ? book.title.slice(0, 15) + "..." : book.title,
+      views: book.count,
+    })) || [];
 
   return (
     <div>
-      <Header title="Dashboard" subtitle="Welcome back! Here's your library overview." />
+      <Header
+        title="Dashboard"
+        subtitle="Welcome back! Here's your library overview."
+      />
 
       <div className="p-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Active Users"
-            value={data?.stats.activeUsers.toLocaleString() || '0'}
+            value={data?.stats.activeUsers.toLocaleString() || "0"}
             change={`${data?.stats.userGrowth || 0}% from last month`}
             changeType="positive"
             icon={Users}
@@ -94,7 +93,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Total Inventory"
-            value={data?.stats.totalInventory.toLocaleString() || '0'}
+            value={data?.stats.totalInventory.toLocaleString() || "0"}
             change={`+${data?.stats.inventoryGrowth || 0}% new additions`}
             changeType="positive"
             icon={BookOpen}
@@ -122,15 +121,26 @@ export default function DashboardPage() {
           {/* Most Viewed Books Chart */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Most Borrowed Books</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Most Borrowed Books
+              </h2>
               <TrendingUp className="w-5 h-5 text-gray-400" />
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={true}
+                    vertical={false}
+                  />
                   <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={100}
+                    tick={{ fontSize: 12 }}
+                  />
                   <Tooltip />
                   <Bar dataKey="views" fill="#1E3A5F" radius={[0, 4, 4, 0]} />
                 </BarChart>
@@ -141,14 +151,21 @@ export default function DashboardPage() {
           {/* Recent Fines */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Fines</h2>
-              <a href="/fines" className="text-sm text-blue-600 hover:underline">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Recent Fines
+              </h2>
+              <a
+                href="/fines"
+                className="text-sm text-blue-600 hover:underline"
+              >
                 View all
               </a>
             </div>
             <div className="space-y-4">
               {data?.recentFines.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No recent fines</p>
+                <p className="text-gray-500 text-center py-8">
+                  No recent fines
+                </p>
               ) : (
                 data?.recentFines.map((fine) => (
                   <div
@@ -157,7 +174,7 @@ export default function DashboardPage() {
                   >
                     <div>
                       <p className="font-medium text-gray-900">
-                        {fine.users?.name || 'Unknown User'}
+                        {fine.users?.name || "Unknown User"}
                       </p>
                       <p className="text-sm text-gray-500">{fine.reason}</p>
                     </div>
@@ -165,7 +182,9 @@ export default function DashboardPage() {
                       <p className="font-semibold text-gray-900">
                         {formatCurrency(fine.amount)}
                       </p>
-                      <Badge variant={fine.status === 'paid' ? 'success' : 'warning'}>
+                      <Badge
+                        variant={fine.status === "paid" ? "success" : "warning"}
+                      >
                         {fine.status}
                       </Badge>
                     </div>
@@ -178,7 +197,9 @@ export default function DashboardPage() {
 
         {/* Inventory Overview */}
         <div className="mt-6 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Quick Actions
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <a
               href="/books"

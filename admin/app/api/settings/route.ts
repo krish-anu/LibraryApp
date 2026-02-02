@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 // GET settings
 export async function GET() {
@@ -7,8 +7,8 @@ export async function GET() {
     const supabase = await createAdminSupabaseClient();
 
     const { data, error } = await supabase
-      .from('settings')
-      .select('*')
+      .from("settings")
+      .select("*")
       .single();
 
     if (error) {
@@ -18,10 +18,10 @@ export async function GET() {
           loan_period_days: 14,
           max_books_per_user: 5,
           grace_period_days: 2,
-          daily_fine_rate: 0.50,
-          max_fine_cap: 25.00,
+          daily_fine_rate: 0.5,
+          max_fine_cap: 25.0,
           block_on_unpaid_fines: true,
-          fine_threshold: 10.00,
+          fine_threshold: 10.0,
           send_notifications: true,
           notification_days_before_due: 3,
         },
@@ -30,8 +30,11 @@ export async function GET() {
 
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error fetching settings:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching settings:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -43,14 +46,14 @@ export async function PUT(request: NextRequest) {
 
     // Try to update existing settings
     const { data: existing } = await supabase
-      .from('settings')
-      .select('id')
+      .from("settings")
+      .select("id")
       .single();
 
     let result;
     if (existing) {
       result = await supabase
-        .from('settings')
+        .from("settings")
         .update({
           loan_period_days: body.loan_period_days,
           max_books_per_user: body.max_books_per_user,
@@ -63,12 +66,12 @@ export async function PUT(request: NextRequest) {
           notification_days_before_due: body.notification_days_before_due,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', existing.id)
+        .eq("id", existing.id)
         .select()
         .single();
     } else {
       result = await supabase
-        .from('settings')
+        .from("settings")
         .insert({
           loan_period_days: body.loan_period_days,
           max_books_per_user: body.max_books_per_user,
@@ -85,12 +88,18 @@ export async function PUT(request: NextRequest) {
     }
 
     if (result.error) {
-      return NextResponse.json({ error: result.error.message }, { status: 400 });
+      return NextResponse.json(
+        { error: result.error.message },
+        { status: 400 },
+      );
     }
 
     return NextResponse.json({ data: result.data });
   } catch (error) {
-    console.error('Error updating settings:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error updating settings:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

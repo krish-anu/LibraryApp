@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Header } from '@/components/layout/header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Settings } from '@/lib/types';
-import { Save, BookOpen, Building, User } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Header } from "@/components/layout/header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Settings } from "@/lib/types";
+import { Save, BookOpen, Building, User } from "lucide-react";
 
 interface SettingsFormData {
   loan_period_days: number;
@@ -24,16 +24,18 @@ export default function SettingsPage() {
     loan_period_days: 14,
     max_books_per_user: 5,
     grace_period_days: 2,
-    daily_fine_rate: 0.50,
-    max_fine_cap: 25.00,
+    daily_fine_rate: 0.5,
+    max_fine_cap: 25.0,
     block_on_unpaid_fines: true,
-    fine_threshold: 10.00,
+    fine_threshold: 10.0,
     send_notifications: true,
     notification_days_before_due: 3,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'fines' | 'library' | 'profile'>('fines');
+  const [activeTab, setActiveTab] = useState<"fines" | "library" | "profile">(
+    "fines",
+  );
 
   useEffect(() => {
     fetchSettings();
@@ -41,13 +43,13 @@ export default function SettingsPage() {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch('/api/settings');
+      const res = await fetch("/api/settings");
       const json = await res.json();
       if (json.data) {
         setSettings(json.data);
       }
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error("Error fetching settings:", error);
     } finally {
       setLoading(false);
     }
@@ -56,29 +58,29 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
 
       if (res.ok) {
-        alert('Settings saved successfully!');
+        alert("Settings saved successfully!");
       } else {
-        alert('Failed to save settings');
+        alert("Failed to save settings");
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
-      alert('Failed to save settings');
+      console.error("Error saving settings:", error);
+      alert("Failed to save settings");
     } finally {
       setSaving(false);
     }
   };
 
   const tabs = [
-    { key: 'fines', label: 'Fine Rules', icon: BookOpen },
-    { key: 'library', label: 'Library Info', icon: Building },
-    { key: 'profile', label: 'Admin Profile', icon: User },
+    { key: "fines", label: "Fine Rules", icon: BookOpen },
+    { key: "library", label: "Library Info", icon: Building },
+    { key: "profile", label: "Admin Profile", icon: User },
   ] as const;
 
   if (loading) {
@@ -91,7 +93,10 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <Header title="Settings" subtitle="Configure library rules and preferences" />
+      <Header
+        title="Settings"
+        subtitle="Configure library rules and preferences"
+      />
 
       <div className="p-8">
         <div className="flex gap-6">
@@ -104,8 +109,8 @@ export default function SettingsPage() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                     activeTab === tab.key
-                      ? 'bg-[#1E3A5F] text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? "bg-[#1E3A5F] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <tab.icon className="w-5 h-5" />
@@ -118,7 +123,7 @@ export default function SettingsPage() {
           {/* Settings Content */}
           <div className="flex-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              {activeTab === 'fines' && (
+              {activeTab === "fines" && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -214,7 +219,8 @@ export default function SettingsPage() {
                         className="w-4 h-4 text-[#1E3A5F] border-gray-300 rounded focus:ring-blue-500"
                       />
                       <span className="text-gray-700">
-                        Block borrowing when user has unpaid fines above threshold
+                        Block borrowing when user has unpaid fines above
+                        threshold
                       </span>
                     </label>
                   </div>
@@ -260,7 +266,7 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {activeTab === 'library' && (
+              {activeTab === "library" && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Library Information
@@ -301,7 +307,7 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {activeTab === 'profile' && (
+              {activeTab === "profile" && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Admin Profile
@@ -311,8 +317,12 @@ export default function SettingsPage() {
                       A
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Admin User</h3>
-                      <p className="text-sm text-gray-500">Library Administrator</p>
+                      <h3 className="font-semibold text-gray-900">
+                        Admin User
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Library Administrator
+                      </p>
                     </div>
                   </div>
                   <Input

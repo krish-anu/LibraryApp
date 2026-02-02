@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Library, Lock, Mail } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { Library, Lock, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -13,13 +13,14 @@ export default function LoginPage() {
     const clientId = process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_ID;
     const baseUrl = process.env.NEXT_PUBLIC_ASGARDEO_BASE_URL;
     const redirectUri = `${window.location.origin}/api/auth/callback`;
-    
-    const authUrl = `${baseUrl}/oauth2/authorize?` +
+
+    const authUrl =
+      `${baseUrl}/oauth2/authorize?` +
       `response_type=code&` +
       `client_id=${clientId}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `scope=openid profile email`;
-    
+
     window.location.href = authUrl;
   };
 
@@ -37,7 +38,9 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-xl font-semibold text-gray-900">Welcome Back</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Welcome Back
+              </h2>
               <p className="text-gray-500 text-sm mt-1">
                 Sign in with your administrator account
               </p>

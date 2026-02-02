@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const code = searchParams.get('code');
-  const error = searchParams.get('error');
+  const code = searchParams.get("code");
+  const error = searchParams.get("error");
 
   if (error) {
-    return NextResponse.redirect(new URL('/login?error=' + error, request.url));
+    return NextResponse.redirect(new URL("/login?error=" + error, request.url));
   }
 
   if (!code) {
-    return NextResponse.redirect(new URL('/login?error=no_code', request.url));
+    return NextResponse.redirect(new URL("/login?error=no_code", request.url));
   }
 
   try {
@@ -21,22 +21,24 @@ export async function GET(request: NextRequest) {
 
     // Exchange code for token
     const tokenResponse = await fetch(`${baseUrl}/oauth2/token`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        grant_type: 'authorization_code',
+        grant_type: "authorization_code",
         code,
-        redirect_uri: redirectUrl || '',
-        client_id: clientId || '',
+        redirect_uri: redirectUrl || "",
+        client_id: clientId || "",
       }),
     });
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
-      console.error('Token exchange failed:', errorData);
-      return NextResponse.redirect(new URL('/login?error=token_exchange_failed', request.url));
+      console.error("Token exchange failed:", errorData);
+      return NextResponse.redirect(
+        new URL("/login?error=token_exchange_failed", request.url),
+      );
     }
 
     const tokenData = await tokenResponse.json();
@@ -50,41 +52,45 @@ export async function GET(request: NextRequest) {
     });
 
     if (!userInfoResponse.ok) {
-      return NextResponse.redirect(new URL('/login?error=userinfo_failed', request.url));
+      return NextResponse.redirect(
+        new URL("/login?error=userinfo_failed", request.url),
+      );
     }
 
     const userInfo = await userInfoResponse.json();
 
     // Store tokens in cookies
     const cookieStore = await cookies();
-    
-    cookieStore.set('admin_token', access_token, {
+
+    cookieStore.set("admin_token", access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24, // 24 hours
-      path: '/',
+      path: "/",
     });
 
-    cookieStore.set('admin_id_token', id_token, {
+    cookieStore.set("admin_id_token", id_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24,
-      path: '/',
+      path: "/",
     });
 
-    cookieStore.set('admin_user', JSON.stringify(userInfo), {
+    cookieStore.set("admin_user", JSON.stringify(userInfo), {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24,
-      path: '/',
+      path: "/",
     });
 
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   } catch (error) {
-    console.error('Auth callback error:', error);
-    return NextResponse.redirect(new URL('/login?error=callback_failed', request.url));
+    console.error("Auth callback error:", error);
+    return NextResponse.redirect(
+      new URL("/login?error=callback_failed", request.url),
+    );
   }
 }

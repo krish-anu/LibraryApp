@@ -104,11 +104,13 @@ admin/
 ## API Endpoints
 
 ### Authentication
+
 - `GET /api/auth/callback` - OAuth callback handler
 - `GET /api/auth/logout` - Logout and clear session
 - `GET /api/auth/me` - Get current user info
 
 ### Books
+
 - `GET /api/books` - List books (with pagination & filters)
 - `POST /api/books` - Create new book
 - `GET /api/books/[id]` - Get single book
@@ -116,6 +118,7 @@ admin/
 - `DELETE /api/books/[id]` - Delete book
 
 ### Users
+
 - `GET /api/users` - List users (with pagination & filters)
 - `POST /api/users` - Create new user
 - `GET /api/users/[id]` - Get user with stats
@@ -123,12 +126,14 @@ admin/
 - `DELETE /api/users/[id]` - Soft delete user
 
 ### Fines
+
 - `GET /api/fines` - List fines (with pagination & filters)
 - `POST /api/fines` - Create manual fine
 - `PUT /api/fines/[id]` - Update fine (mark paid/waived)
 - `DELETE /api/fines/[id]` - Delete fine
 
 ### Other
+
 - `GET /api/dashboard` - Dashboard statistics
 - `GET /api/categories` - List categories
 - `GET /api/settings` - Get settings

@@ -1,33 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 // GET all users with pagination and filtering
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createAdminSupabaseClient();
     const { searchParams } = new URL(request.url);
-    
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const status = searchParams.get('status');
-    const search = searchParams.get('search');
+
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
 
     const offset = (page - 1) * limit;
 
-    let query = supabase
-      .from('users')
-      .select('*', { count: 'exact' });
+    let query = supabase.from("users").select("*", { count: "exact" });
 
-    if (status && status !== 'all') {
-      query = query.eq('status', status);
+    if (status && status !== "all") {
+      query = query.eq("status", status);
     }
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,membership_id.ilike.%${search}%`);
+      query = query.or(
+        `name.ilike.%${search}%,email.ilike.%${search}%,membership_id.ilike.%${search}%`,
+      );
     }
 
     query = query
-      .order('created_at', { ascending: false })
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;
@@ -46,8 +46,11 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching users:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -61,13 +64,13 @@ export async function POST(request: NextRequest) {
     const membershipId = `LIB-${String(Date.now()).slice(-6)}`;
 
     const { data, error } = await supabase
-      .from('users')
+      .from("users")
       .insert({
         name: body.name,
         email: body.email,
         membership_id: membershipId,
         phone: body.phone,
-        status: body.status || 'active',
+        status: body.status || "active",
         joined_date: new Date().toISOString(),
       })
       .select()
@@ -79,7 +82,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
-    console.error('Error creating user:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error creating user:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

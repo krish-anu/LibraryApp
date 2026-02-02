@@ -1,40 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 // GET all books with pagination and filtering
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createAdminSupabaseClient();
     const { searchParams } = new URL(request.url);
-    
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const status = searchParams.get('status');
-    const category = searchParams.get('category');
-    const search = searchParams.get('search');
-    const sortBy = searchParams.get('sortBy') || 'created_at';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
+
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const status = searchParams.get("status");
+    const category = searchParams.get("category");
+    const search = searchParams.get("search");
+    const sortBy = searchParams.get("sortBy") || "created_at";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
 
     const offset = (page - 1) * limit;
 
-    let query = supabase
-      .from('books')
-      .select('*', { count: 'exact' });
+    let query = supabase.from("books").select("*", { count: "exact" });
 
-    if (status && status !== 'all') {
-      query = query.eq('status', status);
+    if (status && status !== "all") {
+      query = query.eq("status", status);
     }
 
-    if (category && category !== 'all') {
-      query = query.eq('category', category);
+    if (category && category !== "all") {
+      query = query.eq("category", category);
     }
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,author.ilike.%${search}%,isbn.ilike.%${search}%`);
+      query = query.or(
+        `title.ilike.%${search}%,author.ilike.%${search}%,isbn.ilike.%${search}%`,
+      );
     }
 
     query = query
-      .order(sortBy, { ascending: sortOrder === 'asc' })
+      .order(sortBy, { ascending: sortOrder === "asc" })
       .range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;
@@ -53,8 +53,11 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching books:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching books:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const { data, error } = await supabase
-      .from('books')
+      .from("books")
       .insert({
         title: body.title,
         author: body.author,
@@ -75,7 +78,7 @@ export async function POST(request: NextRequest) {
         image: body.image,
         copies_owned: body.copies_owned || 1,
         copies_available: body.copies_available || body.copies_owned || 1,
-        status: body.status || 'available',
+        status: body.status || "available",
       })
       .select()
       .single();
@@ -86,7 +89,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
-    console.error('Error creating book:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error creating book:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

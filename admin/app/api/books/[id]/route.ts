@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 // GET single book
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const supabase = await createAdminSupabaseClient();
 
     const { data, error } = await supabase
-      .from('books')
-      .select('*')
-      .eq('id', id)
+      .from("books")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) {
@@ -22,15 +22,18 @@ export async function GET(
 
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error fetching book:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching book:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 // PUT update book
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -38,7 +41,7 @@ export async function PUT(
     const body = await request.json();
 
     const { data, error } = await supabase
-      .from('books')
+      .from("books")
       .update({
         title: body.title,
         author: body.author,
@@ -51,7 +54,7 @@ export async function PUT(
         status: body.status,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -61,24 +64,24 @@ export async function PUT(
 
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error updating book:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error updating book:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 // DELETE book
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const supabase = await createAdminSupabaseClient();
 
-    const { error } = await supabase
-      .from('books')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("books").delete().eq("id", id);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -86,7 +89,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting book:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error deleting book:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

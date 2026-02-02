@@ -10,7 +10,7 @@ export interface Book {
   cover_image_url?: string;
   copies_owned: number;
   copies_available: number;
-  status: 'available' | 'borrowed' | 'reserved' | 'maintenance' | 'checked_out';
+  status: "available" | "borrowed" | "reserved" | "maintenance" | "checked_out";
   created_at: string;
   updated_at: string;
 }
@@ -22,7 +22,7 @@ export interface User {
   membership_id?: string;
   phone?: string;
   address?: string;
-  status: 'active' | 'inactive' | 'suspended';
+  status: "active" | "inactive" | "suspended";
   joined_date?: string;
   created_at: string;
   updated_at: string;
@@ -35,7 +35,7 @@ export interface Loan {
   loan_date: string;
   due_date: string;
   return_date?: string;
-  status: 'active' | 'returned' | 'overdue';
+  status: "active" | "returned" | "overdue";
   created_at: string;
 }
 
@@ -46,7 +46,7 @@ export interface Fine {
   book_id?: string;
   amount: number;
   reason: string;
-  status: 'paid' | 'unpaid' | 'waived';
+  status: "paid" | "unpaid" | "waived";
   due_date?: string;
   paid_date?: string;
   created_at: string;
@@ -57,7 +57,7 @@ export interface Reservation {
   user_id: string;
   book_id: string;
   reservation_date: string;
-  status: 'pending' | 'fulfilled' | 'cancelled';
+  status: "pending" | "fulfilled" | "cancelled";
   created_at: string;
 }
 

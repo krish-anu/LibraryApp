@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Header } from '@/components/layout/header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Modal } from '@/components/ui/modal';
-import { formatDate } from '@/lib/utils';
-import { Book } from '@/lib/types';
+import { useEffect, useState } from "react";
+import { Header } from "@/components/layout/header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
+import { formatDate } from "@/lib/utils";
+import { Book } from "@/lib/types";
 import {
   Plus,
   Search,
@@ -17,7 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface BookFormData {
   title: string;
@@ -32,29 +32,31 @@ interface BookFormData {
 }
 
 const initialFormData: BookFormData = {
-  title: '',
-  author: '',
-  isbn: '',
-  category_id: '',
-  description: '',
+  title: "",
+  author: "",
+  isbn: "",
+  category_id: "",
+  description: "",
   copies_owned: 1,
   copies_available: 1,
-  status: 'available',
-  cover_image_url: '',
+  status: "available",
+  cover_image_url: "",
 };
 
 export default function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const limit = 10;
 
   // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,11 +74,11 @@ export default function BooksPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('/api/categories');
+      const res = await fetch("/api/categories");
       const json = await res.json();
       setCategories(json.data || []);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error("Error fetching categories:", error);
     }
   };
 
@@ -87,16 +89,16 @@ export default function BooksPage() {
         page: page.toString(),
         limit: limit.toString(),
       });
-      if (searchQuery) params.append('search', searchQuery);
-      if (statusFilter) params.append('status', statusFilter);
-      if (categoryFilter) params.append('category', categoryFilter);
+      if (searchQuery) params.append("search", searchQuery);
+      if (statusFilter) params.append("status", statusFilter);
+      if (categoryFilter) params.append("category", categoryFilter);
 
       const res = await fetch(`/api/books?${params}`);
       const json = await res.json();
       setBooks(json.data || []);
       setTotalCount(json.totalCount || 0);
     } catch (error) {
-      console.error('Error fetching books:', error);
+      console.error("Error fetching books:", error);
     } finally {
       setLoading(false);
     }
@@ -108,13 +110,13 @@ export default function BooksPage() {
       setFormData({
         title: book.title,
         author: book.author,
-        isbn: book.isbn || '',
-        category_id: book.category_id || '',
-        description: book.description || '',
+        isbn: book.isbn || "",
+        category_id: book.category_id || "",
+        description: book.description || "",
         copies_owned: book.copies_owned,
         copies_available: book.copies_available,
         status: book.status,
-        cover_image_url: book.cover_image_url || '',
+        cover_image_url: book.cover_image_url || "",
       });
     } else {
       setEditingBook(null);
@@ -134,14 +136,12 @@ export default function BooksPage() {
     setIsSubmitting(true);
 
     try {
-      const url = editingBook
-        ? `/api/books/${editingBook.id}`
-        : '/api/books';
-      const method = editingBook ? 'PUT' : 'POST';
+      const url = editingBook ? `/api/books/${editingBook.id}` : "/api/books";
+      const method = editingBook ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
@@ -150,11 +150,11 @@ export default function BooksPage() {
         fetchBooks();
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to save book');
+        alert(error.error || "Failed to save book");
       }
     } catch (error) {
-      console.error('Error saving book:', error);
-      alert('Failed to save book');
+      console.error("Error saving book:", error);
+      alert("Failed to save book");
     } finally {
       setIsSubmitting(false);
     }
@@ -164,14 +164,14 @@ export default function BooksPage() {
     if (!confirm(`Are you sure you want to delete "${book.title}"?`)) return;
 
     try {
-      const res = await fetch(`/api/books/${book.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/books/${book.id}`, { method: "DELETE" });
       if (res.ok) {
         fetchBooks();
       } else {
-        alert('Failed to delete book');
+        alert("Failed to delete book");
       }
     } catch (error) {
-      console.error('Error deleting book:', error);
+      console.error("Error deleting book:", error);
     }
   };
 
@@ -179,11 +179,11 @@ export default function BooksPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'available':
+      case "available":
         return <Badge variant="success">Available</Badge>;
-      case 'checked_out':
+      case "checked_out":
         return <Badge variant="warning">Checked Out</Badge>;
-      case 'reserved':
+      case "reserved":
         return <Badge variant="info">Reserved</Badge>;
       default:
         return <Badge>{status}</Badge>;
@@ -192,7 +192,10 @@ export default function BooksPage() {
 
   return (
     <div>
-      <Header title="Book Inventory" subtitle="Manage your library's book collection" />
+      <Header
+        title="Book Inventory"
+        subtitle="Manage your library's book collection"
+      />
 
       <div className="p-8">
         {/* Filters */}
@@ -218,10 +221,10 @@ export default function BooksPage() {
                 setPage(1);
               }}
               options={[
-                { value: '', label: 'All Status' },
-                { value: 'available', label: 'Available' },
-                { value: 'checked_out', label: 'Checked Out' },
-                { value: 'reserved', label: 'Reserved' },
+                { value: "", label: "All Status" },
+                { value: "available", label: "Available" },
+                { value: "checked_out", label: "Checked Out" },
+                { value: "reserved", label: "Reserved" },
               ]}
               className="w-40"
             />
@@ -232,7 +235,7 @@ export default function BooksPage() {
                 setPage(1);
               }}
               options={[
-                { value: '', label: 'All Categories' },
+                { value: "", label: "All Categories" },
                 ...categories.map((c) => ({ value: c.id, label: c.name })),
               ]}
               className="w-40"
@@ -272,7 +275,10 @@ export default function BooksPage() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
                     <div className="flex justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
                     </div>
@@ -280,7 +286,10 @@ export default function BooksPage() {
                 </tr>
               ) : books.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
                     <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                     <p>No books found</p>
                   </td>
@@ -302,13 +311,15 @@ export default function BooksPage() {
                           )}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{book.title}</p>
+                          <p className="font-medium text-gray-900">
+                            {book.title}
+                          </p>
                           <p className="text-sm text-gray-500">{book.author}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {book.isbn || '-'}
+                      {book.isbn || "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {book.copies_available} / {book.copies_owned}
@@ -343,7 +354,7 @@ export default function BooksPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
               <p className="text-sm text-gray-500">
-                Showing {(page - 1) * limit + 1} to{' '}
+                Showing {(page - 1) * limit + 1} to{" "}
                 {Math.min(page * limit, totalCount)} of {totalCount} books
               </p>
               <div className="flex items-center gap-2">
@@ -374,7 +385,7 @@ export default function BooksPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingBook ? 'Edit Book' : 'Add New Book'}
+        title={editingBook ? "Edit Book" : "Add New Book"}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -382,13 +393,17 @@ export default function BooksPage() {
             <Input
               label="Title"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               required
             />
             <Input
               label="Author"
               value={formData.author}
-              onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, author: e.target.value })
+              }
               required
             />
           </div>
@@ -396,14 +411,18 @@ export default function BooksPage() {
             <Input
               label="ISBN"
               value={formData.isbn}
-              onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, isbn: e.target.value })
+              }
             />
             <Select
               label="Category"
               value={formData.category_id}
-              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, category_id: e.target.value })
+              }
               options={[
-                { value: '', label: 'Select Category' },
+                { value: "", label: "Select Category" },
                 ...categories.map((c) => ({ value: c.id, label: c.name })),
               ]}
             />
@@ -415,7 +434,10 @@ export default function BooksPage() {
               min="0"
               value={formData.copies_owned}
               onChange={(e) =>
-                setFormData({ ...formData, copies_owned: parseInt(e.target.value) || 0 })
+                setFormData({
+                  ...formData,
+                  copies_owned: parseInt(e.target.value) || 0,
+                })
               }
               required
             />
@@ -425,7 +447,10 @@ export default function BooksPage() {
               min="0"
               value={formData.copies_available}
               onChange={(e) =>
-                setFormData({ ...formData, copies_available: parseInt(e.target.value) || 0 })
+                setFormData({
+                  ...formData,
+                  copies_available: parseInt(e.target.value) || 0,
+                })
               }
               required
             />
@@ -433,17 +458,21 @@ export default function BooksPage() {
           <Select
             label="Status"
             value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, status: e.target.value })
+            }
             options={[
-              { value: 'available', label: 'Available' },
-              { value: 'checked_out', label: 'Checked Out' },
-              { value: 'reserved', label: 'Reserved' },
+              { value: "available", label: "Available" },
+              { value: "checked_out", label: "Checked Out" },
+              { value: "reserved", label: "Reserved" },
             ]}
           />
           <Input
             label="Cover Image URL"
             value={formData.cover_image_url}
-            onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, cover_image_url: e.target.value })
+            }
             placeholder="https://example.com/cover.jpg"
           />
           <div>
@@ -452,17 +481,23 @@ export default function BooksPage() {
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="secondary" onClick={handleCloseModal}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCloseModal}
+            >
               Cancel
             </Button>
             <Button type="submit" isLoading={isSubmitting}>
-              {editingBook ? 'Update Book' : 'Add Book'}
+              {editingBook ? "Update Book" : "Add Book"}
             </Button>
           </div>
         </form>

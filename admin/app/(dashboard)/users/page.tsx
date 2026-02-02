@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Header } from '@/components/layout/header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Modal } from '@/components/ui/modal';
-import { formatDate } from '@/lib/utils';
-import { User } from '@/lib/types';
+import { useEffect, useState } from "react";
+import { Header } from "@/components/layout/header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
+import { formatDate } from "@/lib/utils";
+import { User } from "@/lib/types";
 import {
   Plus,
   Search,
@@ -19,7 +19,7 @@ import {
   Users,
   Mail,
   Phone,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface UserFormData {
   name: string;
@@ -30,11 +30,11 @@ interface UserFormData {
 }
 
 const initialFormData: UserFormData = {
-  name: '',
-  email: '',
-  phone: '',
-  address: '',
-  status: 'active',
+  name: "",
+  email: "",
+  phone: "",
+  address: "",
+  status: "active",
 };
 
 export default function UsersPage() {
@@ -45,8 +45,8 @@ export default function UsersPage() {
   const limit = 10;
 
   // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,15 +65,15 @@ export default function UsersPage() {
         page: page.toString(),
         limit: limit.toString(),
       });
-      if (searchQuery) params.append('search', searchQuery);
-      if (statusFilter) params.append('status', statusFilter);
+      if (searchQuery) params.append("search", searchQuery);
+      if (statusFilter) params.append("status", statusFilter);
 
       const res = await fetch(`/api/users?${params}`);
       const json = await res.json();
       setUsers(json.data || []);
       setTotalCount(json.totalCount || 0);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
     } finally {
       setLoading(false);
     }
@@ -85,8 +85,8 @@ export default function UsersPage() {
       setFormData({
         name: user.name,
         email: user.email,
-        phone: user.phone || '',
-        address: user.address || '',
+        phone: user.phone || "",
+        address: user.address || "",
         status: user.status,
       });
     } else {
@@ -107,12 +107,12 @@ export default function UsersPage() {
     setIsSubmitting(true);
 
     try {
-      const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
-      const method = editingUser ? 'PUT' : 'POST';
+      const url = editingUser ? `/api/users/${editingUser.id}` : "/api/users";
+      const method = editingUser ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
@@ -121,11 +121,11 @@ export default function UsersPage() {
         fetchUsers();
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to save user');
+        alert(error.error || "Failed to save user");
       }
     } catch (error) {
-      console.error('Error saving user:', error);
-      alert('Failed to save user');
+      console.error("Error saving user:", error);
+      alert("Failed to save user");
     } finally {
       setIsSubmitting(false);
     }
@@ -135,14 +135,14 @@ export default function UsersPage() {
     if (!confirm(`Are you sure you want to deactivate "${user.name}"?`)) return;
 
     try {
-      const res = await fetch(`/api/users/${user.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/users/${user.id}`, { method: "DELETE" });
       if (res.ok) {
         fetchUsers();
       } else {
-        alert('Failed to delete user');
+        alert("Failed to delete user");
       }
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error("Error deleting user:", error);
     }
   };
 
@@ -150,11 +150,11 @@ export default function UsersPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active':
+      case "active":
         return <Badge variant="success">Active</Badge>;
-      case 'suspended':
+      case "suspended":
         return <Badge variant="warning">Suspended</Badge>;
-      case 'inactive':
+      case "inactive":
         return <Badge variant="danger">Inactive</Badge>;
       default:
         return <Badge>{status}</Badge>;
@@ -163,7 +163,10 @@ export default function UsersPage() {
 
   return (
     <div>
-      <Header title="User Management" subtitle="Manage library members and their accounts" />
+      <Header
+        title="User Management"
+        subtitle="Manage library members and their accounts"
+      />
 
       <div className="p-8">
         {/* Filters */}
@@ -189,10 +192,10 @@ export default function UsersPage() {
                 setPage(1);
               }}
               options={[
-                { value: '', label: 'All Status' },
-                { value: 'active', label: 'Active' },
-                { value: 'suspended', label: 'Suspended' },
-                { value: 'inactive', label: 'Inactive' },
+                { value: "", label: "All Status" },
+                { value: "active", label: "Active" },
+                { value: "suspended", label: "Suspended" },
+                { value: "inactive", label: "Inactive" },
               ]}
               className="w-40"
             />
@@ -231,7 +234,10 @@ export default function UsersPage() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
                     <div className="flex justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
                     </div>
@@ -239,7 +245,10 @@ export default function UsersPage() {
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
                     <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                     <p>No users found</p>
                   </td>
@@ -251,20 +260,22 @@ export default function UsersPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[#1E3A5F] rounded-full flex items-center justify-center text-white font-medium">
                           {user.name
-                            .split(' ')
+                            .split(" ")
                             .map((n) => n[0])
-                            .join('')
+                            .join("")
                             .slice(0, 2)
                             .toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{user.name}</p>
+                          <p className="font-medium text-gray-900">
+                            {user.name}
+                          </p>
                           <p className="text-sm text-gray-500">{user.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {user.membership_id || '-'}
+                      {user.membership_id || "-"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm">
@@ -312,7 +323,7 @@ export default function UsersPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
               <p className="text-sm text-gray-500">
-                Showing {(page - 1) * limit + 1} to{' '}
+                Showing {(page - 1) * limit + 1} to{" "}
                 {Math.min(page * limit, totalCount)} of {totalCount} users
               </p>
               <div className="flex items-center gap-2">
@@ -343,7 +354,7 @@ export default function UsersPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingUser ? 'Edit User' : 'Create New User'}
+        title={editingUser ? "Edit User" : "Create New User"}
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -357,14 +368,18 @@ export default function UsersPage() {
             label="Email"
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
+            }
             required
           />
           <Input
             label="Phone"
             type="tel"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, phone: e.target.value })
+            }
           />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -372,7 +387,9 @@ export default function UsersPage() {
             </label>
             <textarea
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
@@ -380,19 +397,25 @@ export default function UsersPage() {
           <Select
             label="Status"
             value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, status: e.target.value })
+            }
             options={[
-              { value: 'active', label: 'Active' },
-              { value: 'suspended', label: 'Suspended' },
-              { value: 'inactive', label: 'Inactive' },
+              { value: "active", label: "Active" },
+              { value: "suspended", label: "Suspended" },
+              { value: "inactive", label: "Inactive" },
             ]}
           />
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="secondary" onClick={handleCloseModal}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCloseModal}
+            >
               Cancel
             </Button>
             <Button type="submit" isLoading={isSubmitting}>
-              {editingUser ? 'Update User' : 'Create User'}
+              {editingUser ? "Update User" : "Create User"}
             </Button>
           </div>
         </form>

@@ -1,7 +1,13 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
 
 interface User {
   sub: string;
@@ -31,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch("/api/auth/me");
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
@@ -39,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error("Auth check failed:", error);
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -50,12 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const clientId = process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_ID;
     const baseUrl = process.env.NEXT_PUBLIC_ASGARDEO_BASE_URL;
     const redirectUrl = process.env.NEXT_PUBLIC_ASGARDEO_SIGN_IN_REDIRECT_URL;
-    const scope = process.env.NEXT_PUBLIC_ASGARDEO_SCOPE || 'openid profile email';
+    const scope =
+      process.env.NEXT_PUBLIC_ASGARDEO_SCOPE || "openid profile email";
 
-    const authUrl = `${baseUrl}/oauth2/authorize?` +
+    const authUrl =
+      `${baseUrl}/oauth2/authorize?` +
       `response_type=code&` +
       `client_id=${clientId}&` +
-      `redirect_uri=${encodeURIComponent(redirectUrl || '')}&` +
+      `redirect_uri=${encodeURIComponent(redirectUrl || "")}&` +
       `scope=${encodeURIComponent(scope)}&` +
       `state=${crypto.randomUUID()}`;
 
@@ -64,11 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
-      router.push('/login');
+      router.push("/login");
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     }
   };
 
@@ -90,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
