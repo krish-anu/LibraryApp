@@ -331,7 +331,10 @@ class _BorrowedState extends ConsumerState<Borrowed>
       builder: (context) => AlertDialog(
         backgroundColor: Pallete.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Renew Book', style: TextStyle(color: Pallete.textPrimary)),
+        title: const Text(
+          'Renew Book',
+          style: TextStyle(color: Pallete.textPrimary),
+        ),
         content: Text(
           'Would you like to renew "${item.book.title}" for another 14 days?',
           style: TextStyle(color: Pallete.textSecondary),
@@ -365,7 +368,10 @@ class _BorrowedState extends ConsumerState<Borrowed>
       builder: (context) => AlertDialog(
         backgroundColor: Pallete.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Return Book', style: TextStyle(color: Pallete.textPrimary)),
+        title: const Text(
+          'Return Book',
+          style: TextStyle(color: Pallete.textPrimary),
+        ),
         content: Text(
           'Are you sure you want to return "${item.book.title}"?',
           style: TextStyle(color: Pallete.textSecondary),

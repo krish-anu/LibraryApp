@@ -46,10 +46,7 @@ class BookSection extends StatelessWidget {
               },
               child: Text(
                 'See all',
-                style: TextStyle(
-                  color: Pallete.textSecondary,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Pallete.textSecondary, fontSize: 14),
               ),
             ),
           ],

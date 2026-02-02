@@ -31,10 +31,7 @@ class HomeHeader extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Ready to dive into a new world?',
-              style: TextStyle(
-                color: Pallete.textSecondary,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Pallete.textSecondary, fontSize: 14),
             ),
           ],
         ),

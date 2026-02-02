@@ -376,7 +376,10 @@ class HelpSupport extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    style: const TextStyle(color: Pallete.textPrimary, fontSize: 14),
+                    style: const TextStyle(
+                      color: Pallete.textPrimary,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
@@ -471,7 +474,10 @@ class HelpSupport extends StatelessWidget {
           label,
           style: TextStyle(color: Pallete.textSecondary, fontSize: 14),
         ),
-        Text(value, style: const TextStyle(color: Pallete.textPrimary, fontSize: 14)),
+        Text(
+          value,
+          style: const TextStyle(color: Pallete.textPrimary, fontSize: 14),
+        ),
       ],
     );
   }

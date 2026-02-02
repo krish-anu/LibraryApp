@@ -441,7 +441,10 @@ class _ProfileState extends ConsumerState<Profile> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Pallete.cardBackground,
-        title: const Text('Sign Out', style: TextStyle(color: Pallete.textPrimary)),
+        title: const Text(
+          'Sign Out',
+          style: TextStyle(color: Pallete.textPrimary),
+        ),
         content: Text(
           'Are you sure you want to sign out?',
           style: TextStyle(color: Pallete.textSecondary),

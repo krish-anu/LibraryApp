@@ -54,10 +54,7 @@ class BookCard extends StatelessWidget {
               book.author,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Pallete.textSecondary,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Pallete.textSecondary, fontSize: 12),
             ),
           ],
         ),

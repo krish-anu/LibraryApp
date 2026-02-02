@@ -118,7 +118,11 @@ class CategoriesSection extends StatelessWidget {
         color: data['color'] as Color,
         shape: BoxShape.circle,
       ),
-      child: Icon(data['icon'] as IconData, color: Pallete.btnTextColor, size: 18),
+      child: Icon(
+        data['icon'] as IconData,
+        color: Pallete.btnTextColor,
+        size: 18,
+      ),
     );
   }
 }
