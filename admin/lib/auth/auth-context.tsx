@@ -45,12 +45,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        // Respect env-configured redirect URL / scopes if provided
+        const signInRedirect =
+          process.env.NEXT_PUBLIC_ASGARDEO_SIGN_IN_REDIRECT_URL ||
+          `${window.location.origin}/`;
+        const signOutRedirect =
+          process.env.NEXT_PUBLIC_ASGARDEO_SIGN_OUT_REDIRECT_URL ||
+          `${window.location.origin}/`;
+        const scopesEnv = process.env.NEXT_PUBLIC_ASGARDEO_SCOPES || "openid profile email";
+        const scopes = scopesEnv.split(/[ ,]+/).filter(Boolean);
+
         await client.initialize({
-          signInRedirectURL: `${window.location.origin}/`,
-          signOutRedirectURL: `${window.location.origin}/`,
-          clientID: process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_ID || "",
-          baseUrl: process.env.NEXT_PUBLIC_ASGARDEO_BASE_URL || "",
-          scope: ["openid", "profile", "email"],
+          signInRedirectURL: signInRedirect,
+          signOutRedirectURL: signOutRedirect,
+          clientID: process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_ID || '',
+          baseUrl: process.env.NEXT_PUBLIC_ASGARDEO_BASE_URL || '',
+          scope: scopes,
         });
 
         setAsgardeoClient(client);
