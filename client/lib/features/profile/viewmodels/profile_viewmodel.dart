@@ -92,6 +92,14 @@ class ProfileViewModel extends _$ProfileViewModel {
         state = state.copyWith(asgardeoUserInfo: updatedState.user);
       }
 
+      final asgardeoUserId = state.asgardeoUserInfo?.sub;
+      if (asgardeoUserId != null && asgardeoUserId.isNotEmpty) {
+        await Future.wait([
+          _loadUserProfile(asgardeoUserId),
+          _loadUserStats(asgardeoUserId),
+        ]);
+      }
+
       if (!ref.mounted) return;
       state = state.copyWith(isLoading: false);
       return;

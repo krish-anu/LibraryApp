@@ -9,10 +9,17 @@ that has the necessary credentials to create users.
 import os
 import httpx
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+from datetime import date
+import traceback
+
+from app.dependencies import get_db
+from app.pydantic_schemas import user as user_schema
+from app.models.users import User as UserModel
 
 # Load environment variables from .env file
 env_path = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -27,6 +34,8 @@ ASGARDEO_BASE_URL = os.getenv(
 # This is your M2M (Machine-to-Machine) application credentials for the backend
 ASGARDEO_M2M_CLIENT_ID = os.getenv("ASGARDEO_M2M_CLIENT_ID", "")
 ASGARDEO_M2M_CLIENT_SECRET = os.getenv("ASGARDEO_M2M_CLIENT_SECRET", "")
+# Public client id used by mobile apps (for token revocation)
+ASGARDEO_PUBLIC_CLIENT_ID = os.getenv("ASGARDEO_PUBLIC_CLIENT_ID", "")
 
 
 class RegisterRequest(BaseModel):
@@ -46,6 +55,51 @@ class RegisterResponse(BaseModel):
     success: bool
     message: str
     user_id: Optional[str] = None
+
+
+class AsgardeoLoginRequest(BaseModel):
+    """Asgardeo login sync request schema."""
+
+    access_token: str
+
+
+class AsgardeoLoginResponse(BaseModel):
+    """Asgardeo login sync response schema."""
+
+    success: bool
+    created: bool
+    user_id: str
+    user: user_schema.User
+
+
+class AsgardeoLogoutRequest(BaseModel):
+    """Asgardeo logout request schema."""
+
+    access_token: str
+
+
+class AsgardeoLogoutResponse(BaseModel):
+    """Asgardeo logout response schema."""
+
+    success: bool
+
+
+class CredentialLoginRequest(BaseModel):
+    """Login using email/password (backend verifies with Asgardeo)."""
+
+    email: EmailStr
+    password: str
+
+
+class CredentialLoginResponse(BaseModel):
+    """Response returned after credential login and local user sync."""
+
+    success: bool
+    created: bool
+    user_id: str
+    user: user_schema.User
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
 
 
 async def get_client_credentials_token() -> Optional[str]:
@@ -224,3 +278,195 @@ async def register_user(request: RegisterRequest):
         )
 
         raise HTTPException(status_code=400, detail=error_msg)
+
+
+async def _ensure_user_from_access_token(
+    access_token: str, db: Session
+) -> tuple[UserModel, bool]:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{ASGARDEO_BASE_URL}/oauth2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid Asgardeo access token")
+
+    data = response.json() if response.content else {}
+    # Debug: show returned userinfo for investigation
+    print(f"Asgardeo userinfo response: {data}")
+    sub = data.get("sub")
+    if not sub:
+        raise HTTPException(
+            status_code=400, detail="Asgardeo user info missing subject"
+        )
+
+    email = data.get("email")
+    given_name = data.get("given_name")
+    family_name = data.get("family_name")
+    username = data.get("username") or data.get("preferred_username")
+    name_parts = [p for p in [given_name, family_name] if p]
+    name = " ".join(name_parts) if name_parts else (username or email or "")
+    phone = data.get("phone_number")
+    picture = data.get("picture")
+
+    address = None
+    raw_address = data.get("address")
+    if isinstance(raw_address, dict):
+        address = raw_address.get("formatted") or raw_address.get("street_address")
+
+    user = None
+    created = False
+    try:
+        user = db.query(UserModel).filter(UserModel.id == sub).first()
+        print(f"Local lookup for user id={sub} returned: {user}")
+        if not user:
+            user = UserModel(
+                id=sub,
+                member_id=sub,
+                name=name,
+                email=email,
+                phone=phone,
+                address=address,
+                profile_image=picture,
+                joined_date=date.today(),
+                password=None,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            print(f"Created local user with id={user.id} email={user.email}")
+            created = True
+    except Exception as e:
+        # Rollback on DB errors and raise a clear HTTP exception
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        print("Exception while ensuring/creating local user:")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    return user, created
+
+
+@router.post("/login", response_model=AsgardeoLoginResponse)
+async def login_user_via_asgardeo(
+    request: AsgardeoLoginRequest, db: Session = Depends(get_db)
+):
+    """
+    Verify Asgardeo access token, then ensure the user exists in the local DB.
+    If the user doesn't exist, create one using Asgardeo user info.
+    """
+
+    user, created = await _ensure_user_from_access_token(request.access_token, db)
+    return AsgardeoLoginResponse(
+        success=True,
+        created=created,
+        user_id=str(user.id),
+        user=user_schema.User.model_validate(user),
+    )
+
+
+@router.post("/asgardeo/login", response_model=AsgardeoLoginResponse)
+async def asgardeo_login_sync(
+    request: AsgardeoLoginRequest, db: Session = Depends(get_db)
+):
+    """Backward-compatible alias for /auth/login."""
+
+    user, created = await _ensure_user_from_access_token(request.access_token, db)
+    return AsgardeoLoginResponse(
+        success=True,
+        created=created,
+        user_id=str(user.id),
+        user=user_schema.User.model_validate(user),
+    )
+
+
+@router.post("/login/credentials", response_model=CredentialLoginResponse)
+async def login_with_credentials(
+    request: CredentialLoginRequest, db: Session = Depends(get_db)
+):
+    """Validate email/password with Asgardeo, then ensure local user exists.
+
+    This endpoint performs a resource-owner password token request against
+    Asgardeo and uses the returned access token to fetch userinfo and
+    create/sync the user in the local `users` table.
+    """
+
+    if not ASGARDEO_PUBLIC_CLIENT_ID:
+        raise HTTPException(
+            status_code=500,
+            detail="Server configuration error: ASGARDEO_PUBLIC_CLIENT_ID not configured.",
+        )
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{ASGARDEO_BASE_URL}/oauth2/token",
+            data={
+                "grant_type": "password",
+                "username": request.email,
+                "password": request.password,
+                "client_id": ASGARDEO_PUBLIC_CLIENT_ID,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+
+    if response.status_code != 200:
+        detail = None
+        try:
+            detail = response.json().get("error_description") or response.json().get(
+                "error"
+            )
+        except Exception:
+            detail = response.text or "Authentication failed"
+
+        raise HTTPException(status_code=401, detail=detail)
+
+    token_data = response.json() if response.content else {}
+    access_token = token_data.get("access_token")
+    refresh_token = token_data.get("refresh_token")
+
+    if not access_token:
+        raise HTTPException(
+            status_code=401, detail="Authentication failed: no access token returned"
+        )
+
+    user, created = await _ensure_user_from_access_token(access_token, db)
+
+    return CredentialLoginResponse(
+        success=True,
+        created=created,
+        user_id=str(user.id),
+        user=user_schema.User.model_validate(user),
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
+
+
+@router.post("/logout", response_model=AsgardeoLogoutResponse)
+async def logout_user_via_asgardeo(request: AsgardeoLogoutRequest):
+    """
+    Revoke Asgardeo access token.
+    """
+
+    if not ASGARDEO_PUBLIC_CLIENT_ID:
+        raise HTTPException(
+            status_code=500,
+            detail="Server configuration error: ASGARDEO_PUBLIC_CLIENT_ID not configured.",
+        )
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{ASGARDEO_BASE_URL}/oauth2/revoke",
+            data={
+                "token": request.access_token,
+                "client_id": ASGARDEO_PUBLIC_CLIENT_ID,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=400, detail="Failed to revoke token")
+
+    return AsgardeoLogoutResponse(success=True)

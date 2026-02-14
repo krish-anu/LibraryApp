@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:libraryapp/core/constants/server_constant.dart';
 
 /// Asgardeo Direct Authentication Configuration
 /// Uses Resource Owner Password Credentials (ROPC) grant for in-app authentication
@@ -244,6 +245,52 @@ class AsgardeoDirectAuthService {
       }
     } catch (e) {
       return AuthResult.failure('Error getting user info: ${e.toString()}');
+    }
+  }
+
+  /// Sync Asgardeo user into backend database by verifying access token.
+  Future<AuthResult<Map<String, dynamic>>> syncUserWithBackend({
+    required String accessToken,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ServerConstant.serverURL}/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'access_token': accessToken}),
+      );
+
+      final resBodyMap = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200) {
+        return AuthResult.failure(
+          resBodyMap['detail']?.toString() ?? 'Failed to sync user',
+        );
+      }
+      return AuthResult.success(resBodyMap);
+    } catch (e) {
+      return AuthResult.failure('Connection error: ${e.toString()}');
+    }
+  }
+
+  /// Logout via backend (revoke token on server).
+  Future<AuthResult<bool>> logoutWithBackend({
+    required String accessToken,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ServerConstant.serverURL}/auth/logout'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'access_token': accessToken}),
+      );
+
+      if (response.statusCode != 200) {
+        final resBodyMap = jsonDecode(response.body) as Map<String, dynamic>;
+        return AuthResult.failure(
+          resBodyMap['detail']?.toString() ?? 'Logout failed',
+        );
+      }
+      return AuthResult.success(true);
+    } catch (e) {
+      return AuthResult.failure('Connection error: ${e.toString()}');
     }
   }
 

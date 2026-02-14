@@ -7,7 +7,6 @@ import 'package:libraryapp/features/profile/viewmodels/profile_viewmodel.dart';
 import 'package:libraryapp/features/profile/widgets/widgets.dart';
 import 'package:libraryapp/features/profile/views/edit_profile_view.dart';
 import 'package:libraryapp/features/profile/views/help_support_view.dart';
-import 'package:libraryapp/auth/pages/login_page.dart';
 
 /// User profile page with settings and preferences.
 class ProfileView extends ConsumerWidget {
@@ -183,9 +182,9 @@ class ProfileView extends ConsumerWidget {
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
 
     final success = await ref.read(profileViewModelProvider.notifier).signOut();
+    if (!context.mounted) return;
 
     if (success) {
       messenger.showSnackBar(
@@ -193,11 +192,6 @@ class ProfileView extends ConsumerWidget {
           content: Text('Signed out successfully'),
           backgroundColor: Pallete.primaryLight,
         ),
-      );
-
-      await navigator.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const Login()),
-        (route) => false,
       );
     } else {
       messenger.showSnackBar(

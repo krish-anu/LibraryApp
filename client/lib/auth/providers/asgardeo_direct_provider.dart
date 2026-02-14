@@ -141,8 +141,17 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
         idToken: tokens.idToken,
       );
 
+      final syncResult = await _authService.syncUserWithBackend(
+        accessToken: tokens.accessToken,
+      );
+      if (!syncResult.success) {
+        debugPrint(
+          'Backend user sync failed: ${syncResult.error ?? 'unknown error'}',
+        );
+      }
+
       // Fetch user info after login
-      await getUserInfo();
+      await getUserInfo(syncWithBackend: false);
       return true;
     } else {
       state = state.copyWith(
@@ -242,7 +251,7 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
   }
 
   /// Get user info from Asgardeo
-  Future<bool> getUserInfo() async {
+  Future<bool> getUserInfo({bool syncWithBackend = true}) async {
     if (state.accessToken == null) {
       state = state.copyWith(error: 'No access token available');
       return false;
@@ -252,6 +261,16 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
 
     if (result.success && result.data != null) {
       state = state.copyWith(user: result.data);
+      if (syncWithBackend) {
+        final syncResult = await _authService.syncUserWithBackend(
+          accessToken: state.accessToken!,
+        );
+        if (!syncResult.success) {
+          debugPrint(
+            'Backend user sync failed: ${syncResult.error ?? 'unknown error'}',
+          );
+        }
+      }
       return true;
     } else {
       state = state.copyWith(error: result.error);
@@ -288,7 +307,12 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
 
     // Revoke token on server
     if (state.accessToken != null) {
-      await _authService.revokeToken(state.accessToken!);
+      final result = await _authService.logoutWithBackend(
+        accessToken: state.accessToken!,
+      );
+      if (!result.success) {
+        await _authService.revokeToken(state.accessToken!);
+      }
     }
 
     // Clear local storage
