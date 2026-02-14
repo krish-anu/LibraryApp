@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/core/providers/current_user_notifier.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 
 /// Header widget displaying greeting and notification icon.
-class HomeHeader extends StatelessWidget {
+class HomeHeader extends ConsumerWidget {
   const HomeHeader({super.key});
 
   String _getGreeting() {
@@ -13,7 +15,12 @@ class HomeHeader extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final name = user?.userName.trim();
+    final firstName =
+        (name == null || name.isEmpty) ? 'Reader' : name.split(RegExp(r'\s+')).first;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -21,7 +28,7 @@ class HomeHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${_getGreeting()}, Reader',
+              '${_getGreeting()}, $firstName',
               style: const TextStyle(
                 color: Pallete.textPrimary,
                 fontSize: 24,
