@@ -18,7 +18,7 @@ def get_books(db: Session = Depends(get_db)):
     return db.query(book.Book).all()
 
 
-@router.get("/trending")
+@router.get("/trending", response_model=List[book_schema.Book])
 def get_trending_books(db: Session = Depends(get_db)):
     time_threshold = datetime.now(timezone.utc) - timedelta(days=7)
 
@@ -34,12 +34,12 @@ def get_trending_books(db: Session = Depends(get_db)):
     return [b[0] for b in trending_books]
 
 
-@router.get("/recommended/{user_id}")
+@router.get("/recommended/{user_id}", response_model=List[book_schema.Book])
 def get_recommended_books(user_id: str, db: Session = Depends(get_db)):
     # 1. Find the categories the user has interacted with most
-    # query the Category.name via join (book.Book.category is a python property)
+    # query the Category.id via join (book.Book.category is a python property)
     user_categories = (
-        db.query(category_model.Category.name)
+        db.query(category_model.Category.id)
         .join(book.Book, category_model.Category.id == book.Book.category_id)
         .join(Interaction, Interaction.book_id == book.Book.id)
         .filter(Interaction.user_id == user_id)

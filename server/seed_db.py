@@ -71,7 +71,7 @@ books_data = [
         "id": "1",
         "title": "Clean Code",
         "author": "Robert C. Martin",
-        "category": "Programming",
+        "category_id": "1",
         "description": "Even bad code can function. But if code isn't clean, it can bring a development organization to its knees. Every year, countless hours and significant resources are lost because of poorly written code. But it doesn't have to be that way.",
         "rating": 4.8,
         "publication_year": 2008,
@@ -85,7 +85,7 @@ books_data = [
         "id": "2",
         "title": "Flutter in Action",
         "author": "Eric Windmill",
-        "category": "Programming",
+        "category_id": "1",
         "description": "Flutter in Action teaches you to build professional-quality mobile applications using the Flutter SDK and the Dart programming language. You'll begin with a quick tour of Dart essentials and then dive into engaging, well-described techniques for building beautiful user interfaces using Flutter's huge collection of built-in widgets.",
         "rating": 4.5,
         "publication_year": 2019,
@@ -99,7 +99,7 @@ books_data = [
         "id": "3",
         "title": "Sapiens",
         "author": "Yuval Noah Harari",
-        "category": "History",
+        "category_id": "2",
         "description": 'From a renowned historian comes a groundbreaking narrative of humanity’s creation and evolution—a #1 international bestseller—that explores the ways in which biology and history have defined us and enhanced our understanding of what it means to be "human."',
         "rating": 4.7,
         "publication_year": 2011,
@@ -113,7 +113,7 @@ books_data = [
         "id": "4",
         "title": "A Brief History of Time",
         "author": "Stephen Hawking",
-        "category": "Science",
+        "category_id": "3",
         "description": "A landmark volume in science writing by one of the great minds of our time, Stephen Hawking’s book explores such profound questions as: How did the universe begin—and what made its start possible? Does time always flow forward? Is the universe unending—or are there boundaries?",
         "rating": 4.6,
         "publication_year": 1988,
@@ -127,7 +127,7 @@ books_data = [
         "id": "5",
         "title": "The Alchemist",
         "author": "Paulo Coelho",
-        "category": "Fiction",
+        "category_id": "4",
         "description": "Combining magic, mysticism, wisdom and wonder into an inspiring tale of self-discovery, The Alchemist has become a modern classic, selling millions of copies around the world and transforming the lives of countless readers across generations.",
         "rating": 4.9,
         "publication_year": 1988,
@@ -141,7 +141,7 @@ books_data = [
         "id": "6",
         "title": "Clean Architecture",
         "author": "Robert C. Martin",
-        "category": "Programming",
+        "category_id": "1",
         "description": "By applying universal rules of software architecture, you can dramatically improve developer productivity throughout the life of any software system. Now, building upon the success of his best-selling books Clean Code and The Clean Coder, legendary software craftsman Robert C. Martin (“Uncle Bob”) reveals these rules and helps you apply them.",
         "rating": 4.7,
         "publication_year": 2017,
@@ -155,7 +155,7 @@ books_data = [
         "id": "7",
         "title": "Dart Apprentice",
         "author": "Eric Windmill",
-        "category": "Programming",
+        "category_id": "1",
         "description": "Dart Apprentice will teach you all the basic concepts you need to master this language. Follow along with the easy and fun tutorials to begin your journey to becoming a Dart master.",
         "rating": 4.6,
         "publication_year": 2020,
@@ -169,7 +169,7 @@ books_data = [
         "id": "8",
         "title": "Homo Deus",
         "author": "Yuval Noah Harari",
-        "category": "History",
+        "category_id": "2",
         "description": "Yuval Noah Harari, author of the critically-acclaimed New York Times bestseller and international phenomenon Sapiens, returns with an equally original, compelling, and provocative book, turning his focus toward humanity’s future, and our quest to upgrade humans into gods.",
         "rating": 4.6,
         "publication_year": 2015,
@@ -183,7 +183,7 @@ books_data = [
         "id": "9",
         "title": "The Universe in a Nutshell",
         "author": "Stephen Hawking",
-        "category": "Science",
+        "category_id": "3",
         "description": "Stephen Hawking’s phenomenal, multimillion-copy bestseller, A Brief History of Time, introduced the ideas of this brilliant theoretical physicist to readers all over the world. Now, in a major publishing event, Hawking returns with a lavishly illustrated sequel that unravels the mysteries of the major breakthroughs that have occurred in the years since the release of his acclaimed first book.",
         "rating": 4.5,
         "publication_year": 2001,
@@ -197,7 +197,7 @@ books_data = [
         "id": "10",
         "title": "Eleven Minutes",
         "author": "Paulo Coelho",
-        "category": "Fiction",
+        "category_id": "4",
         "description": "Eleven Minutes is the story of Maria, a young girl from a Brazilian village, whose first innocent brushes with love leave her heartbroken. At a tender age, she becomes convinced that she will never find true love, instead believing that “love is a terrible thing that will make you suffer. . . .”",
         "rating": 4.4,
         "publication_year": 2003,
@@ -211,7 +211,7 @@ books_data = [
         "id": "11",
         "title": "Refactoring",
         "author": "Martin Fowler",
-        "category": "Programming",
+        "category_id": "1",
         "description": 'Refactoring is a controlled technique for improving the design of an existing code base. Its essence is applying a series of small behavior-preserving transformations, each of which "too small to be worth doing". However, the cumulative effect of each of these transformations is quite significant.',
         "rating": 4.7,
         "publication_year": 1999,
@@ -225,7 +225,7 @@ books_data = [
         "id": "12",
         "title": "Design Patterns",
         "author": "Erich Gamma",
-        "category": "Programming",
+        "category_id": "1",
         "description": "Capturing a wealth of experience about the design of object-oriented software, four top-notch designers present a catalog of simple and succinct solutions to commonly occurring design problems.",
         "rating": 4.8,
         "publication_year": 1994,
@@ -239,7 +239,7 @@ books_data = [
         "id": "13",
         "title": "The Pragmatic Programmer",
         "author": "Andrew Hunt",
-        "category": "Programming",
+        "category_id": "1",
         "description": "The Pragmatic Programmer cuts through the increasing specialization and technicalities of modern software development to examine the core process--taking a requirement and producing working, maintainable code that delights its users.",
         "rating": 4.9,
         "publication_year": 1999,
@@ -253,7 +253,7 @@ books_data = [
         "id": "14",
         "title": "Introduction to Algorithms",
         "author": "Thomas H. Cormen",
-        "category": "Programming",
+        "category_id": "1",
         "description": "This title covers a broad range of algorithms in depth, yet makes their design and analysis accessible to all levels of readers. Each chapter is relatively self-contained and can be used as a unit of study.",
         "rating": 4.6,
         "publication_year": 2009,
@@ -267,7 +267,7 @@ books_data = [
         "id": "15",
         "title": "Effective Java",
         "author": "Joshua Bloch",
-        "category": "Programming",
+        "category_id": "1",
         "description": "Are you looking for a deeper understanding of the Java programming language so that you can write code that is clearer, more correct, more robust, and more reusable? Look no further than Effective Java.",
         "rating": 4.8,
         "publication_year": 2017,
@@ -281,7 +281,7 @@ books_data = [
         "id": "16",
         "title": "1984",
         "author": "George Orwell",
-        "category": "Fiction",
+        "category_id": "4",
         "description": "Among the seminal texts of the 20th century, Nineteen Eighty-Four is a rare work that grows more haunting as its futuristic purgatory becomes more real.",
         "rating": 4.7,
         "publication_year": 1949,
@@ -295,7 +295,7 @@ books_data = [
         "id": "17",
         "title": "To Kill a Mockingbird",
         "author": "Harper Lee",
-        "category": "Fiction",
+        "category_id": "4",
         "description": 'The unforgettable novel of a childhood in a sleepy Southern town and the crisis of conscience that rocked it. "To Kill a Mockingbird" became both an instant bestseller and a critical success when it was first published in 1960.',
         "rating": 4.9,
         "publication_year": 1960,
@@ -309,7 +309,7 @@ books_data = [
         "id": "18",
         "title": "The Great Gatsby",
         "author": "F. Scott Fitzgerald",
-        "category": "Fiction",
+        "category_id": "4",
         "description": "The Great Gatsby, F. Scott Fitzgerald’s third book, stands as the supreme achievement of his career. This exemplary novel of the Jazz Age has been acclaimed by generations of readers.",
         "rating": 4.4,
         "publication_year": 1925,
@@ -323,7 +323,7 @@ books_data = [
         "id": "19",
         "title": "Pride and Prejudice",
         "author": "Jane Austen",
-        "category": "Fiction",
+        "category_id": "4",
         "description": 'Since its immediate success in 1813, Pride and Prejudice has remained one of the most popular novels in the English language. Jane Austen called this brilliant work "her own darling child".',
         "rating": 4.6,
         "publication_year": 1813,
@@ -337,7 +337,7 @@ books_data = [
         "id": "20",
         "title": "The Catcher in the Rye",
         "author": "J.D. Salinger",
-        "category": "Fiction",
+        "category_id": "4",
         "description": "The hero-narrator of The Catcher in the Rye is an ancient child of sixteen, a native New Yorker named Holden Caulfield. Through circumstances that tend to preclude adult, secondhand description, he leaves his prep school in Pennsylvania and goes underground in New York City for three days.",
         "rating": 4.0,
         "publication_year": 1951,
@@ -351,7 +351,7 @@ books_data = [
         "id": "21",
         "title": "Cosmos",
         "author": "Carl Sagan",
-        "category": "Science",
+        "category_id": "3",
         "description": "Cosmos is one of the bestselling science books of all time. In clear-eyed prose, Sagan reveals a jewel-like blue world inhabited by a life form that is just beginning to discover its own identity and to venture into the vast ocean of space.",
         "rating": 4.8,
         "publication_year": 1980,
@@ -365,7 +365,7 @@ books_data = [
         "id": "22",
         "title": "The Selfish Gene",
         "author": "Richard Dawkins",
-        "category": "Science",
+        "category_id": "3",
         "description": "The Selfish Gene caused a wave of excitement among biologists and the general public when it was first published in 1976. Its vivid rendering of a gene’s eye view of life, in lucid and energetic prose, gathered together the strands of thought about the nature of natural selection.",
         "rating": 4.5,
         "publication_year": 1976,
@@ -379,7 +379,7 @@ books_data = [
         "id": "23",
         "title": "Silent Spring",
         "author": "Rachel Carson",
-        "category": "Science",
+        "category_id": "3",
         "description": "Rachel Carson’s Silent Spring was first published in three serialized excerpts in the New Yorker in June of 1962. The book appeared in September of that year and the outcry that followed its publication forced the banning of DDT and spurred revolutionary changes in the laws affecting our air, land, and water.",
         "rating": 4.6,
         "publication_year": 1962,
@@ -393,7 +393,7 @@ books_data = [
         "id": "24",
         "title": "Thinking, Fast and Slow",
         "author": "Daniel Kahneman",
-        "category": "Science",
+        "category_id": "3",
         "description": "The major New York Times bestseller that has captivated the world. In the international bestseller, Thinking, Fast and Slow, Daniel Kahneman, the renowned psychologist and winner of the Nobel Prize in Economics, takes us on a groundbreaking tour of the mind.",
         "rating": 4.6,
         "publication_year": 2011,
@@ -407,7 +407,7 @@ books_data = [
         "id": "25",
         "title": "Guns, Germs, and Steel",
         "author": "Jared Diamond",
-        "category": "History",
+        "category_id": "2",
         "description": 'In this "artful, informative, and delightful" (William H. McNeill, New York Review of Books) book, Jared Diamond convincingly argues that geographical and environmental factors shaped the modern world.',
         "rating": 4.4,
         "publication_year": 1997,
@@ -421,7 +421,7 @@ books_data = [
         "id": "26",
         "title": "The Silk Roads",
         "author": "Peter Frankopan",
-        "category": "History",
+        "category_id": "2",
         "description": "Far more than a history of the Silk Roads, this book is truly a revelatory new history of the world, promising to destabilize notions of where we come from and where we are headed next.",
         "rating": 4.7,
         "publication_year": 2015,
@@ -435,7 +435,7 @@ books_data = [
         "id": "27",
         "title": "1491",
         "author": "Charles C. Mann",
-        "category": "History",
+        "category_id": "2",
         "description": "In this groundbreaking work of science, history, and archaeology, Charles C. Mann radically alters our understanding of the Americas before the arrival of Columbus in 1492.",
         "rating": 4.6,
         "publication_year": 2005,
@@ -449,7 +449,7 @@ books_data = [
         "id": "28",
         "title": "Steve Jobs",
         "author": "Walter Isaacson",
-        "category": "Biography",
+        "category_id": "5",
         "description": "Based on more than forty interviews with Jobs conducted over two years—as well as interviews with more than a hundred family members, friends, adversaries, competitors, and colleagues—Walter Isaacson has written a riveting story of the roller-coaster life and searingly intense personality of a creative entrepreneur.",
         "rating": 4.8,
         "publication_year": 2011,
@@ -463,7 +463,7 @@ books_data = [
         "id": "29",
         "title": "Einstein",
         "author": "Walter Isaacson",
-        "category": "Biography",
+        "category_id": "5",
         "description": "By the author of the acclaimed bestsellers Benjamin Franklin and Steve Jobs, this is the definitive biography of Albert Einstein. How did his mind work? What made him a genius? Isaacson’s biography shows how his scientific imagination sprang from the rebellious nature of his personality.",
         "rating": 4.7,
         "publicationYear": 2007,
@@ -477,7 +477,7 @@ books_data = [
         "id": "30",
         "title": "The Diary of a Young Girl",
         "author": "Anne Frank",
-        "category": "Biography",
+        "category_id": "5",
         "description": "Discovered in the attic in which she spent the last years of her life, Anne Frank’s remarkable diary has since become a world classic—a powerful reminder of the horrors of war and an eloquent testament to the human spirit.",
         "rating": 4.8,
         "publication_year": 1947,
@@ -491,7 +491,7 @@ books_data = [
         "id": "31",
         "title": "Long Walk to Freedom",
         "author": "Nelson Mandela",
-        "category": "Biography",
+        "category_id": "5",
         "description": "The riveting memoirs of the outstanding moral and political leader of our time, Long Walk to Freedom brilliantly re-creates the drama of the experiences that helped shape Nelson Mandela's destiny.",
         "rating": 4.9,
         "publication_year": 1994,
@@ -505,7 +505,7 @@ books_data = [
         "id": "32",
         "title": "Dune",
         "author": "Frank Herbert",
-        "category": "Sci-Fi",
+        "category_id": "6",
         "description": 'Set on the desert planet Arrakis, Dune is the story of the boy Paul Atreides, heir to a noble family tasked with ruling an inhospitable world where the only thing of value is the "spice" melange.',
         "rating": 4.7,
         "publication_year": 1965,
@@ -519,7 +519,7 @@ books_data = [
         "id": "33",
         "title": "Neuromancer",
         "author": "William Gibson",
-        "category": "Sci-Fi",
+        "category_id": "6",
         "description": "The Matrix is a world within the world, a global consensus-hallucination, the representation of every byte of data in cyberspace... Henry Dorsett Case was the sharpest data-thief in the business, until vengeful former employees crippled his nervous system.",
         "rating": 4.5,
         "publication_year": 1984,
@@ -533,7 +533,7 @@ books_data = [
         "id": "34",
         "title": "Foundation",
         "author": "Isaac Asimov",
-        "category": "Sci-Fi",
+        "category_id": "6",
         "description": "For twelve thousand years the Galactic Empire has ruled supreme. Now it is dying. But only Hari Seldon, creator of the revolutionary science of psychohistory, can see into the future--to a dark age of ignorance, barbarism, and warfare that will last thirty thousand years.",
         "rating": 4.6,
         "publication_year": 1951,
@@ -547,7 +547,7 @@ books_data = [
         "id": "35",
         "title": "Ender's Game",
         "author": "Orson Scott Card",
-        "category": "Sci-Fi",
+        "category_id": "6",
         "description": 'In order to develop a secure defense against a hostile alien race\'s next attack, government agencies breed child geniuses and train them as soldiers. A brilliant young boy, Andrew "Ender" Wiggin lives with his kind but distant parents, his sadistic brother Peter, and the person he loves more than anyone else, his sister Valentine.',
         "rating": 4.7,
         "publication_year": 1985,
@@ -561,7 +561,7 @@ books_data = [
         "id": "36",
         "title": "The Hobbit",
         "author": "J.R.R. Tolkien",
-        "category": "Fantasy",
+        "category_id": "7",
         "description": "Bilbo Baggins is a hobbit who enjoys a comfortable, unambitious life, rarely traveling further than his pantry or cellar. But his contentment is disturbed when the wizard Gandalf and a company of dwarves arrive on his doorstep one day to whisk him away on an adventure.",
         "rating": 4.8,
         "publication_year": 1937,
@@ -575,7 +575,7 @@ books_data = [
         "id": "37",
         "title": "Harry Potter and the Sorcerer's Stone",
         "author": "J.K. Rowling",
-        "category": "Fantasy",
+        "category_id": "7",
         "description": "Harry Potter has never even heard of Hogwarts when the letters start dropping on the doormat at number four, Privet Drive. Addressed in green ink on yellowish parchment with a purple seal, they are swiftly confiscated by his grisly aunt and uncle.",
         "rating": 4.9,
         "publication_year": 1997,
@@ -589,7 +589,7 @@ books_data = [
         "id": "38",
         "title": "The Lord of the Rings",
         "author": "J.R.R. Tolkien",
-        "category": "Fantasy",
+        "category_id": "7",
         "description": "One Ring to rule them all, One Ring to find them, One Ring to bring them all and in the darkness bind them. In ancient times the Rings of Power were crafted by the Elven-smiths, and Sauron, the Dark Lord, forged the One Ring, filling it with his own power so that he could rule all others.",
         "rating": 4.9,
         "publication_year": 1954,
@@ -603,7 +603,7 @@ books_data = [
         "id": "39",
         "title": "The Da Vinci Code",
         "author": "Dan Brown",
-        "category": "Thriller",
+        "category_id": "8",
         "description": "While in Paris, Harvard symbologist Robert Langdon is awakened by a phone call in the dead of the night. The elderly curator of the Louvre has been murdered inside the museum, his body covered in baffling symbols.",
         "rating": 4.1,
         "publication_year": 2003,
@@ -617,7 +617,7 @@ books_data = [
         "id": "40",
         "title": "Gone Girl",
         "author": "Gillian Flynn",
-        "category": "Thriller",
+        "category_id": "8",
         "description": "On a warm summer morning in North Carthage, Missouri, it is Nick and Amy Dunne’s fifth wedding anniversary. Presents are being wrapped and reservations are being made when Nick’s clever and beautiful wife disappears from their rented McMansion on the Mississippi River.",
         "rating": 4.3,
         "publication_year": 2012,
@@ -632,42 +632,42 @@ books_data = [
 # Categories list (id, name) - used to seed categories table
 categories_data = [
     {
-        "id": "programming",
+        "id": "1",
         "name": "Programming",
         "image_url": "/assets/book/book_cover.webp",
     },
     {
-        "id": "history",
+        "id": "2",
         "name": "History",
         "image_url": "/assets/book/book_cover.webp",
     },
     {
-        "id": "science",
+        "id": "3",
         "name": "Science",
         "image_url": "/assets/book/book_cover.webp",
     },
     {
-        "id": "fiction",
+        "id": "4",
         "name": "Fiction",
         "image_url": "/assets/book/book_cover.webp",
     },
     {
-        "id": "biography",
+        "id": "5",
         "name": "Biography",
         "image_url": "/assets/book/book_cover.webp",
     },
     {
-        "id": "scifi",
+        "id": "6",
         "name": "Sci-Fi",
         "image_url": "/assets/book/book_cover.webp",
     },
     {
-        "id": "fantasy",
+        "id": "7",
         "name": "Fantasy",
         "image_url": "/assets/book/book_cover.webp",
     },
     {
-        "id": "thriller",
+        "id": "8",
         "name": "Thriller",
         "image_url": "/assets/book/book_cover.webp",
     },
@@ -746,24 +746,25 @@ def seed():
             if "copiesOwned" in book_data:
                 book_data["copies_owned"] = book_data.pop("copiesOwned")
 
-            # Map category name to category_id using loaded categories
-            if "category" in book_data and book_data["category"]:
-                cat_name = str(book_data.pop("category")).strip().lower()
-                cid = name_to_id.get(cat_name)
-                if cid is None:
-                    # fallback: create a new category id by slugifying the name
-                    cid = cat_name.replace(" ", "-").replace("/", "-")
-                    name_to_id[cat_name] = cid
-                    # normalize fallback image paths to the mounted /assets path when possible
-                    fallback_img = book_data.get("image")
-                    if (
-                        isinstance(fallback_img, str)
-                        and "client/assets/" in fallback_img
-                    ):
-                        fallback_img = fallback_img.split("client/assets/")[-1]
-                        fallback_img = "/assets/" + fallback_img
-                    db.add(Category(id=cid, name=cat_name, image_url=fallback_img))
-                book_data["category_id"] = cid
+            # Map category name to category_id if needed
+            if "category_id" not in book_data or not book_data["category_id"]:
+                if "category" in book_data and book_data["category"]:
+                    cat_name = str(book_data.pop("category")).strip().lower()
+                    cid = name_to_id.get(cat_name)
+                    if cid is None:
+                        # fallback: create a new category id by slugifying the name
+                        cid = cat_name.replace(" ", "-").replace("/", "-")
+                        name_to_id[cat_name] = cid
+                        # normalize fallback image paths to the mounted /assets path when possible
+                        fallback_img = book_data.get("image")
+                        if (
+                            isinstance(fallback_img, str)
+                            and "client/assets/" in fallback_img
+                        ):
+                            fallback_img = fallback_img.split("client/assets/")[-1]
+                            fallback_img = "/assets/" + fallback_img
+                        db.add(Category(id=cid, name=cat_name, image_url=fallback_img))
+                    book_data["category_id"] = cid
 
             book = Book(**book_data)
             db.add(book)
