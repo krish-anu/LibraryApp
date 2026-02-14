@@ -8,7 +8,7 @@ class Book(Base):
 
     id = Column(TEXT, primary_key=True)
     title = Column(TEXT)
-    author = Column(TEXT)
+    author_id = Column(TEXT, ForeignKey("authors.id"))
     category_id = Column(TEXT, ForeignKey("categories.id"))
     description = Column(TEXT)
     rating = Column(NUMERIC)
@@ -20,8 +20,17 @@ class Book(Base):
     rating_count = Column(NUMERIC, default=0)
 
     category_rel = relationship("Category", back_populates="books")
-    authors = relationship("Author", secondary="book_author", back_populates="books")
+    author_rel = relationship("Author", back_populates="books")
 
     @property
     def category(self):
         return self.category_rel.name if self.category_rel else None
+
+    @property
+    def author(self):
+        if not self.author_rel:
+            return None
+        first = self.author_rel.first_name or ""
+        last = self.author_rel.last_name or ""
+        name = f"{first} {last}".strip()
+        return name if name else None

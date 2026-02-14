@@ -10,4 +10,4 @@ class Author(Base):
     first_name = Column(TEXT)
     last_name = Column(TEXT)
 
-    books = relationship("Book", secondary="book_author", back_populates="authors")
+    books = relationship("Book", back_populates="author_rel")
