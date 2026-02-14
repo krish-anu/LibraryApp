@@ -18,8 +18,9 @@ class HomeHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final name = user?.userName.trim();
-    final firstName =
-        (name == null || name.isEmpty) ? 'Reader' : name.split(RegExp(r'\s+')).first;
+    final firstName = (name == null || name.isEmpty)
+        ? 'Reader'
+        : name.split(RegExp(r'\s+')).first;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
