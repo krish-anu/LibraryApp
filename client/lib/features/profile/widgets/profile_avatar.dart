@@ -30,7 +30,7 @@ class ProfileAvatar extends StatelessWidget {
               : Image.network(
                   normalizedUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) {
+                  errorBuilder: (_, _, _) {
                     return Image.asset(_fallbackAsset, fit: BoxFit.cover);
                   },
                 ),
