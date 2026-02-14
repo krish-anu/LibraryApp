@@ -1,5 +1,3 @@
-import 'dart:io';
-
 class ServerConstant {
   static const String _envServer = String.fromEnvironment(
     'SERVER_URL',
