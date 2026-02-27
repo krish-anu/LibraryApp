@@ -19,7 +19,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: () => void;
+  login: (creds?: { email: string; password: string } | undefined) => Promise<void>;
   logout: () => void;
 }
 
@@ -115,7 +115,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const login = async () => {
+  const login = async (creds?: { email: string; password: string }) => {
+    // If credentials provided, use backend to perform ROPC-style login
+    if (creds && creds.email && creds.password) {
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(creds),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || "Login failed");
+        }
+
+        const json = await res.json();
+        if (json?.user) {
+          setUser(json.user);
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        throw error;
+      }
+      return;
+    }
+
+    // Fallback to SPA client redirect-based sign in
     if (asgardeoClient) {
       try {
         await asgardeoClient.signIn();

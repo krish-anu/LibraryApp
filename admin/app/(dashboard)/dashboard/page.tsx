@@ -67,11 +67,11 @@ export default function DashboardPage() {
   }
 
   const chartData =
-    data?.topBooks.map((book) => ({
+    data?.topBooks?.map((book) => ({
       name:
         book.title.length > 15 ? book.title.slice(0, 15) + "..." : book.title,
       views: book.count,
-    })) || [];
+    })) ?? [];
 
   return (
     <div>
@@ -85,32 +85,32 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Active Users"
-            value={data?.stats.activeUsers.toLocaleString() || "0"}
-            change={`${data?.stats.userGrowth || 0}% from last month`}
+            value={(data?.stats?.activeUsers ?? 0).toLocaleString()}
+            change={`${data?.stats?.userGrowth ?? 0}% from last month`}
             changeType="positive"
             icon={Users}
             iconColor="bg-blue-100 text-blue-600"
           />
           <StatCard
             title="Total Inventory"
-            value={data?.stats.totalInventory.toLocaleString() || "0"}
-            change={`+${data?.stats.inventoryGrowth || 0}% new additions`}
+            value={(data?.stats?.totalInventory ?? 0).toLocaleString()}
+            change={`+${data?.stats?.inventoryGrowth ?? 0}% new additions`}
             changeType="positive"
             icon={BookOpen}
             iconColor="bg-green-100 text-green-600"
           />
           <StatCard
             title="Pending Fines"
-            value={formatCurrency(data?.stats.pendingFines || 0)}
-            change={`${data?.stats.fineCount || 0} unpaid fines`}
+            value={formatCurrency(data?.stats?.pendingFines ?? 0)}
+            change={`${data?.stats?.fineCount ?? 0} unpaid fines`}
             changeType="negative"
             icon={AlertCircle}
             iconColor="bg-red-100 text-red-600"
           />
           <StatCard
             title="Avg. Checkout Time"
-            value={`${data?.stats.avgCheckoutTime || 0} days`}
-            change={`${data?.stats.checkoutImprovement || 0}% faster returns`}
+            value={`${data?.stats?.avgCheckoutTime ?? 0} days`}
+            change={`${data?.stats?.checkoutImprovement ?? 0}% faster returns`}
             changeType="positive"
             icon={Clock}
             iconColor="bg-purple-100 text-purple-600"
@@ -162,12 +162,12 @@ export default function DashboardPage() {
               </a>
             </div>
             <div className="space-y-4">
-              {data?.recentFines.length === 0 ? (
+              {data?.recentFines?.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">
                   No recent fines
                 </p>
               ) : (
-                data?.recentFines.map((fine) => (
+                data?.recentFines?.map((fine) => (
                   <div
                     key={fine.id}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"

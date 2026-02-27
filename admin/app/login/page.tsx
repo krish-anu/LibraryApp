@@ -1,14 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Library, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useRouter } from "next/navigation";
 
+interface FormState {
+  email: string;
+  password: string;
+}
+
 export default function LoginPage() {
   const { isAuthenticated, isLoading, login } = useAuth();
   const router = useRouter();
+  const [form, setForm] = useState<FormState>({ email: "", password: "" });
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     // Redirect to dashboard if already authenticated
@@ -18,7 +26,22 @@ export default function LoginPage() {
   }, [isAuthenticated, isLoading, router]);
 
   const handleAsgardeoLogin = () => {
+    // Fallback to redirect-based login
     login();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login({ email: form.email, password: form.password });
+      router.push("/");
+    } catch (e: any) {
+      setError(e?.message || "Login failed");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (isLoading) {
@@ -51,10 +74,60 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <Button onClick={handleAsgardeoLogin} className="w-full" size="lg">
-              <Lock className="w-4 h-4 mr-2" />
-              Sign in with Asgardeo
-            </Button>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-200 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-200 shadow-sm"
+                />
+              </div>
+
+              {error && <div className="text-sm text-red-600">{error}</div>}
+
+              <Button
+                type="submit"
+                className="w-full"
+                size="lg"
+                disabled={submitting}
+              >
+                <Lock className="w-4 h-4 mr-2" />
+                {submitting ? "Signing in…" : "Sign in"}
+              </Button>
+
+              <div className="text-center">
+                <small className="text-gray-500">Or</small>
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleAsgardeoLogin}
+                className="w-full"
+                variant={undefined}
+              >
+                Sign in with redirect
+              </Button>
+            </form>
           </div>
         </div>
 

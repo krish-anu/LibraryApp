@@ -12,7 +12,7 @@ const defaultSettings = {
   fine_threshold: 10.0,
   send_notifications: true,
   notification_days_before_due: 3,
-};
+};  
 
 let currentSettings = { ...defaultSettings };
 
