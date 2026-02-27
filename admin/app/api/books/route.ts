@@ -2,10 +2,42 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { Book } from "@/lib/types";
 
+async function getBookColumnSet(): Promise<Set<string>> {
+  const rows = await query<{ column_name: string }>(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'books'`,
+  );
+  return new Set(rows.map((r) => r.column_name));
+}
+
+async function resolveAuthorIdByName(authorName: string): Promise<string> {
+  const normalized = authorName.trim();
+  const found = await query<{ id: string }>(
+    `SELECT id
+     FROM authors
+     WHERE TRIM(CONCAT_WS(' ', COALESCE(first_name, ''), COALESCE(last_name, ''))) ILIKE $1
+     LIMIT 1`,
+    [normalized],
+  );
+  if (found[0]?.id) return found[0].id;
+
+  const id = crypto.randomUUID();
+  const created = await query<{ id: string }>(
+    `INSERT INTO authors (id, first_name, last_name)
+     VALUES ($1, $2, $3)
+     RETURNING id`,
+    [id, normalized, ""],
+  );
+  return created[0].id;
+}
+
 // GET all books with pagination and filtering
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const bookColumns = await getBookColumnSet();
+    const usesAuthorId = bookColumns.has("author_id") && !bookColumns.has("author");
 
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -14,39 +46,49 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    let sql = `
-      SELECT b.*, c.name as category 
-      FROM books b 
-      LEFT JOIN categories c ON b.category_id = c.id 
+    const authorSelect = usesAuthorId
+      ? `COALESCE(NULLIF(TRIM(CONCAT_WS(' ', a.first_name, a.last_name)), ''), '') AS author`
+      : `b.author AS author`;
+    const authorJoin = usesAuthorId
+      ? `LEFT JOIN authors a ON b.author_id = a.id`
+      : ``;
+    const authorSearchExpr = usesAuthorId
+      ? `TRIM(CONCAT_WS(' ', a.first_name, a.last_name))`
+      : `b.author`;
+
+    let fromAndWhere = `
+      FROM books b
+      LEFT JOIN categories c ON b.category_id = c.id
+      ${authorJoin}
       WHERE 1=1
     `;
     const params: unknown[] = [];
     let paramIndex = 1;
 
     if (category && category !== "all") {
-      sql += ` AND b.category_id = $${paramIndex}`;
+      fromAndWhere += ` AND b.category_id = $${paramIndex}`;
       params.push(category);
       paramIndex++;
     }
 
     if (search) {
-      sql += ` AND (b.title ILIKE $${paramIndex} OR b.author ILIKE $${paramIndex})`;
+      fromAndWhere += ` AND (b.title ILIKE $${paramIndex} OR ${authorSearchExpr} ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
     }
 
-    // Count total
-    const countSql = sql.replace(
-      "SELECT b.*, c.name as category",
-      "SELECT COUNT(*) as count",
-    );
+    const countSql = `SELECT COUNT(*) as count ${fromAndWhere}`;
     const countResult = await query<{ count: string }>(countSql, params);
     const total = parseInt(countResult[0]?.count || "0");
 
-    sql += ` ORDER BY b.title ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    const selectSql = `
+      SELECT b.*, c.name as category, ${authorSelect}
+      ${fromAndWhere}
+      ORDER BY b.title ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
     params.push(limit, offset);
 
-    const data = await query<Book>(sql, params);
+    const data = await query<Book>(selectSql, params);
 
     return NextResponse.json({
       data,
@@ -72,32 +114,91 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const id = crypto.randomUUID();
+    const columns = await getBookColumnSet();
+    const usesAuthorId = columns.has("author_id") && !columns.has("author");
 
+    const insertColumns: string[] = [];
+    const insertValues: unknown[] = [];
+    const add = (column: string, value: unknown) => {
+      if (!columns.has(column)) return;
+      insertColumns.push(column);
+      insertValues.push(value);
+    };
+
+    if (!columns.has("title")) {
+      throw new Error("books.title column is missing");
+    }
+
+    add("id", id);
+    add("title", body.title);
+    if (usesAuthorId) {
+      const authorText =
+        typeof body.author === "string" ? body.author.trim() : "";
+      const authorId = authorText ? await resolveAuthorIdByName(authorText) : null;
+      add("author_id", authorId);
+    } else {
+      add("author", body.author);
+    }
+    add("category_id", body.category_id || null);
+    add("description", body.description || null);
+    add("rating", body.rating || null);
+    add("publication_year", body.publication_year || null);
+
+    const copiesOwned = body.copies_owned || 1;
+    add("copies_owned", copiesOwned);
+    add("copies_available", copiesOwned);
+
+    // Support both schema variants.
+    add("image", body.image || null);
+    add("cover_image_url", body.image || null);
+
+    add("language", body.language || "English");
+    add("pages", body.pages || null);
+
+    if (!insertColumns.length) {
+      throw new Error("No compatible columns found for books insert");
+    }
+
+    const placeholders = insertColumns.map((_, i) => `$${i + 1}`).join(", ");
     const sql = `
-      INSERT INTO books (id, title, author, category_id, description, rating, publication_year, copies_owned, image, language, pages)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      INSERT INTO books (${insertColumns.join(", ")})
+      VALUES (${placeholders})
       RETURNING *
     `;
 
-    const data = await query<Book>(sql, [
-      id,
-      body.title,
-      body.author,
-      body.category_id || null,
-      body.description || null,
-      body.rating || null,
-      body.publication_year || null,
-      body.copies_owned || 1,
-      body.image || null,
-      body.language || "English",
-      body.pages || null,
-    ]);
+    await query<Book>(sql, insertValues);
+
+    const readAuthorSelect = usesAuthorId
+      ? `COALESCE(NULLIF(TRIM(CONCAT_WS(' ', a.first_name, a.last_name)), ''), '') AS author`
+      : `b.author AS author`;
+    const readAuthorJoin = usesAuthorId
+      ? `LEFT JOIN authors a ON b.author_id = a.id`
+      : ``;
+    const data = await query<Book>(
+      `SELECT b.*, c.name as category, ${readAuthorSelect}
+       FROM books b
+       LEFT JOIN categories c ON b.category_id = c.id
+       ${readAuthorJoin}
+       WHERE b.id = $1`,
+      [id],
+    );
 
     return NextResponse.json({ data: data[0] }, { status: 201 });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error creating book:", error);
+    const err = error as {
+      message?: string;
+      code?: string;
+      detail?: string;
+      hint?: string;
+    };
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: err?.message || "Internal server error",
+        code: err?.code || null,
+        detail: err?.detail || null,
+        hint: err?.hint || null,
+      },
       { status: 500 },
     );
   }

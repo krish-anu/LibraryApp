@@ -23,6 +23,11 @@ export function middleware(request: NextRequest) {
   const session = request.cookies.get("library_session")?.value;
 
   if (!session) {
+    // Never redirect API requests to /login; clients expect JSON/status codes.
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Redirect unauthenticated users to login
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);

@@ -63,6 +63,8 @@ export default function BooksPage() {
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [formData, setFormData] = useState<BookFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -118,6 +120,8 @@ export default function BooksPage() {
         language: book.language || "English",
         pages: book.pages || 0,
       });
+      setCoverFile(null);
+      setCoverPreview(book.image || null);
     } else {
       setEditingBook(null);
       setFormData(initialFormData);
@@ -129,6 +133,11 @@ export default function BooksPage() {
     setIsModalOpen(false);
     setEditingBook(null);
     setFormData(initialFormData);
+    if (coverPreview && coverPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(coverPreview);
+    }
+    setCoverFile(null);
+    setCoverPreview(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,13 +145,43 @@ export default function BooksPage() {
     setIsSubmitting(true);
 
     try {
+      // If a new cover file was selected, upload it first and capture image URL
+      let uploadedImageUrl = formData.image;
+      if (coverFile) {
+        try {
+          const form = new FormData();
+          form.append("file", coverFile);
+          form.append("filename", coverFile.name);
+
+          const uploadRes = await fetch("/api/storage/upload", {
+            method: "POST",
+            body: form,
+          });
+          if (!uploadRes.ok) {
+            const text = await uploadRes.text();
+            console.error("Upload failed:", uploadRes.status, text);
+            throw new Error(`Upload failed: ${uploadRes.status} ${text}`);
+          }
+          const uploadJson = await uploadRes.json();
+          const publicUrl: string = uploadJson.publicUrl;
+          uploadedImageUrl = publicUrl;
+        } catch (err) {
+          console.error("Cover upload failed:", err);
+          alert("Failed to upload cover image");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const url = editingBook ? `/api/books/${editingBook.id}` : "/api/books";
       const method = editingBook ? "PUT" : "POST";
+
+      const payload = { ...formData, image: uploadedImageUrl };
 
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -472,14 +511,57 @@ export default function BooksPage() {
               }
             />
           </div>
-          <Input
-            label="Cover Image URL"
-            value={formData.image}
-            onChange={(e) =>
-              setFormData({ ...formData, image: e.target.value })
-            }
-            placeholder="https://example.com/cover.jpg"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cover Image
+            </label>
+            <div className="flex items-center gap-4">
+              <div className="w-24 h-32 bg-gray-100 rounded overflow-hidden flex items-center justify-center border">
+                {coverPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={coverPreview}
+                    alt="cover"
+                    className="w-full h-full object-cover"
+                  />
+                ) : formData.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={formData.image}
+                    alt="cover"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-gray-400 text-xs">No image</div>
+                )}
+              </div>
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setCoverFile(f);
+                    if (f) {
+                      if (coverPreview && coverPreview.startsWith("blob:")) {
+                        URL.revokeObjectURL(coverPreview);
+                      }
+                      setCoverPreview(URL.createObjectURL(f));
+                    } else {
+                      if (coverPreview && coverPreview.startsWith("blob:")) {
+                        URL.revokeObjectURL(coverPreview);
+                      }
+                      setCoverPreview(formData.image || null);
+                    }
+                  }}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Upload a cover image (optional). Selecting a file will replace
+                  the image URL.
+                </p>
+              </div>
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Description
