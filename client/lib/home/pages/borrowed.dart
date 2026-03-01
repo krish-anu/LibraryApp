@@ -104,7 +104,9 @@ class _BorrowedState extends ConsumerState<Borrowed>
       );
     }
 
-    final reservationsAsync = ref.watch(fetchReservationsByMemberProvider(memberId));
+    final reservationsAsync = ref.watch(
+      fetchReservationsByMemberProvider(memberId),
+    );
     final booksAsync = ref.watch(fetchAllBooksProvider);
 
     return reservationsAsync.when(

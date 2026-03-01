@@ -200,7 +200,7 @@ class _WishlistState extends ConsumerState<Wishlist> {
               onPressed: () {
                 final memberId = _resolveMemberId();
                 if (memberId.isNotEmpty) {
-                  ref.refresh(fetchFavoritesProvider(memberId));
+                  ref.invalidate(fetchFavoritesProvider(memberId));
                 }
               },
               icon: const Icon(Icons.refresh, color: Colors.white),
