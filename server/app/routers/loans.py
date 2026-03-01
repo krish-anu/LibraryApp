@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from typing import List
 from datetime import date, timedelta
+import uuid
 
 from ..dependencies import get_db
 from ..models import loan, book as book_model
@@ -37,9 +38,8 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
     if db_book.copies_owned <= 0:
         raise HTTPException(status_code=400, detail="No copies available")
 
-    # Generate new loan ID
-    last_loan = db.query(loan.Loan).order_by(loan.Loan.id.desc()).first()
-    new_id = f"l{int(last_loan.id[1:]) + 1}" if last_loan else "l1"
+    # Use UUID-based IDs to avoid collisions from lexicographic string sorting.
+    new_id = f"l{uuid.uuid4().hex}"
 
     # Create new loan (14 day loan period)
     new_loan = loan.Loan(
@@ -54,7 +54,14 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
     db_book.copies_owned -= 1
 
     db.add(new_loan)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Failed to create loan due to duplicate or conflicting data",
+        )
     db.refresh(new_loan)
     return new_loan
 
