@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
-import { formatDate } from "@/lib/utils";
 import { Book } from "@/lib/types";
 import {
   Plus,
@@ -216,17 +215,28 @@ export default function BooksPage() {
 
   const totalPages = Math.ceil(totalCount / limit);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "available":
-        return <Badge variant="success">Available</Badge>;
-      case "checked_out":
-        return <Badge variant="warning">Checked Out</Badge>;
-      case "reserved":
-        return <Badge variant="info">Reserved</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
+  const getStatusBadge = (book: Book) => {
+    if (typeof book.copies_available === "number") {
+      return book.copies_available > 0 ? (
+        <Badge variant="success">Available</Badge>
+      ) : (
+        <Badge variant="danger">Not Available</Badge>
+      );
     }
+
+    if (typeof book.status === "string") {
+      return book.status.toLowerCase() === "available" ? (
+        <Badge variant="success">Available</Badge>
+      ) : (
+        <Badge variant="danger">Not Available</Badge>
+      );
+    }
+
+    return book.copies_owned > 0 ? (
+      <Badge variant="success">Available</Badge>
+    ) : (
+      <Badge variant="danger">Not Available</Badge>
+    );
   };
 
   return (
@@ -262,8 +272,7 @@ export default function BooksPage() {
               options={[
                 { value: "", label: "All Status" },
                 { value: "available", label: "Available" },
-                { value: "checked_out", label: "Checked Out" },
-                { value: "reserved", label: "Reserved" },
+                { value: "not_available", label: "Not Available" },
               ]}
               className="w-40"
             />
@@ -301,6 +310,9 @@ export default function BooksPage() {
                   Copies
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                  Status
+                </th>
+                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
                   Year
                 </th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
@@ -315,7 +327,7 @@ export default function BooksPage() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <div className="flex justify-center">
@@ -326,7 +338,7 @@ export default function BooksPage() {
               ) : books.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -362,6 +374,9 @@ export default function BooksPage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {book.copies_owned}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {getStatusBadge(book)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {book.publication_year || "-"}

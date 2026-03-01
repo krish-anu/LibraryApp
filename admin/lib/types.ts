@@ -9,6 +9,8 @@ export interface Book {
   rating?: number;
   publication_year?: number;
   copies_owned: number;
+  copies_available?: number;
+  status?: string;
   image?: string;
   language?: string;
   pages?: number;

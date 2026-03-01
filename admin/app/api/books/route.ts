@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const category = searchParams.get("category");
     const search = searchParams.get("search");
+    const status = searchParams.get("status");
 
     const offset = (page - 1) * limit;
 
@@ -75,6 +76,30 @@ export async function GET(request: NextRequest) {
       fromAndWhere += ` AND (b.title ILIKE $${paramIndex} OR ${authorSearchExpr} ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
+    }
+
+    if (status) {
+      if (status === "available") {
+        if (bookColumns.has("copies_available")) {
+          fromAndWhere += ` AND COALESCE(b.copies_available, 0) > 0`;
+        } else if (bookColumns.has("status")) {
+          fromAndWhere += ` AND LOWER(COALESCE(b.status, '')) = 'available'`;
+        } else {
+          fromAndWhere += ` AND COALESCE(b.copies_owned, 0) > 0`;
+        }
+      } else if (status === "not_available") {
+        if (bookColumns.has("copies_available")) {
+          fromAndWhere += ` AND COALESCE(b.copies_available, 0) <= 0`;
+        } else if (bookColumns.has("status")) {
+          fromAndWhere += ` AND LOWER(COALESCE(b.status, '')) <> 'available'`;
+        } else {
+          fromAndWhere += ` AND COALESCE(b.copies_owned, 0) <= 0`;
+        }
+      } else if (bookColumns.has("status")) {
+        fromAndWhere += ` AND LOWER(COALESCE(b.status, '')) = LOWER($${paramIndex})`;
+        params.push(status);
+        paramIndex++;
+      }
     }
 
     const countSql = `SELECT COUNT(*) as count ${fromAndWhere}`;
