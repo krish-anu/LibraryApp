@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text, func
-from typing import List
+from typing import List, cast
 from datetime import datetime, timedelta, timezone
 
 from ..dependencies import get_db
@@ -16,19 +16,31 @@ router = APIRouter(prefix="/books", tags=["books"])
 def _book_to_response(book_obj: book.Book) -> book_schema.Book:
     return book_schema.Book(
         id=str(book_obj.id),
-        title=book_obj.title or "",
-        author=book_obj.author or "",
-        category=book_obj.category or "",
-        description=book_obj.description or "",
-        rating=float(book_obj.rating) if book_obj.rating is not None else 0.0,
-        publication_year=(
-            int(book_obj.publication_year) if book_obj.publication_year is not None else 0
+        title=str(book_obj.title or ""),
+        author=str(book_obj.author or ""),
+        category=str(book_obj.category or ""),
+        description=str(book_obj.description or ""),
+        rating=(
+            float(cast(float, book_obj.rating)) if book_obj.rating is not None else 0.0
         ),
-        copies_owned=int(book_obj.copies_owned) if book_obj.copies_owned is not None else 0,
-        image=book_obj.image or "",
-        language=book_obj.language or "English",
-        pages=int(book_obj.pages) if book_obj.pages is not None else 200,
-        rating_count=int(book_obj.rating_count) if book_obj.rating_count is not None else 0,
+        publication_year=(
+            int(cast(int, book_obj.publication_year))
+            if book_obj.publication_year is not None
+            else 0
+        ),
+        copies_owned=(
+            int(cast(int, book_obj.copies_owned))
+            if book_obj.copies_owned is not None
+            else 0
+        ),
+        image=str(book_obj.image or ""),
+        language=str(book_obj.language or "English"),
+        pages=(int(cast(int, book_obj.pages)) if book_obj.pages is not None else 200),
+        rating_count=(
+            int(cast(int, book_obj.rating_count))
+            if book_obj.rating_count is not None
+            else 0
+        ),
     )
 
 
