@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/auth/providers/asgardeo_direct_provider.dart';
+import 'package:libraryapp/core/providers/current_user_notifier.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
 import 'package:libraryapp/data/repository/favorites_repository.dart';
@@ -20,32 +22,41 @@ class _WishlistState extends ConsumerState<Wishlist> {
 
   @override
   Widget build(BuildContext context) {
-    final favoritesAsync = ref.watch(fetchFavoritesProvider('m1'));
+    final memberId = _resolveMemberId();
+    final favoritesAsync = memberId.isEmpty
+        ? const AsyncValue<List<Book>>.data(<Book>[])
+        : ref.watch(fetchFavoritesProvider(memberId));
 
     return Scaffold(
       backgroundColor: Pallete.scaffoldBackground,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
-          FavoriteFilterChips(
-            selectedFilter: _selectedFilter,
-            onFilterChanged: (filter) {
-              setState(() => _selectedFilter = filter);
-            },
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: favoritesAsync.when(
-              data: (favorites) => _buildFavoritesList(favorites),
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: Pallete.primaryLight),
-              ),
-              error: (err, stack) => _buildErrorState(err.toString()),
+      body: memberId.isEmpty
+          ? _buildErrorState(
+              'Unable to identify the current member. Please login again.',
+            )
+          : Column(
+              children: [
+                const SizedBox(height: 16),
+                FavoriteFilterChips(
+                  selectedFilter: _selectedFilter,
+                  onFilterChanged: (filter) {
+                    setState(() => _selectedFilter = filter);
+                  },
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: favoritesAsync.when(
+                    data: (favorites) => _buildFavoritesList(favorites),
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: Pallete.primaryLight,
+                      ),
+                    ),
+                    error: (err, stack) => _buildErrorState(err.toString()),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -186,7 +197,12 @@ class _WishlistState extends ConsumerState<Wishlist> {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () => ref.refresh(fetchFavoritesProvider('m1')),
+              onPressed: () {
+                final memberId = _resolveMemberId();
+                if (memberId.isNotEmpty) {
+                  ref.refresh(fetchFavoritesProvider(memberId));
+                }
+              },
               icon: const Icon(Icons.refresh, color: Colors.white),
               label: const Text(
                 'Try Again',
@@ -260,7 +276,9 @@ class _WishlistState extends ConsumerState<Wishlist> {
   }
 
   Future<void> _refreshFavorites() async {
-    ref.invalidate(fetchFavoritesProvider('m1'));
+    final memberId = _resolveMemberId();
+    if (memberId.isEmpty) return;
+    ref.invalidate(fetchFavoritesProvider(memberId));
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
@@ -272,9 +290,24 @@ class _WishlistState extends ConsumerState<Wishlist> {
   }
 
   Future<void> _toggleFavorite(Book book) async {
+    final memberId = _resolveMemberId();
+    if (memberId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to identify the current member. Please login again.',
+            ),
+            backgroundColor: Pallete.warning,
+          ),
+        );
+      }
+      return;
+    }
+
     try {
       final repo = ref.read(favoritesRepositoryProvider);
-      final result = await repo.removeFavorite('m1', book.id);
+      final result = await repo.removeFavorite(memberId, book.id);
 
       result.fold(
         (failure) {
@@ -288,7 +321,7 @@ class _WishlistState extends ConsumerState<Wishlist> {
           }
         },
         (_) {
-          ref.invalidate(fetchFavoritesProvider('m1'));
+          ref.invalidate(fetchFavoritesProvider(memberId));
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -300,8 +333,8 @@ class _WishlistState extends ConsumerState<Wishlist> {
                   label: 'UNDO',
                   textColor: Pallete.primaryLight,
                   onPressed: () async {
-                    await repo.addFavorite('m1', book.id);
-                    ref.invalidate(fetchFavoritesProvider('m1'));
+                    await repo.addFavorite(memberId, book.id);
+                    ref.invalidate(fetchFavoritesProvider(memberId));
                   },
                 ),
               ),
@@ -319,5 +352,19 @@ class _WishlistState extends ConsumerState<Wishlist> {
         );
       }
     }
+  }
+
+  String _resolveMemberId() {
+    final authMemberId = ref.read(asgardeoDirectAuthProvider).user?.sub?.trim();
+    if (authMemberId != null && authMemberId.isNotEmpty) {
+      return authMemberId;
+    }
+
+    final currentUserId = ref.read(currentUserProvider)?.id.trim();
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      return currentUserId;
+    }
+
+    return '';
   }
 }

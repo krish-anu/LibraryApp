@@ -25,7 +25,7 @@ class BookDetailsState {
     this.isReserving = false,
     this.error,
     this.successMessage,
-    this.memberId = 'm1',
+    this.memberId = '',
   });
 
   BookDetailsState copyWith({
@@ -63,12 +63,14 @@ class BookDetailsViewModel extends _$BookDetailsViewModel {
   BookDetailsState build(Book book) {
     // Watch the global favorites state for reactive updates
     final favoritesState = ref.watch(favoritesProvider);
+    final loansState = ref.watch(loansProvider);
     final isFavorite = favoritesState.isFavorite(book.id);
 
     return BookDetailsState(
       book: book,
       isFavorite: isFavorite,
       isLoadingFavorite: favoritesState.isLoading,
+      memberId: loansState.memberId,
     );
   }
 

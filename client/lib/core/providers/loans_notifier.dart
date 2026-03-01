@@ -23,7 +23,7 @@ class LoansState {
     this.reservedBookIds = const {},
     this.isLoading = false,
     this.error,
-    this.memberId = 'm1',
+    this.memberId = '',
   });
 
   LoansState copyWith({
@@ -66,10 +66,22 @@ class LoansNotifier extends _$LoansNotifier {
     try {
       final loanRepository = ref.read(loanRepositoryProvider);
       final reserveRepository = ref.read(reserveRepositoryProvider);
-      final memberId = state.memberId;
+      final memberId = state.memberId.trim();
+
+      if (memberId.isEmpty) {
+        state = state.copyWith(
+          loans: const [],
+          reservations: const [],
+          borrowedBookIds: const {},
+          reservedBookIds: const {},
+          isLoading: false,
+          error: null,
+        );
+        return;
+      }
 
       final results = await Future.wait([
-        loanRepository.getAllLoans(),
+        loanRepository.getActiveLoans(memberId: memberId),
         reserveRepository.getReservedByMember(memberId),
       ]);
 
@@ -219,8 +231,9 @@ class LoansNotifier extends _$LoansNotifier {
   }
 
   void setMemberId(String memberId) {
-    if (state.memberId != memberId) {
-      state = state.copyWith(memberId: memberId);
+    final normalizedMemberId = memberId.trim();
+    if (state.memberId != normalizedMemberId) {
+      state = state.copyWith(memberId: normalizedMemberId);
       loadLoansAndReservations();
     }
   }

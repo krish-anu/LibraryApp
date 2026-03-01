@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/auth/providers/asgardeo_direct_provider.dart';
+import 'package:libraryapp/core/providers/current_user_notifier.dart';
+import 'package:libraryapp/core/providers/favorites_notifier.dart';
+import 'package:libraryapp/core/providers/loans_notifier.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
 import 'package:libraryapp/features/home/views/home_view.dart';
@@ -18,6 +22,14 @@ class BottomNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(asgardeoDirectAuthProvider);
+    final currentUser = ref.watch(currentUserProvider);
+    final memberId = (authState.user?.sub ?? currentUser?.id ?? '').trim();
+    Future.microtask(() {
+      ref.read(loansProvider.notifier).setMemberId(memberId);
+      ref.read(favoritesProvider.notifier).setMemberId(memberId);
+    });
+
     final index = ref.watch(bottomNavIndexProvider);
     return PopScope(
       child: Scaffold(

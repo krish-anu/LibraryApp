@@ -17,7 +17,7 @@ class FavoritesState {
     this.favoriteIds = const {},
     this.isLoading = false,
     this.error,
-    this.memberId = 'm1',
+    this.memberId = '',
   });
 
   FavoritesState copyWith({
@@ -54,7 +54,17 @@ class FavoritesNotifier extends _$FavoritesNotifier {
 
     try {
       final repository = ref.read(favoritesRepositoryProvider);
-      final memberId = state.memberId;
+      final memberId = state.memberId.trim();
+
+      if (memberId.isEmpty) {
+        state = state.copyWith(
+          favorites: const [],
+          favoriteIds: const {},
+          isLoading: false,
+          error: null,
+        );
+        return;
+      }
 
       // Load both favorites list and IDs
       final results = await Future.wait([
@@ -146,8 +156,9 @@ class FavoritesNotifier extends _$FavoritesNotifier {
   }
 
   void setMemberId(String memberId) {
-    if (state.memberId != memberId) {
-      state = state.copyWith(memberId: memberId);
+    final normalizedMemberId = memberId.trim();
+    if (state.memberId != normalizedMemberId) {
+      state = state.copyWith(memberId: normalizedMemberId);
       loadFavorites();
     }
   }

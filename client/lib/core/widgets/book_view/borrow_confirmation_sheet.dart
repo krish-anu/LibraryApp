@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/auth/providers/asgardeo_direct_provider.dart';
+import 'package:libraryapp/core/providers/current_user_notifier.dart';
+import 'package:libraryapp/core/providers/loans_notifier.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/utils/image_helper.dart';
 import 'package:libraryapp/data/repository/book_repository.dart';
@@ -71,12 +74,25 @@ class _BorrowConfirmationSheetState
   }
 
   Future<void> _onConfirm(BuildContext context, bool isAvailable) async {
+    final memberId = _resolveMemberId();
+    if (memberId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to identify the current member. Please login again.',
+          ),
+          backgroundColor: Pallete.error,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     if (isAvailable) {
       // Borrow the book
       final loanRepo = ref.read(loanRepositoryProvider);
-      final result = await loanRepo.borrowBook(widget.book.id, 'm1');
+      final result = await loanRepo.borrowBook(widget.book.id, memberId);
 
       if (mounted) {
         setState(() => _isLoading = false);
@@ -91,8 +107,9 @@ class _BorrowConfirmationSheetState
           },
           (loan) {
             // Refresh providers
-            ref.invalidate(fetchAllLoansProvider);
             ref.invalidate(fetchAllBooksProvider);
+            ref.invalidate(fetchActiveLoansProvider(memberId: memberId));
+            ref.read(loansProvider.notifier).loadLoansAndReservations();
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -109,7 +126,7 @@ class _BorrowConfirmationSheetState
       final reservation = Reserve(
         id: '',
         bookId: widget.book.id,
-        memberId: 'm1',
+        memberId: memberId,
         reservationDate: DateTime.now().toIso8601String().split('T')[0],
         status: 'pending',
       );
@@ -128,7 +145,8 @@ class _BorrowConfirmationSheetState
           },
           (reserve) {
             // Refresh providers
-            ref.invalidate(fetchReservationsByMemberProvider('m1'));
+            ref.invalidate(fetchReservationsByMemberProvider(memberId));
+            ref.read(loansProvider.notifier).loadLoansAndReservations();
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -140,6 +158,20 @@ class _BorrowConfirmationSheetState
         );
       }
     }
+  }
+
+  String _resolveMemberId() {
+    final authMemberId = ref.read(asgardeoDirectAuthProvider).user?.sub?.trim();
+    if (authMemberId != null && authMemberId.isNotEmpty) {
+      return authMemberId;
+    }
+
+    final currentUserId = ref.read(currentUserProvider)?.id.trim();
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      return currentUserId;
+    }
+
+    return ref.read(loansProvider).memberId.trim();
   }
 
   String _monthName(int month) {
@@ -165,13 +197,17 @@ class _BorrowConfirmationSheetState
     final lower = message.toLowerCase();
 
     if (lower.contains('already borrowed this book')) {
-      if (lower.contains('before reserving')) return _reserveWhileBorrowedMessage;
+      if (lower.contains('before reserving')) {
+        return _reserveWhileBorrowedMessage;
+      }
       return _borrowConflictMessage;
     }
     if (lower.contains('already reserved this book')) {
       return _alreadyReservedMessage;
     }
-    if (lower.contains('unable to borrow this book')) return _borrowConflictMessage;
+    if (lower.contains('unable to borrow this book')) {
+      return _borrowConflictMessage;
+    }
     if (lower.contains('unable to reserve this book')) {
       return 'Unable to reserve this book right now. Please try again later.';
     }

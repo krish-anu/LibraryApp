@@ -49,7 +49,7 @@ class BorrowedState {
     this.books = const [],
     this.isLoading = false,
     this.error,
-    this.memberId = 'm1',
+    this.memberId = '',
   });
 
   BorrowedState copyWith({

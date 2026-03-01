@@ -17,7 +17,7 @@ class WishlistState {
     this.selectedFilter = 'All',
     this.isLoading = false,
     this.error,
-    this.memberId = 'm1',
+    this.memberId = '',
   });
 
   WishlistState copyWith({

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/auth/providers/asgardeo_direct_provider.dart';
+import 'package:libraryapp/core/providers/current_user_notifier.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
 import 'package:libraryapp/data/repository/book_repository.dart';
@@ -40,6 +42,8 @@ class _BorrowedState extends ConsumerState<Borrowed>
 
   @override
   Widget build(BuildContext context) {
+    final memberId = _resolveMemberId();
+
     return Scaffold(
       backgroundColor: Pallete.scaffoldBackground,
       appBar: CommonAppBar(
@@ -49,8 +53,8 @@ class _BorrowedState extends ConsumerState<Borrowed>
           IconButton(
             icon: const Icon(Icons.refresh, color: Pallete.iconColor),
             onPressed: () {
-              ref.invalidate(fetchAllLoansProvider);
-              ref.invalidate(fetchReservationsByMemberProvider('m1'));
+              ref.invalidate(fetchActiveLoansProvider(memberId: memberId));
+              ref.invalidate(fetchReservationsByMemberProvider(memberId));
             },
           ),
         ],
@@ -67,13 +71,19 @@ class _BorrowedState extends ConsumerState<Borrowed>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildBorrowedTab(), _buildReservedTab()],
+        children: [_buildBorrowedTab(memberId), _buildReservedTab(memberId)],
       ),
     );
   }
 
-  Widget _buildBorrowedTab() {
-    final loansAsync = ref.watch(fetchAllLoansProvider);
+  Widget _buildBorrowedTab(String memberId) {
+    if (memberId.isEmpty) {
+      return _buildError(
+        'Unable to identify the current member. Please login again.',
+      );
+    }
+
+    final loansAsync = ref.watch(fetchActiveLoansProvider(memberId: memberId));
     final booksAsync = ref.watch(fetchAllBooksProvider);
 
     return loansAsync.when(
@@ -87,15 +97,20 @@ class _BorrowedState extends ConsumerState<Borrowed>
     );
   }
 
-  Widget _buildReservedTab() {
-    final reservationsAsync = ref.watch(
-      fetchReservationsByMemberProvider('m1'),
-    );
+  Widget _buildReservedTab(String memberId) {
+    if (memberId.isEmpty) {
+      return _buildError(
+        'Unable to identify the current member. Please login again.',
+      );
+    }
+
+    final reservationsAsync = ref.watch(fetchReservationsByMemberProvider(memberId));
     final booksAsync = ref.watch(fetchAllBooksProvider);
 
     return reservationsAsync.when(
       data: (reservations) => booksAsync.when(
-        data: (books) => _buildReservedContent(context, reservations, books),
+        data: (books) =>
+            _buildReservedContent(context, reservations, books, memberId),
         error: (err, _) => _buildError('Error loading books: $err'),
         loading: () => _buildLoading(),
       ),
@@ -222,6 +237,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
     BuildContext context,
     List<Reserve> reservations,
     List<Book> books,
+    String memberId,
   ) {
     if (reservations.isEmpty) {
       return Center(
@@ -269,13 +285,18 @@ class _BorrowedState extends ConsumerState<Borrowed>
           reservationDate: reservation.reservationDate,
           status: reservation.status,
           onTap: () => _navigateToBookView(context, book),
-          onCancel: () => _showCancelReservationDialog(context, reservation),
+          onCancel: () =>
+              _showCancelReservationDialog(context, reservation, memberId),
         );
       },
     );
   }
 
-  void _showCancelReservationDialog(BuildContext context, Reserve reservation) {
+  void _showCancelReservationDialog(
+    BuildContext context,
+    Reserve reservation,
+    String memberId,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -303,7 +324,7 @@ class _BorrowedState extends ConsumerState<Borrowed>
                   backgroundColor: Pallete.primaryLight,
                 ),
               );
-              ref.invalidate(fetchReservationsByMemberProvider('m1'));
+              ref.invalidate(fetchReservationsByMemberProvider(memberId));
             },
             style: ElevatedButton.styleFrom(backgroundColor: Pallete.error),
             child: const Text(
@@ -337,7 +358,9 @@ class _BorrowedState extends ConsumerState<Borrowed>
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref.invalidate(fetchAllLoansProvider),
+            onPressed: () => ref.invalidate(
+              fetchActiveLoansProvider(memberId: _resolveMemberId()),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Pallete.primaryLight,
             ),
@@ -352,6 +375,20 @@ class _BorrowedState extends ConsumerState<Borrowed>
     return const Center(
       child: CircularProgressIndicator(color: Pallete.primaryLight),
     );
+  }
+
+  String _resolveMemberId() {
+    final authMemberId = ref.read(asgardeoDirectAuthProvider).user?.sub?.trim();
+    if (authMemberId != null && authMemberId.isNotEmpty) {
+      return authMemberId;
+    }
+
+    final currentUserId = ref.read(currentUserProvider)?.id.trim();
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      return currentUserId;
+    }
+
+    return '';
   }
 }
 
