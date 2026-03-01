@@ -13,9 +13,29 @@ from ..pydantic_schemas import book as book_schema
 router = APIRouter(prefix="/books", tags=["books"])
 
 
+def _book_to_response(book_obj: book.Book) -> book_schema.Book:
+    return book_schema.Book(
+        id=str(book_obj.id),
+        title=book_obj.title or "",
+        author=book_obj.author or "",
+        category=book_obj.category or "",
+        description=book_obj.description or "",
+        rating=float(book_obj.rating) if book_obj.rating is not None else 0.0,
+        publication_year=(
+            int(book_obj.publication_year) if book_obj.publication_year is not None else 0
+        ),
+        copies_owned=int(book_obj.copies_owned) if book_obj.copies_owned is not None else 0,
+        image=book_obj.image or "",
+        language=book_obj.language or "English",
+        pages=int(book_obj.pages) if book_obj.pages is not None else 200,
+        rating_count=int(book_obj.rating_count) if book_obj.rating_count is not None else 0,
+    )
+
+
 @router.get("", response_model=List[book_schema.Book])
 def get_books(db: Session = Depends(get_db)):
-    return db.query(book.Book).all()
+    books = db.query(book.Book).all()
+    return [_book_to_response(b) for b in books]
 
 
 @router.get("/trending", response_model=List[book_schema.Book])
@@ -31,7 +51,7 @@ def get_trending_books(db: Session = Depends(get_db)):
         .limit(10)
         .all()
     )
-    return [b[0] for b in trending_books]
+    return [_book_to_response(b[0]) for b in trending_books]
 
 
 @router.get("/recommended/{user_id}", response_model=List[book_schema.Book])
@@ -65,4 +85,4 @@ def get_recommended_books(user_id: str, db: Session = Depends(get_db)):
         .limit(10)
         .all()
     )
-    return recommendations
+    return [_book_to_response(b) for b in recommendations]
