@@ -8,16 +8,12 @@ class BorrowedBookCard extends StatelessWidget {
   final Book book;
   final DateTime dueDate;
   final VoidCallback onTap;
-  final VoidCallback? onRenew;
-  final VoidCallback? onReturn;
 
   const BorrowedBookCard({
     super.key,
     required this.book,
     required this.dueDate,
     required this.onTap,
-    this.onRenew,
-    this.onReturn,
   });
 
   @override
@@ -46,7 +42,6 @@ class BorrowedBookCard extends StatelessWidget {
           children: [
             _buildMainContent(remainingDays, isOverdue, isDueSoon),
             _buildProgressBar(remainingDays, isOverdue),
-            _buildActionButtons(isOverdue),
           ],
         ),
       ),
@@ -295,76 +290,6 @@ class BorrowedBookCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(bool isOverdue) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Pallete.border.withValues(alpha: 0.5)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildActionButton(
-              icon: Icons.refresh,
-              label: 'Renew',
-              onTap: onRenew,
-              isPrimary: false,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildActionButton(
-              icon: Icons.assignment_return,
-              label: isOverdue ? 'Return & Pay' : 'Return',
-              onTap: onReturn,
-              isPrimary: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback? onTap,
-    required bool isPrimary,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isPrimary ? Pallete.primaryLight : Pallete.scaffoldBackground,
-          borderRadius: BorderRadius.circular(10),
-          border: isPrimary ? null : Border.all(color: Pallete.border),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isPrimary ? Colors.white : Pallete.textSecondary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: isPrimary ? Colors.white : Pallete.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

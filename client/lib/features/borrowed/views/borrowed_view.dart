@@ -147,8 +147,6 @@ class _BorrowedViewState extends ConsumerState<BorrowedView>
                   book: item.book,
                   dueDate: item.dueDate,
                   onTap: () => _navigateToBookView(item.book),
-                  onRenew: () => _renewLoan(item.loan.id),
-                  onReturn: () => _returnBook(item.loan.id),
                 );
               }, childCount: state.borrowedItems.length),
             ),
@@ -203,38 +201,6 @@ class _BorrowedViewState extends ConsumerState<BorrowedView>
       context,
       MaterialPageRoute(builder: (context) => BookView(book: book)),
     );
-  }
-
-  Future<void> _renewLoan(String loanId) async {
-    final success = await ref
-        .read(borrowedViewModelProvider.notifier)
-        .renewLoan(loanId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success ? 'Loan renewed successfully' : 'Failed to renew loan',
-          ),
-          backgroundColor: success ? Pallete.success : Pallete.error,
-        ),
-      );
-    }
-  }
-
-  Future<void> _returnBook(String loanId) async {
-    final success = await ref
-        .read(borrowedViewModelProvider.notifier)
-        .returnBook(loanId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success ? 'Book returned successfully' : 'Failed to return book',
-          ),
-          backgroundColor: success ? Pallete.success : Pallete.error,
-        ),
-      );
-    }
   }
 
   Widget _buildLoading() {

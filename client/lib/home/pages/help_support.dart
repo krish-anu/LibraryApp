@@ -204,12 +204,12 @@ class HelpSupport extends StatelessWidget {
       {
         'question': 'How do I return a book?',
         'answer':
-            'Go to your "Borrowed" section, find the book you want to return, and tap the "Return" button. You can also visit the library in person to return physical copies.',
+            'Self-return is currently not available in the app. Please return books at the library desk.',
       },
       {
         'question': 'Can I extend my loan period?',
         'answer':
-            'Yes! You can renew your loan for an additional 14 days from the borrowed section. Note that renewals may be limited depending on book demand.',
+            'Loan renewal is currently not available in the app. Please contact the library desk for assistance.',
       },
       {
         'question': 'How do fines work?',

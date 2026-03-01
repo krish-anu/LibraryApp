@@ -10,16 +10,12 @@ class BorrowedBookCard extends StatelessWidget {
   final Book book;
   final DateTime dueDate;
   final VoidCallback onTap;
-  final VoidCallback? onRenew;
-  final VoidCallback? onReturn;
 
   const BorrowedBookCard({
     super.key,
     required this.book,
     required this.dueDate,
     required this.onTap,
-    this.onRenew,
-    this.onReturn,
   });
 
   @override
@@ -48,7 +44,6 @@ class BorrowedBookCard extends StatelessWidget {
           children: [
             _buildMainContent(remainingDays, isOverdue, isDueSoon),
             _buildProgressBar(remainingDays, isOverdue),
-            _buildActionButtons(isOverdue),
           ],
         ),
       ),
@@ -238,41 +233,4 @@ class BorrowedBookCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(bool isOverdue) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          if (onRenew != null && !isOverdue)
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onRenew,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Renew'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Pallete.primaryLight,
-                  side: const BorderSide(color: Pallete.primaryLight),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                ),
-              ),
-            ),
-          if (onRenew != null && onReturn != null && !isOverdue)
-            const SizedBox(width: 12),
-          // if (onReturn != null)
-          //   Expanded(
-          //     child: ElevatedButton.icon(
-          //       onPressed: onReturn,
-          //       icon: const Icon(Icons.keyboard_return, size: 18),
-          //       label: const Text('Return'),
-          //       style: ElevatedButton.styleFrom(
-          //         backgroundColor: Pallete.primaryLight,
-          //         foregroundColor: Colors.white,
-          //         padding: const EdgeInsets.symmetric(vertical: 8),
-          //       ),
-          //     ),
-          //   ),
-        ],
-      ),
-    );
-  }
 }

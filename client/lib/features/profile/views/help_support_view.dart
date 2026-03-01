@@ -204,7 +204,7 @@ class HelpSupportView extends StatelessWidget {
       {
         'question': 'How do I return a book?',
         'answer':
-            'Go to your Borrowed section and tap on the book you want to return. Then select "Return Book" option.',
+            'Self-return is currently not available in the app. Please return books at the library desk.',
       },
       {
         'question': 'How do I reserve a book?',
@@ -219,7 +219,7 @@ class HelpSupportView extends StatelessWidget {
       {
         'question': 'How do I renew a borrowed book?',
         'answer':
-            'Go to your Borrowed section, tap on the book, and select "Renew" if the option is available.',
+            'Loan renewal is currently not available in the app. Please contact the library desk for assistance.',
       },
     ];
 
