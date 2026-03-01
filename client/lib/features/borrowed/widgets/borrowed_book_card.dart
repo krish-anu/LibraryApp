@@ -86,6 +86,10 @@ class BorrowedBookCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _buildDueInfo(remainingDays, isOverdue),
+                if (isOverdue) ...[
+                  const SizedBox(height: 8),
+                  _buildFineInfo(remainingDays),
+                ],
               ],
             ),
           ),
@@ -188,6 +192,26 @@ class BorrowedBookCard extends StatelessWidget {
         Icon(Icons.calendar_today, size: 14, color: color),
         const SizedBox(width: 4),
         Text(text, style: TextStyle(color: color, fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _buildFineInfo(int remainingDays) {
+    const dailyFineRate = 0.25;
+    final fine = remainingDays.abs() * dailyFineRate;
+
+    return Row(
+      children: [
+        const Icon(Icons.attach_money, size: 14, color: Pallete.error),
+        const SizedBox(width: 4),
+        Text(
+          'Fine: \$${fine.toStringAsFixed(2)}',
+          style: const TextStyle(
+            color: Pallete.error,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
