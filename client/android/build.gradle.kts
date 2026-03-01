@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
+import org.gradle.api.tasks.compile.JavaCompile
 
 allprojects {
     repositories {
@@ -16,6 +17,11 @@ subprojects {
             force("androidx.core:core:1.15.0")
             force("androidx.core:core-ktx:1.15.0")
         }
+    }
+    // Force Java compile target for all Android subprojects to avoid obsolete -source/-target 8 warnings.
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
     }
     // Set compileSdk early for plugins that need it during configuration
     project.plugins.withId("com.android.application") {
