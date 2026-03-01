@@ -10,4 +10,5 @@ from . import (
     reservation,
     fine,
     fine_payment,
+    settings,
 )

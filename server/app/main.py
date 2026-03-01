@@ -16,6 +16,7 @@ from .routers import (
     users,
     reservations,
     auth,
+    settings,
 )
 
 
@@ -52,10 +53,48 @@ def _ensure_users_columns() -> None:
         conn.commit()
 
 
+def _ensure_settings_row() -> None:
+    with engine.connect() as conn:
+        conn.exec_driver_sql(
+            """
+            INSERT INTO settings (
+                id,
+                loan_period_days,
+                max_books_per_user,
+                grace_period_days,
+                daily_fine_rate,
+                max_fine_cap,
+                block_on_unpaid_fines,
+                fine_threshold,
+                send_notifications,
+                notification_days_before_due,
+                created_at,
+                updated_at
+            )
+            SELECT
+                '00000000-0000-0000-0000-000000000001',
+                14,
+                5,
+                2,
+                0.50,
+                25.00,
+                true,
+                10.00,
+                true,
+                3,
+                NOW(),
+                NOW()
+            WHERE NOT EXISTS (SELECT 1 FROM settings)
+            """
+        )
+        conn.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     _ensure_users_columns()
+    _ensure_settings_row()
     yield
 
 
@@ -75,3 +114,4 @@ app.include_router(category.router)
 app.include_router(favorites.router)
 app.include_router(users.router)
 app.include_router(reservations.router)
+app.include_router(settings.router)
