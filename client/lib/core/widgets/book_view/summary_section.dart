@@ -68,7 +68,7 @@ class _BorrowButton extends StatelessWidget {
         onPressed: onPressed,
         icon: const Icon(Icons.lock_open, color: Colors.black),
         label: Text(
-          isAvailable ? 'Borrow Now' : 'Reserve',
+          isAvailable ? 'Borrow Now' : 'Reserve Now',
           style: const TextStyle(
             color: Colors.black,
             fontSize: 16,
