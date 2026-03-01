@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:libraryapp/auth/providers/asgardeo_direct_provider.dart';
 import 'package:libraryapp/core/providers/current_user_notifier.dart';
 import 'package:libraryapp/core/providers/loans_notifier.dart';
+import 'package:libraryapp/core/constants/server_constant.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/utils/image_helper.dart';
 import 'package:libraryapp/data/repository/book_repository.dart';
@@ -24,6 +27,7 @@ class BorrowConfirmationSheet extends ConsumerStatefulWidget {
 class _BorrowConfirmationSheetState
     extends ConsumerState<BorrowConfirmationSheet> {
   bool _isLoading = false;
+  int _loanPeriodDays = 14;
   static const _borrowConflictMessage =
       'You already borrowed this book. Return it before borrowing again.';
   static const _reserveWhileBorrowedMessage =
@@ -31,9 +35,15 @@ class _BorrowConfirmationSheetState
   static const _alreadyReservedMessage = 'You already reserved this book.';
 
   @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isAvailable = widget.book.copiesOwned > 0;
-    final returnDate = DateTime.now().add(const Duration(days: 14));
+    final returnDate = DateTime.now().add(Duration(days: _loanPeriodDays));
     final dateStr =
         '${_monthName(returnDate.month)} ${returnDate.day}, ${returnDate.year}';
 
@@ -157,6 +167,27 @@ class _BorrowConfirmationSheetState
           },
         );
       }
+    }
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final res = await http.get(
+        Uri.parse('${ServerConstant.serverURL}/settings'),
+      );
+      if (res.statusCode != 200) return;
+      final data = jsonDecode(res.body);
+      if (data is! Map<String, dynamic>) return;
+
+      final value = data['loan_period_days'];
+      final parsed = value is num
+          ? value.toInt()
+          : int.tryParse(value?.toString() ?? '');
+      if (parsed == null || parsed <= 0 || !mounted) return;
+
+      setState(() => _loanPeriodDays = parsed);
+    } catch (_) {
+      // Keep default fallback values if settings fetch fails.
     }
   }
 
