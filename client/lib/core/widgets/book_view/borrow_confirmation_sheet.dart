@@ -21,6 +21,11 @@ class BorrowConfirmationSheet extends ConsumerStatefulWidget {
 class _BorrowConfirmationSheetState
     extends ConsumerState<BorrowConfirmationSheet> {
   bool _isLoading = false;
+  static const _borrowConflictMessage =
+      'You already borrowed this book. Return it before borrowing again.';
+  static const _reserveWhileBorrowedMessage =
+      'You already borrowed this book. Return it before reserving.';
+  static const _alreadyReservedMessage = 'You already reserved this book.';
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +84,7 @@ class _BorrowConfirmationSheetState
           (failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Failed to borrow: ${failure.message}'),
+                content: Text(_friendlyErrorMessage(failure.message)),
                 backgroundColor: Pallete.error,
               ),
             );
@@ -116,7 +121,7 @@ class _BorrowConfirmationSheetState
           (failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Failed to reserve: ${failure.message}'),
+                content: Text(_friendlyErrorMessage(failure.message)),
                 backgroundColor: Pallete.error,
               ),
             );
@@ -153,6 +158,24 @@ class _BorrowConfirmationSheetState
       'Dec',
     ];
     return months[month - 1];
+  }
+
+  String _friendlyErrorMessage(String raw) {
+    final message = raw.trim();
+    final lower = message.toLowerCase();
+
+    if (lower.contains('already borrowed this book')) {
+      if (lower.contains('before reserving')) return _reserveWhileBorrowedMessage;
+      return _borrowConflictMessage;
+    }
+    if (lower.contains('already reserved this book')) {
+      return _alreadyReservedMessage;
+    }
+    if (lower.contains('unable to borrow this book')) return _borrowConflictMessage;
+    if (lower.contains('unable to reserve this book')) {
+      return 'Unable to reserve this book right now. Please try again later.';
+    }
+    return message;
   }
 }
 

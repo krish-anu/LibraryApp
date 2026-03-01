@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from datetime import datetime, date
 import uuid
 
 from ..dependencies import get_db
 from ..models import reservation as reservation_model
+from ..models import loan as loan_model
 from ..pydantic_schemas import reservation as reservation_schema
 
 router = APIRouter(prefix="", tags=["reservations"])  # mount multiple paths manually
@@ -48,6 +50,51 @@ def get_reservations_for_member(member_id: str, db: Session = Depends(get_db)):
 def create_reservation(
     res_in: reservation_schema.ReservationCreate, db: Session = Depends(get_db)
 ):
+    # A member cannot reserve a book they already borrowed and not yet returned.
+    existing_loan = (
+        db.query(loan_model.Loan)
+        .filter(
+            loan_model.Loan.book_id == res_in.book_id,
+            loan_model.Loan.member_id == res_in.member_id,
+        )
+        .first()
+    )
+    if existing_loan:
+        raise HTTPException(
+            status_code=409,
+            detail="You already borrowed this book. Return it before reserving.",
+        )
+
+    # A member cannot reserve the same book more than once while reservation is active.
+    inactive_reservation_statuses = (
+        "cancelled",
+        "canceled",
+        "expired",
+        "completed",
+        "fulfilled",
+    )
+    existing_reservation = (
+        db.query(reservation_model.Reservation)
+        .filter(
+            reservation_model.Reservation.book_id == res_in.book_id,
+            reservation_model.Reservation.member_id == res_in.member_id,
+        )
+        .filter(
+            (reservation_model.Reservation.status.is_(None))
+            | (
+                ~func.lower(reservation_model.Reservation.status).in_(
+                    inactive_reservation_statuses
+                )
+            )
+        )
+        .first()
+    )
+    if existing_reservation:
+        raise HTTPException(
+            status_code=409,
+            detail="You already reserved this book.",
+        )
+
     # prepare fields
     rid = uuid.uuid4().hex
     reservation_date = None

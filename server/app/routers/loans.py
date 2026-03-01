@@ -30,6 +30,18 @@ def get_active_loans(member_id: str = None, db: Session = Depends(get_db)):
 @router.post("/borrow", response_model=loan_schema.Loan)
 def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
     """Create a new loan for borrowing a book."""
+    # A member cannot borrow the same book again until the current loan is returned.
+    existing_loan = (
+        db.query(loan.Loan)
+        .filter(loan.Loan.book_id == book_id, loan.Loan.member_id == member_id)
+        .first()
+    )
+    if existing_loan:
+        raise HTTPException(
+            status_code=409,
+            detail="You already borrowed this book. Return it before borrowing again.",
+        )
+
     # Check if book exists and has available copies
     db_book = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
     if not db_book:
