@@ -11,6 +11,7 @@ import 'package:libraryapp/core/utils/image_helper.dart';
 import 'package:libraryapp/data/repository/book_repository.dart';
 import 'package:libraryapp/data/repository/loan_repository.dart';
 import 'package:libraryapp/data/repository/reserve_repository.dart';
+import 'package:libraryapp/data/repository/user_repository.dart';
 import 'package:libraryapp/models/book.dart';
 import 'package:libraryapp/models/reserve.dart';
 
@@ -47,38 +48,54 @@ class _BorrowConfirmationSheetState
     final dateStr =
         '${_monthName(returnDate.month)} ${returnDate.day}, ${returnDate.year}';
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF1A3D2E), Color(0xFF0D2818)],
-        ),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ReadyToBorrowBadge(isAvailable: isAvailable),
-          const SizedBox(height: 20),
-          _SheetTitle(isAvailable: isAvailable),
-          const SizedBox(height: 24),
-          _BookInfoCard(book: widget.book),
-          const SizedBox(height: 20),
-          _LoanDetailsRow(dateStr: dateStr, isAvailable: isAvailable),
-          const SizedBox(height: 20),
-          _WarningNote(isAvailable: isAvailable),
-          const SizedBox(height: 24),
-          _ConfirmButton(
-            isAvailable: isAvailable,
-            isLoading: _isLoading,
-            onPressed: () => _onConfirm(context, isAvailable),
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final maxSheetHeight = MediaQuery.sizeOf(context).height * 0.88;
+
+    return SafeArea(
+      top: false,
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.only(bottom: keyboardInset),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxSheetHeight),
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF1A3D2E), Color(0xFF0D2818)],
+                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ReadyToBorrowBadge(isAvailable: isAvailable),
+                  const SizedBox(height: 20),
+                  _SheetTitle(isAvailable: isAvailable),
+                  const SizedBox(height: 24),
+                  _BookInfoCard(book: widget.book),
+                  const SizedBox(height: 20),
+                  _LoanDetailsRow(dateStr: dateStr, isAvailable: isAvailable),
+                  const SizedBox(height: 20),
+                  _WarningNote(isAvailable: isAvailable),
+                  const SizedBox(height: 24),
+                  _ConfirmButton(
+                    isAvailable: isAvailable,
+                    isLoading: _isLoading,
+                    onPressed: () => _onConfirm(context, isAvailable),
+                  ),
+                  const SizedBox(height: 12),
+                  _CancelButton(onPressed: () => Navigator.pop(context)),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          _CancelButton(onPressed: () => Navigator.pop(context)),
-          const SizedBox(height: 8),
-        ],
+        ),
       ),
     );
   }
@@ -95,6 +112,13 @@ class _BorrowConfirmationSheetState
         ),
       );
       return;
+    }
+
+    if (isAvailable) {
+      final hasRequiredContact = await _ensureRequiredContactDetails(memberId);
+      if (!hasRequiredContact) {
+        return;
+      }
     }
 
     setState(() => _isLoading = true);
@@ -168,6 +192,139 @@ class _BorrowConfirmationSheetState
         );
       }
     }
+  }
+
+  Future<bool> _ensureRequiredContactDetails(String memberId) async {
+    final userRepo = ref.read(userRepositoryProvider);
+    String phone = '';
+    String address = '';
+
+    final profileResult = await userRepo.getUserById(memberId);
+    profileResult.fold((_) {}, (profile) {
+      phone = profile.phone?.trim() ?? '';
+      address = profile.address?.trim() ?? '';
+    });
+
+    final hasPhone = phone.isNotEmpty;
+    final hasAddress = address.isNotEmpty;
+    if (hasPhone && hasAddress) {
+      return true;
+    }
+
+    if (!mounted) return false;
+    final details = await _showRequiredContactDialog(
+      initialPhone: phone,
+      initialAddress: address,
+      requirePhone: !hasPhone,
+      requireAddress: !hasAddress,
+    );
+    if (details == null) return false;
+
+    final updateResult = await userRepo.updateUser(memberId, {
+      'phone': details.phone,
+      'address': details.address,
+    });
+
+    return updateResult.fold((failure) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_friendlyErrorMessage(failure.message)),
+            backgroundColor: Pallete.error,
+          ),
+        );
+      }
+      return false;
+    }, (_) => true);
+  }
+
+  Future<_ContactDetails?> _showRequiredContactDialog({
+    required String initialPhone,
+    required String initialAddress,
+    required bool requirePhone,
+    required bool requireAddress,
+  }) async {
+    final formKey = GlobalKey<FormState>();
+    String phone = initialPhone;
+    String address = initialAddress;
+
+    final result = await showDialog<_ContactDetails>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Contact Details Required'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    requirePhone && requireAddress
+                        ? 'Please add your mobile number and address to borrow this book.'
+                        : requirePhone
+                        ? 'Please add your mobile number to borrow this book.'
+                        : 'Please add your address to borrow this book.',
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    initialValue: initialPhone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Mobile Number',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) => phone = value,
+                    validator: (value) {
+                      if (!requirePhone) return null;
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) return 'Mobile number is required';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: initialAddress,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Address',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) => address = value,
+                    validator: (value) {
+                      if (!requireAddress) return null;
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) return 'Address is required';
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final isValid = formKey.currentState?.validate() ?? false;
+                if (!isValid) return;
+                Navigator.of(dialogContext).pop(
+                  _ContactDetails(phone: phone.trim(), address: address.trim()),
+                );
+              },
+              child: const Text('Save & Continue'),
+            ),
+          ],
+        );
+      },
+    );
+    return result;
   }
 
   Future<void> _loadSettings() async {
@@ -244,6 +401,13 @@ class _BorrowConfirmationSheetState
     }
     return message;
   }
+}
+
+class _ContactDetails {
+  final String phone;
+  final String address;
+
+  const _ContactDetails({required this.phone, required this.address});
 }
 
 class _ReadyToBorrowBadge extends StatelessWidget {

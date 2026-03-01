@@ -2,12 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
-from typing import List
+from typing import Any, List, Optional, cast
 from datetime import date, timedelta
 import uuid
 
 from ..dependencies import get_db
-from ..models import loan, book as book_model, settings as settings_model, fine as fine_model
+from ..models import (
+    loan,
+    book as book_model,
+    settings as settings_model,
+    fine as fine_model,
+    users as user_model,
+)
 from ..pydantic_schemas import loan as loan_schema
 
 router = APIRouter(prefix="/loans", tags=["loans"])
@@ -19,7 +25,7 @@ def get_loans(db: Session = Depends(get_db)):
 
 
 @router.get("/active", response_model=List[loan_schema.Loan])
-def get_active_loans(member_id: str = None, db: Session = Depends(get_db)):
+def get_active_loans(member_id: Optional[str] = None, db: Session = Depends(get_db)):
     """Get active loans (not yet returned). Optionally filter by member_id."""
     query = db.query(loan.Loan)
     if member_id:
@@ -28,26 +34,27 @@ def get_active_loans(member_id: str = None, db: Session = Depends(get_db)):
     return query.all()
 
 
-def _get_settings(db: Session) -> settings_model.Settings | None:
-    return (
+def _get_settings(db: Session) -> Any | None:
+    row = (
         db.query(settings_model.Settings)
         .order_by(settings_model.Settings.created_at.asc())
         .first()
     )
+    return cast(Any, row)
 
 
 def _loan_period_days(db: Session) -> int:
     row = _get_settings(db)
     if not row or row.loan_period_days is None:
         return 14
-    return max(1, int(row.loan_period_days))
+    return max(1, int(cast(Any, row.loan_period_days)))
 
 
 def _max_books_per_user(db: Session) -> int:
     row = _get_settings(db)
     if not row or row.max_books_per_user is None:
         return 5
-    return max(1, int(row.max_books_per_user))
+    return max(1, int(cast(Any, row.max_books_per_user)))
 
 
 def _borrow_block_threshold(db: Session) -> float | None:
@@ -56,7 +63,11 @@ def _borrow_block_threshold(db: Session) -> float | None:
         return None
     if row.fine_threshold is None:
         return 0.0
-    return float(row.fine_threshold)
+    return float(cast(Any, row.fine_threshold))
+
+
+def _is_blank(value: str | None) -> bool:
+    return value is None or value.strip() == ""
 
 
 @router.post("/borrow", response_model=loan_schema.Loan)
@@ -73,6 +84,23 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
             status_code=409,
             detail="You already borrowed this book. Return it before borrowing again.",
         )
+
+    user = cast(
+        Any, db.query(user_model.User).filter(user_model.User.id == member_id).first()
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    missing_mobile = _is_blank(cast(Optional[str], user.phone))
+    missing_address = _is_blank(cast(Optional[str], user.address))
+    if missing_mobile or missing_address:
+        if missing_mobile and missing_address:
+            detail = "Please update your mobile number and address before borrowing."
+        elif missing_mobile:
+            detail = "Please update your mobile number before borrowing."
+        else:
+            detail = "Please update your address before borrowing."
+        raise HTTPException(status_code=400, detail=detail)
 
     max_books_allowed = _max_books_per_user(db)
     active_loans_count = db.query(loan.Loan).filter(loan.Loan.member_id == member_id).count()
@@ -101,11 +129,14 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
             )
 
     # Check if book exists and has available copies
-    db_book = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
+    db_book = cast(
+        Any, db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
+    )
     if not db_book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    if db_book.copies_owned <= 0:
+    current_copies_owned = int(cast(Any, db_book.copies_owned) or 0)
+    if current_copies_owned <= 0:
         raise HTTPException(status_code=400, detail="No copies available")
 
     # Use UUID-based IDs to avoid collisions from lexicographic string sorting.
@@ -122,7 +153,7 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
     )
 
     # Decrease available copies
-    db_book.copies_owned -= 1
+    db_book.copies_owned = current_copies_owned - 1
 
     db.add(new_loan)
     try:
@@ -140,16 +171,17 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
 @router.post("/return/{loan_id}")
 def return_book(loan_id: str, db: Session = Depends(get_db)):
     """Return a borrowed book."""
-    db_loan = db.query(loan.Loan).filter(loan.Loan.id == loan_id).first()
+    db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
     if not db_loan:
         raise HTTPException(status_code=404, detail="Loan not found")
 
     # Increase book copies
-    db_book = (
+    db_book = cast(
+        Any,
         db.query(book_model.Book).filter(book_model.Book.id == db_loan.book_id).first()
     )
     if db_book:
-        db_book.copies_owned += 1
+        db_book.copies_owned = int(cast(Any, db_book.copies_owned) or 0) + 1
 
     # Delete the loan record
     db.delete(db_loan)
@@ -161,7 +193,7 @@ def return_book(loan_id: str, db: Session = Depends(get_db)):
 @router.post("/renew/{loan_id}", response_model=loan_schema.Loan)
 def renew_loan(loan_id: str, db: Session = Depends(get_db)):
     """Renew a loan for another 14 days."""
-    db_loan = db.query(loan.Loan).filter(loan.Loan.id == loan_id).first()
+    db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
     if not db_loan:
         raise HTTPException(status_code=404, detail="Loan not found")
 
