@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/auth/providers/asgardeo_direct_provider.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
 import 'package:libraryapp/core/providers/current_user_notifier.dart';
@@ -55,9 +56,19 @@ class _EditProfileState extends ConsumerState<EditProfile> {
 
     setState(() => _isLoading = true);
 
+    var userId = _resolveUserId();
+    if (userId.isEmpty) {
+      await ref
+          .read(asgardeoDirectAuthProvider.notifier)
+          .getUserInfo(syncWithBackend: false);
+      userId = _resolveUserId();
+    }
     final currentUser = ref.read(currentUserProvider);
-    if (currentUser == null) {
-      _showSnackBar('User not logged in', isError: true);
+    if (userId.isEmpty) {
+      _showSnackBar(
+        'Unable to identify the current member. Please login again.',
+        isError: true,
+      );
       setState(() => _isLoading = false);
       return;
     }
@@ -78,25 +89,41 @@ class _EditProfileState extends ConsumerState<EditProfile> {
       updateData['address'] = _addressController.text.trim();
     }
 
-    final result = await repository.updateUser(currentUser.id, updateData);
+    final result = await repository.updateUser(userId, updateData);
 
     setState(() => _isLoading = false);
 
     result.fold((failure) => _showSnackBar(failure.message, isError: true), (
       updatedProfile,
     ) {
-      // Update the current user provider with new data
-      ref
-          .read(currentUserProvider.notifier)
-          .addUser(
-            currentUser.copyWith(
-              userName: updatedProfile.name,
-              email: updatedProfile.email,
-            ),
-          );
+      // Update the current user provider with new data when available.
+      if (currentUser != null) {
+        ref
+            .read(currentUserProvider.notifier)
+            .addUser(
+              currentUser.copyWith(
+                userName: updatedProfile.name,
+                email: updatedProfile.email,
+              ),
+            );
+      }
       _showSnackBar('Profile updated successfully');
       Navigator.pop(context, true);
     });
+  }
+
+  String _resolveUserId() {
+    final authUserId = ref.read(asgardeoDirectAuthProvider).user?.sub?.trim();
+    if (authUserId != null && authUserId.isNotEmpty) {
+      return authUserId;
+    }
+
+    final currentUserId = ref.read(currentUserProvider)?.id.trim();
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      return currentUserId;
+    }
+
+    return widget.userProfile?.id.trim() ?? '';
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
