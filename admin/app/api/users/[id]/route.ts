@@ -26,7 +26,10 @@ export async function GET(
 
     // Get user's total unpaid fines
     const finesResult = await queryOne<{ total: string }>(
-      "SELECT COALESCE(SUM(fine_amount), 0) as total FROM fines WHERE member_id = $1",
+      `SELECT COALESCE(SUM(fine_amount), 0) as total
+       FROM fines
+       WHERE member_id = $1
+         AND LOWER(COALESCE(status, 'unpaid')) = 'unpaid'`,
       [id],
     );
 

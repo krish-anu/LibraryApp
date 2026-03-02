@@ -49,6 +49,13 @@ export interface Fine {
   loan_id?: string;
   fine_date: string;
   fine_amount: number;
+  status?: "unpaid" | "paid" | "waived" | string;
+  reason?: string | null;
+  due_date?: string | null;
+  paid_at?: string | null;
+  payment_method?: string | null;
+  created_at?: string;
+  updated_at?: string;
   // Joined fields
   member?: User;
   loan?: Loan;
@@ -79,9 +86,14 @@ export interface Author {
 
 export interface FinePayment {
   id: string;
-  fine_id: string;
+  fine_id?: string;
+  member_id?: string;
   payment_date: string;
-  amount_paid: number;
+  payment_amount: number;
+  payment_method?: string | null;
+  handled_by?: string | null;
+  notes?: string | null;
+  created_at?: string;
 }
 
 export interface DashboardStats {

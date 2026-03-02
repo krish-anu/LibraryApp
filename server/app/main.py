@@ -90,11 +90,65 @@ def _ensure_settings_row() -> None:
         conn.commit()
 
 
+def _ensure_fine_columns() -> None:
+    with engine.connect() as conn:
+        conn.exec_driver_sql(
+            "ALTER TABLE fines ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'unpaid'"
+        )
+        conn.exec_driver_sql("ALTER TABLE fines ADD COLUMN IF NOT EXISTS reason TEXT")
+        conn.exec_driver_sql("ALTER TABLE fines ADD COLUMN IF NOT EXISTS due_date DATE")
+        conn.exec_driver_sql(
+            "ALTER TABLE fines ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE fines ADD COLUMN IF NOT EXISTS payment_method TEXT"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE fines ADD COLUMN IF NOT EXISTS created_at TIMESTAMP"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE fines ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"
+        )
+        conn.exec_driver_sql(
+            "UPDATE fines SET status = 'unpaid' WHERE status IS NULL OR TRIM(status) = ''"
+        )
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE IF NOT EXISTS fine_payments (
+                id TEXT PRIMARY KEY,
+                member_id TEXT REFERENCES users(id),
+                payment_date DATE,
+                payment_amount NUMERIC
+            )
+            """
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS fine_id TEXT REFERENCES fines(id) ON DELETE CASCADE"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'physical'"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS handled_by TEXT"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS notes TEXT"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP"
+        )
+        conn.exec_driver_sql(
+            "UPDATE fine_payments SET payment_method = 'physical' WHERE payment_method IS NULL OR TRIM(payment_method) = ''"
+        )
+        conn.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     _ensure_users_columns()
     _ensure_settings_row()
+    _ensure_fine_columns()
     yield
 
 

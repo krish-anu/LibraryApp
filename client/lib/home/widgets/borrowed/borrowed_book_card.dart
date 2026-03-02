@@ -229,7 +229,7 @@ class BorrowedBookCard extends StatelessWidget {
           const Icon(Icons.attach_money, size: 14, color: Pallete.error),
           const SizedBox(width: 4),
           Text(
-            'Late fee: \$${fine.toStringAsFixed(2)}',
+            'Late fee: LKR ${fine.toStringAsFixed(2)}',
             style: const TextStyle(
               color: Pallete.error,
               fontSize: 12,

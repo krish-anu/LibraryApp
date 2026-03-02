@@ -79,7 +79,10 @@ def get_user_stats(user_id: str, db: Session = Depends(get_db)):
     # Total fines
     total_fines = (
         db.query(func.coalesce(func.sum(FineModel.fine_amount), 0))
-        .filter(FineModel.member_id == user_id)
+        .filter(
+            FineModel.member_id == user_id,
+            func.lower(func.coalesce(FineModel.status, "unpaid")) == "unpaid",
+        )
         .scalar()
         or 0.0
     )

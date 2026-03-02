@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
@@ -114,7 +114,11 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
     if fine_threshold is not None:
         total_fines = (
             db.query(func.coalesce(func.sum(fine_model.Fine.fine_amount), 0))
-            .filter(fine_model.Fine.member_id == member_id)
+            .filter(
+                fine_model.Fine.member_id == member_id,
+                func.lower(func.coalesce(fine_model.Fine.status, "unpaid"))
+                == "unpaid",
+            )
             .scalar()
         )
         total_fines_float = float(total_fines or 0)
@@ -191,8 +195,21 @@ def return_book(loan_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/renew/{loan_id}", response_model=loan_schema.Loan)
-def renew_loan(loan_id: str, db: Session = Depends(get_db)):
-    """Renew a loan for another 14 days."""
+def renew_loan(
+    loan_id: str,
+    x_admin_renewal: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Renew a loan. This action is restricted to admin workflows."""
+    if (x_admin_renewal or "").strip().lower() not in {"true", "1", "yes"}:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Book renewal is handled by library admins. "
+                "Please contact the library desk."
+            ),
+        )
+
     db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
     if not db_loan:
         raise HTTPException(status_code=404, detail="Loan not found")

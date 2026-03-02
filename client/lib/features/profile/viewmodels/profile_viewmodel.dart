@@ -70,6 +70,20 @@ class ProfileState {
 class ProfileViewModel extends _$ProfileViewModel {
   @override
   ProfileState build() {
+    ref.listen(asgardeoDirectAuthProvider, (previous, next) {
+      final prevUserId = previous?.user?.sub;
+      final nextUserId = next.user?.sub;
+      if (previous?.isLoggedIn != next.isLoggedIn || prevUserId != nextUserId) {
+        Future.microtask(loadProfileData);
+      }
+    });
+
+    ref.listen(currentUserProvider, (previous, next) {
+      if (previous?.id != next?.id) {
+        Future.microtask(loadProfileData);
+      }
+    });
+
     // Defer loading until after build completes to avoid accessing state before initialization
     Future.microtask(() => loadProfileData());
     return const ProfileState(isLoading: true);
@@ -160,11 +174,16 @@ class ProfileViewModel extends _$ProfileViewModel {
 
   Future<bool> updateProfile(Map<String, dynamic> updateData) async {
     final currentUser = ref.read(currentUserProvider);
-    if (currentUser == null) return false;
+    final asgardeoUserId = ref.read(asgardeoDirectAuthProvider).user?.sub;
+    final userId = (asgardeoUserId ?? currentUser?.id ?? '').trim();
+    if (userId.isEmpty) {
+      state = state.copyWith(error: 'User not logged in');
+      return false;
+    }
 
     try {
       final repository = ref.read(userRepositoryProvider);
-      final result = await repository.updateUser(currentUser.id, updateData);
+      final result = await repository.updateUser(userId, updateData);
       return result.fold(
         (failure) {
           state = state.copyWith(error: failure.message);
@@ -173,14 +192,16 @@ class ProfileViewModel extends _$ProfileViewModel {
         (updatedProfile) {
           state = state.copyWith(userProfile: updatedProfile);
           // Update the current user provider
-          ref
-              .read(currentUserProvider.notifier)
-              .addUser(
-                currentUser.copyWith(
-                  userName: updatedProfile.name,
-                  email: updatedProfile.email,
-                ),
-              );
+          if (currentUser != null) {
+            ref
+                .read(currentUserProvider.notifier)
+                .addUser(
+                  currentUser.copyWith(
+                    userName: updatedProfile.name,
+                    email: updatedProfile.email,
+                  ),
+                );
+          }
           return true;
         },
       );

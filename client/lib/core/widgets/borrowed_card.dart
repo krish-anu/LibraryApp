@@ -83,7 +83,7 @@ class BorrowedCard extends StatelessWidget {
                 if (isOverdue) ...[
                   const SizedBox(height: 4),
                   Text(
-                    "Fine: Rs.$fine",
+                    "Fine: LKR $fine",
                     style: const TextStyle(
                       color: Colors.red,
                       fontSize: 12,

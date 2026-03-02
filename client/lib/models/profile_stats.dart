@@ -57,7 +57,7 @@ class ProfileStats {
   factory ProfileStats.fromJson(String source) =>
       ProfileStats.fromMap(json.decode(source) as Map<String, dynamic>);
 
-  String get formattedFines => '\$${totalFines.toStringAsFixed(2)}';
+  String get formattedFines => 'LKR ${totalFines.toStringAsFixed(2)}';
 
   @override
   String toString() {

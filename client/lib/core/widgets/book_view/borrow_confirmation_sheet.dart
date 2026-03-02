@@ -578,7 +578,7 @@ class _LoanDetailsRow extends StatelessWidget {
           child: _InfoCard(
             icon: isAvailable ? Icons.attach_money : Icons.notifications,
             title: isAvailable ? 'LATE FEE' : 'NOTIFICATION',
-            value: isAvailable ? '\$0.25/day' : 'Email',
+            value: isAvailable ? 'LKR 0.25/day' : 'Email',
             subtitle: isAvailable ? 'After due date' : 'When book is available',
           ),
         ),

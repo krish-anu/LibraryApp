@@ -164,7 +164,7 @@ export default function SettingsPage() {
                         }
                       />
                       <Input
-                        label="Daily Fine Rate ($)"
+                        label="Daily Fine Rate (LKR)"
                         type="number"
                         step="0.01"
                         value={settings.daily_fine_rate}
@@ -176,7 +176,7 @@ export default function SettingsPage() {
                         }
                       />
                       <Input
-                        label="Maximum Fine Cap ($)"
+                        label="Maximum Fine Cap (LKR)"
                         type="number"
                         step="0.01"
                         value={settings.max_fine_cap}
@@ -188,7 +188,7 @@ export default function SettingsPage() {
                         }
                       />
                       <Input
-                        label="Fine Threshold for Blocking ($)"
+                        label="Fine Threshold for Blocking (LKR)"
                         type="number"
                         step="0.01"
                         value={settings.fine_threshold}

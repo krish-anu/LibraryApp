@@ -214,7 +214,7 @@ class HelpSupport extends StatelessWidget {
       {
         'question': 'How do fines work?',
         'answer':
-            'Fines are charged for overdue books at \$0.50 per day. You can view your current fines in your profile. Fines must be paid to continue borrowing.',
+            'Fines are charged for overdue books at LKR 0.50 per day. You can view your current fines in your profile. Fines must be paid to continue borrowing.',
       },
       {
         'question': 'How do I reserve a book?',

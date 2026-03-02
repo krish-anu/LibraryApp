@@ -214,7 +214,7 @@ class HelpSupportView extends StatelessWidget {
       {
         'question': 'What are the fines for late returns?',
         'answer':
-            'Late returns incur a fine of \$0.50 per day. You can view your total fines in your profile.',
+            'Late returns incur a fine of LKR 0.50 per day. You can view your total fines in your profile.',
       },
       {
         'question': 'How do I renew a borrowed book?',

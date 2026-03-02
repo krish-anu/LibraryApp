@@ -121,10 +121,22 @@ class LoanRepository {
         final data = jsonDecode(res.body);
         return right(_parseLoan(data));
       } else {
-        return left(Failure(res.body));
+        return left(
+          Failure(
+            _extractErrorMessage(
+              res.body,
+              fallback:
+                  'Book renewal is handled by library admins. Please contact the library desk.',
+            ),
+          ),
+        );
       }
     } catch (e) {
-      return left(Failure(e.toString()));
+      return left(
+        Failure(
+          'Book renewal is handled by library admins. Please contact the library desk.',
+        ),
+      );
     }
   }
 
