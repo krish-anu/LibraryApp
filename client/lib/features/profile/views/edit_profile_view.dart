@@ -203,7 +203,7 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
     return Text(
       title,
       style: const TextStyle(
-        color: Colors.white,
+        color: Pallete.textPrimary,
         fontSize: 18,
         fontWeight: FontWeight.bold,
       ),
@@ -223,7 +223,7 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Pallete.textPrimary),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Pallete.textSecondary),

@@ -79,7 +79,7 @@ class HomeView extends ConsumerWidget {
           const SizedBox(height: 16),
           Text(
             message,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Pallete.textPrimary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),

@@ -72,7 +72,7 @@ class HelpSupportView extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: TextField(
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Pallete.textPrimary),
         decoration: InputDecoration(
           hintText: 'Search for help...',
           hintStyle: TextStyle(color: Pallete.textSecondary),
@@ -97,7 +97,7 @@ class HelpSupportView extends StatelessWidget {
           const Text(
             'Quick Actions',
             style: TextStyle(
-              color: Colors.white,
+              color: Pallete.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -178,7 +178,7 @@ class HelpSupportView extends StatelessWidget {
             Text(
               title,
               style: const TextStyle(
-                color: Colors.white,
+                color: Pallete.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -231,7 +231,7 @@ class HelpSupportView extends StatelessWidget {
           const Text(
             'Frequently Asked Questions',
             style: TextStyle(
-              color: Colors.white,
+              color: Pallete.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -258,7 +258,7 @@ class HelpSupportView extends StatelessWidget {
           tilePadding: const EdgeInsets.symmetric(horizontal: 16),
           title: Text(
             question,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(color: Pallete.textPrimary, fontSize: 14),
           ),
           iconColor: Pallete.primaryLight,
           collapsedIconColor: Pallete.textSecondary,
@@ -285,7 +285,7 @@ class HelpSupportView extends StatelessWidget {
           const Text(
             'Contact Information',
             style: TextStyle(
-              color: Colors.white,
+              color: Pallete.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -361,7 +361,10 @@ class HelpSupportView extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: const TextStyle(
+                      color: Pallete.textPrimary,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
@@ -383,7 +386,7 @@ class HelpSupportView extends StatelessWidget {
           const Text(
             'App Information',
             style: TextStyle(
-              color: Colors.white,
+              color: Pallete.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -485,12 +488,12 @@ class HelpSupportView extends StatelessWidget {
         backgroundColor: Pallete.cardBackground,
         title: const Text(
           'Report an Issue',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Pallete.textPrimary),
         ),
         content: TextField(
           controller: controller,
           maxLines: 4,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Pallete.textPrimary),
           decoration: InputDecoration(
             hintText: 'Describe the issue...',
             hintStyle: TextStyle(color: Pallete.textSecondary),
