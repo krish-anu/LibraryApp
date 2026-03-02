@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
+import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
 import 'package:libraryapp/features/wishlist/viewmodels/wishlist_viewmodel.dart';
 import 'package:libraryapp/features/wishlist/widgets/favorite_book_card.dart';
 import 'package:libraryapp/features/wishlist/widgets/favorite_filter_chips.dart';
@@ -72,7 +73,9 @@ class WishlistView extends ConsumerWidget {
   ) {
     if (state.isEmpty) {
       return FavoritesEmptyState(
-        onBrowseBooks: () => Navigator.of(context).pop(),
+        onBrowseBooks: () {
+          ref.read(bottomNavIndexProvider.notifier).state = 1;
+        },
       );
     }
 
