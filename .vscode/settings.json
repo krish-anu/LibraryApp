@@ -60,5 +60,6 @@
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "java.configuration.updateBuildConfiguration": "interactive",
   "java.import.gradle.enabled": false,
-  "cmake.sourceDirectory": "/home/anusan/Desktop/LibraryApp/client/linux"
+  "cmake.sourceDirectory": "/home/anusan/Desktop/LibraryApp/client/linux",
+  "cmake.ignoreCMakeListsMissing": true
 }
