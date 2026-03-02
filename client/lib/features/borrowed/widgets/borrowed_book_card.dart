@@ -232,5 +232,4 @@ class BorrowedBookCard extends StatelessWidget {
       ),
     );
   }
-
 }

@@ -139,9 +139,7 @@ class ReserveRepository {
         }
         while (extracted.isNotEmpty &&
             trailingTrimChars.contains(extracted[extracted.length - 1])) {
-          extracted = extracted
-              .substring(0, extracted.length - 1)
-              .trimRight();
+          extracted = extracted.substring(0, extracted.length - 1).trimRight();
         }
         if (extracted.isNotEmpty) return extracted;
       }
