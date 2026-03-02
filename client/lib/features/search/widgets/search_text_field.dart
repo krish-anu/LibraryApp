@@ -5,11 +5,15 @@ import 'package:libraryapp/core/theme/app_pallete.dart';
 class SearchTextField extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
+  final FocusNode? focusNode;
+  final bool autofocus;
 
   const SearchTextField({
     super.key,
     required this.controller,
     required this.onChanged,
+    this.focusNode,
+    this.autofocus = false,
   });
 
   @override
@@ -19,6 +23,8 @@ class SearchTextField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        focusNode: focusNode,
+        autofocus: autofocus,
         style: const TextStyle(color: Pallete.textPrimary),
         decoration: InputDecoration(
           filled: true,

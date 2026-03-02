@@ -176,6 +176,10 @@ class SearchViewModel extends _$SearchViewModel {
     state = state.copyWith(showSearchResults: !state.showSearchResults);
   }
 
+  void openSearch() {
+    state = state.copyWith(showSearchResults: true);
+  }
+
   void clearFilters() {
     state = state.copyWith(
       searchQuery: '',

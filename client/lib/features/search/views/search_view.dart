@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
+import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
 import 'package:libraryapp/features/search/viewmodels/search_viewmodel.dart';
 import 'package:libraryapp/features/search/widgets/filter_chip_button.dart';
 import 'package:libraryapp/features/search/widgets/sort_dropdown.dart';
@@ -20,15 +21,21 @@ class SearchView extends ConsumerStatefulWidget {
 
 class _SearchViewState extends ConsumerState<SearchView> {
   final TextEditingController searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _didAutoFocusForCurrentTabVisit = false;
 
   @override
   void dispose() {
+    _searchFocusNode.dispose();
     searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isSearchTabActive = ref.watch(bottomNavIndexProvider) == 1;
+    _handleSearchTabActivation(isSearchTabActive);
+
     final searchState = ref.watch(
       searchViewModelProvider(initialCategory: widget.currentCategory),
     );
@@ -73,6 +80,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
           SearchTextField(
             controller: searchController,
             onChanged: (value) => viewModel.setSearchQuery(value),
+            focusNode: _searchFocusNode,
           ),
         _buildFilterChipsRow(state, viewModel),
         if (state.showSearchResults) _buildAuthorFilterRow(state, viewModel),
@@ -165,5 +173,38 @@ class _SearchViewState extends ConsumerState<SearchView> {
     return Center(
       child: Text(message, style: const TextStyle(color: Pallete.textPrimary)),
     );
+  }
+
+  void _handleSearchTabActivation(bool isSearchTabActive) {
+    if (!isSearchTabActive) {
+      _didAutoFocusForCurrentTabVisit = false;
+      if (_searchFocusNode.hasFocus) {
+        _searchFocusNode.unfocus();
+      }
+      return;
+    }
+
+    if (_didAutoFocusForCurrentTabVisit) {
+      return;
+    }
+
+    _didAutoFocusForCurrentTabVisit = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final provider = searchViewModelProvider(
+        initialCategory: widget.currentCategory,
+      );
+      final searchState = ref.read(provider);
+      if (!searchState.showSearchResults) {
+        ref.read(provider.notifier).openSearch();
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _searchFocusNode.requestFocus();
+      });
+    });
   }
 }
