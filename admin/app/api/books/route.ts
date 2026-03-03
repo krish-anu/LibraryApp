@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { Book } from "@/lib/types";
 
+const INSERTABLE_BOOK_COLUMNS = new Set([
+  "id",
+  "title",
+  "author",
+  "author_id",
+  "category_id",
+  "description",
+  "rating",
+  "publication_year",
+  "copies_owned",
+  "copies_available",
+  "image",
+  "cover_image_url",
+  "language",
+  "pages",
+]);
+
 async function getBookColumnSet(): Promise<Set<string>> {
   const rows = await query<{ column_name: string }>(
     `SELECT column_name
@@ -145,6 +162,7 @@ export async function POST(request: NextRequest) {
     const insertColumns: string[] = [];
     const insertValues: unknown[] = [];
     const add = (column: string, value: unknown) => {
+      if (!INSERTABLE_BOOK_COLUMNS.has(column)) return;
       if (!columns.has(column)) return;
       insertColumns.push(column);
       insertValues.push(value);

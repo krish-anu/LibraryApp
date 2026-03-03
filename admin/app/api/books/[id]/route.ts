@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
 import { Book } from "@/lib/types";
 
+const UPDATABLE_BOOK_COLUMNS = new Set([
+  "title",
+  "author",
+  "author_id",
+  "category_id",
+  "description",
+  "rating",
+  "publication_year",
+  "copies_owned",
+  "image",
+  "cover_image_url",
+  "language",
+  "pages",
+]);
+
 async function getBookColumnSet(): Promise<Set<string>> {
   const rows = await query<{ column_name: string }>(
     `SELECT column_name
@@ -89,6 +104,7 @@ export async function PUT(
     const updates: string[] = [];
     const values: unknown[] = [];
     const addUpdate = (column: string, value: unknown) => {
+      if (!UPDATABLE_BOOK_COLUMNS.has(column)) return;
       if (!columns.has(column) || value === undefined) return;
       values.push(value);
       updates.push(`${column} = $${values.length}`);

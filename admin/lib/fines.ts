@@ -1,6 +1,35 @@
 import { query } from "@/lib/db";
 
 let fineInfraReady = false;
+const LOAN_DUE_COLUMN_CANDIDATES = [
+  "returned_date",
+  "due_date",
+  "return_date",
+] as const;
+const LOAN_MEMBER_COLUMN_CANDIDATES = ["member_id", "user_id"] as const;
+const SQL_IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
+
+type LoanDueColumn = (typeof LOAN_DUE_COLUMN_CANDIDATES)[number];
+
+function pickAllowedColumn<T extends readonly string[]>(
+  columns: Set<string>,
+  candidates: T,
+): T[number] | null {
+  for (const candidate of candidates) {
+    if (columns.has(candidate)) return candidate;
+  }
+  return null;
+}
+
+function assertSafeIdentifier(
+  value: string,
+  allowlist: readonly string[],
+): string {
+  if (!SQL_IDENTIFIER.test(value) || !allowlist.includes(value)) {
+    throw new Error(`Unsafe SQL identifier: ${value}`);
+  }
+  return value;
+}
 
 async function getTableColumnSet(tableName: string): Promise<Set<string>> {
   const rows = await query<{ column_name: string }>(
@@ -140,21 +169,25 @@ export async function syncOverdueLoanFines(): Promise<void> {
   await ensureFineInfrastructure();
 
   const loanColumns = await getTableColumnSet("loans");
-  const dueCandidates = ["returned_date", "due_date", "return_date"].filter((c) =>
+  const dueCandidates: LoanDueColumn[] = LOAN_DUE_COLUMN_CANDIDATES.filter((c) =>
     loanColumns.has(c),
   );
-  let dueColumn: string | null = null;
-  let fallbackDueColumn: string | null = null;
+  let dueColumn: LoanDueColumn | null = null;
+  let fallbackDueColumn: LoanDueColumn | null = null;
   let bestOverdueCount = -1;
   for (const candidate of dueCandidates) {
+    const safeCandidate = assertSafeIdentifier(
+      candidate,
+      LOAN_DUE_COLUMN_CANDIDATES,
+    );
     const row = await query<{
       non_null_count: number;
       overdue_count: number;
     }>(
       `SELECT
-         COUNT(*) FILTER (WHERE ${candidate} IS NOT NULL)::int AS non_null_count,
+         COUNT(*) FILTER (WHERE ${safeCandidate} IS NOT NULL)::int AS non_null_count,
          COUNT(*) FILTER (
-           WHERE ${candidate} IS NOT NULL AND ${candidate}::date < CURRENT_DATE
+           WHERE ${safeCandidate} IS NOT NULL AND ${safeCandidate}::date < CURRENT_DATE
          )::int AS overdue_count
        FROM loans
       `,
@@ -176,15 +209,22 @@ export async function syncOverdueLoanFines(): Promise<void> {
   if (!dueColumn && dueCandidates.length) {
     dueColumn = dueCandidates[0];
   }
-  const memberColumn = loanColumns.has("member_id")
-    ? "member_id"
-    : loanColumns.has("user_id")
-      ? "user_id"
-      : null;
+  const memberColumn = pickAllowedColumn(
+    loanColumns,
+    LOAN_MEMBER_COLUMN_CANDIDATES,
+  );
 
   if (!dueColumn || !memberColumn) {
     return;
   }
+  const safeDueColumn = assertSafeIdentifier(
+    dueColumn,
+    LOAN_DUE_COLUMN_CANDIDATES,
+  );
+  const safeMemberColumn = assertSafeIdentifier(
+    memberColumn,
+    LOAN_MEMBER_COLUMN_CANDIDATES,
+  );
 
   let dailyFineRate = 0.5;
   let maxFineCap = 25;
@@ -225,13 +265,13 @@ export async function syncOverdueLoanFines(): Promise<void> {
   }>(
     `SELECT
       CAST(l.id AS TEXT) AS loan_id,
-      CAST(l.${memberColumn} AS TEXT) AS member_id,
-      l.${dueColumn}::date AS due_date,
-      GREATEST(1, CURRENT_DATE - l.${dueColumn}::date)::int AS overdue_days
+      CAST(l.${safeMemberColumn} AS TEXT) AS member_id,
+      l.${safeDueColumn}::date AS due_date,
+      GREATEST(1, CURRENT_DATE - l.${safeDueColumn}::date)::int AS overdue_days
      FROM loans l
-     WHERE l.${memberColumn} IS NOT NULL
-       AND l.${dueColumn} IS NOT NULL
-       AND l.${dueColumn}::date < CURRENT_DATE`,
+     WHERE l.${safeMemberColumn} IS NOT NULL
+       AND l.${safeDueColumn} IS NOT NULL
+       AND l.${safeDueColumn}::date < CURRENT_DATE`,
   );
 
   for (const loan of overdueLoans) {
@@ -346,8 +386,8 @@ export async function syncOverdueLoanFines(): Promise<void> {
      JOIN loans l ON CAST(l.id AS TEXT) = CAST(f.loan_id AS TEXT)
      WHERE LOWER(COALESCE(f.status, 'unpaid')) = 'unpaid'
        AND f.due_date IS NOT NULL
-       AND l.${dueColumn} IS NOT NULL
-       AND l.${dueColumn}::date = f.due_date::date
+       AND l.${safeDueColumn} IS NOT NULL
+       AND l.${safeDueColumn}::date = f.due_date::date
        AND f.due_date::date < CURRENT_DATE
        AND (
          f.fine_amount IS NULL

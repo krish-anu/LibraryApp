@@ -3,6 +3,21 @@ import { query } from "@/lib/db";
 import { Fine } from "@/lib/types";
 import { ensureFineInfrastructure, syncOverdueLoanFines } from "@/lib/fines";
 
+const INSERTABLE_FINE_COLUMNS = new Set([
+  "id",
+  "member_id",
+  "user_id",
+  "loan_id",
+  "fine_date",
+  "fine_amount",
+  "amount",
+  "status",
+  "reason",
+  "due_date",
+  "created_at",
+  "updated_at",
+]);
+
 interface FineWithDetails extends Fine {
   user_name?: string;
   user_email?: string;
@@ -198,6 +213,7 @@ export async function POST(request: NextRequest) {
     const insertColumns: string[] = [];
     const insertValues: unknown[] = [];
     const add = (column: string, value: unknown) => {
+      if (!INSERTABLE_FINE_COLUMNS.has(column)) return;
       if (!columns.has(column)) return;
       insertColumns.push(column);
       insertValues.push(value);

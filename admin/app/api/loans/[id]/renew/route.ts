@@ -3,6 +3,16 @@ import { getClient, query } from "@/lib/db";
 import { ensureFineInfrastructure } from "@/lib/fines";
 
 const ADMIN_RENEWAL_DAYS = 14;
+const LOAN_DUE_COLUMN_CANDIDATES = [
+  "returned_date",
+  "due_date",
+  "return_date",
+] as const;
+const LOAN_MEMBER_COLUMN_CANDIDATES = ["member_id", "user_id"] as const;
+const SQL_IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
+
+type LoanDueColumn = (typeof LOAN_DUE_COLUMN_CANDIDATES)[number];
+type LoanMemberColumn = (typeof LOAN_MEMBER_COLUMN_CANDIDATES)[number];
 
 async function getLoanColumnSet(): Promise<Set<string>> {
   const rows = await query<{ column_name: string }>(
@@ -13,23 +23,32 @@ async function getLoanColumnSet(): Promise<Set<string>> {
   return new Set(rows.map((row) => row.column_name));
 }
 
-function pickLoanColumns(columns: Set<string>): {
-  dueColumn: string | null;
-  memberColumn: string | null;
-} {
-  const dueColumn = columns.has("returned_date")
-    ? "returned_date"
-    : columns.has("due_date")
-      ? "due_date"
-      : columns.has("return_date")
-        ? "return_date"
-        : null;
+function pickAllowedColumn<T extends readonly string[]>(
+  columns: Set<string>,
+  candidates: T,
+): T[number] | null {
+  for (const candidate of candidates) {
+    if (columns.has(candidate)) return candidate;
+  }
+  return null;
+}
 
-  const memberColumn = columns.has("member_id")
-    ? "member_id"
-    : columns.has("user_id")
-      ? "user_id"
-      : null;
+function assertSafeIdentifier(
+  value: string,
+  allowlist: readonly string[],
+): string {
+  if (!SQL_IDENTIFIER.test(value) || !allowlist.includes(value)) {
+    throw new Error(`Unsafe SQL identifier: ${value}`);
+  }
+  return value;
+}
+
+function pickLoanColumns(columns: Set<string>): {
+  dueColumn: LoanDueColumn | null;
+  memberColumn: LoanMemberColumn | null;
+} {
+  const dueColumn = pickAllowedColumn(columns, LOAN_DUE_COLUMN_CANDIDATES);
+  const memberColumn = pickAllowedColumn(columns, LOAN_MEMBER_COLUMN_CANDIDATES);
 
   return { dueColumn, memberColumn };
 }
@@ -50,6 +69,13 @@ export async function POST(
         { status: 500 },
       );
     }
+    const safeDueColumn = assertSafeIdentifier(
+      dueColumn,
+      LOAN_DUE_COLUMN_CANDIDATES,
+    );
+    const safeMemberColumn = memberColumn
+      ? assertSafeIdentifier(memberColumn, LOAN_MEMBER_COLUMN_CANDIDATES)
+      : null;
 
     const client = await getClient();
     try {
@@ -63,11 +89,11 @@ export async function POST(
         `SELECT
            id,
            ${
-             memberColumn
-               ? `CAST(${memberColumn} AS TEXT)`
+             safeMemberColumn
+               ? `CAST(${safeMemberColumn} AS TEXT)`
                : "NULL"
            } AS member_id,
-           ${dueColumn}::date AS due_date
+           ${safeDueColumn}::date AS due_date
          FROM loans
          WHERE id = $1
          FOR UPDATE`,
@@ -186,10 +212,10 @@ export async function POST(
 
       const updatedLoanResult = await client.query(
         `UPDATE loans
-         SET ${dueColumn} = (
+         SET ${safeDueColumn} = (
            CASE
-             WHEN ${dueColumn} IS NOT NULL AND ${dueColumn}::date > CURRENT_DATE
-               THEN ${dueColumn}::date
+             WHEN ${safeDueColumn} IS NOT NULL AND ${safeDueColumn}::date > CURRENT_DATE
+               THEN ${safeDueColumn}::date
              ELSE CURRENT_DATE
            END
          ) + $1::int
