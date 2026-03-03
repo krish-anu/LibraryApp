@@ -212,17 +212,43 @@ export default function FinesPage() {
         return;
       }
 
+      const appliedAmount = Number(json?.payment?.appliedAmount ?? amount);
       const remaining = Number(
         json?.payment?.remainingAmount ?? json?.data?.fine_amount ?? 0,
       );
-      if (remaining > 0) {
-        alert(`Payment recorded. Remaining due: ${formatCurrency(remaining)}`);
-      } else {
-        alert("Payment recorded. Fine is fully paid.");
-      }
+      const sanitizedRemaining = Number.isFinite(remaining)
+        ? Math.max(0, remaining)
+        : 0;
+      const sanitizedAppliedAmount = Number.isFinite(appliedAmount)
+        ? Math.max(0, appliedAmount)
+        : 0;
 
       await fetchFines();
-      handleCloseManageModal();
+
+      if (remaining > 0) {
+        setSelectedFine((current) => {
+          if (!current) return current;
+          const previousTotalPaid = toAmount(current.total_paid ?? current.payment_amount);
+          return {
+            ...current,
+            fine_amount: sanitizedRemaining,
+            total_paid: previousTotalPaid + sanitizedAppliedAmount,
+            payment_amount: sanitizedAppliedAmount,
+            payment_date: new Date().toISOString().slice(0, 10),
+            payment_handled_by: "admin",
+            payment_notes: paymentNotes || undefined,
+            status: "unpaid",
+          };
+        });
+        setPaymentInput(sanitizedRemaining.toFixed(2));
+        setPaymentNotes("");
+        alert(
+          `Payment recorded. Remaining due: ${formatCurrency(sanitizedRemaining)}`,
+        );
+      } else {
+        alert("Payment recorded. Fine is fully paid.");
+        handleCloseManageModal();
+      }
     } catch (error) {
       console.error("Error recording payment:", error);
       alert("Failed to record payment");
@@ -484,9 +510,9 @@ export default function FinesPage() {
                         <p>Updated: {formatDateTime(fine.updated_at)}</p>
                       </td>
                       <td className="px-6 py-4 font-semibold text-gray-900">
-                        <p>Total fine: {formatCurrency(totalFine)}</p>
+                        <p>Current due: {formatCurrency(remainingDue)}</p>
                         <p className="text-xs font-normal text-gray-500">
-                          Remaining due: {formatCurrency(remainingDue)}
+                          Original total fine: {formatCurrency(totalFine)}
                         </p>
                         <p className="text-xs font-normal text-gray-500">
                           Paid so far: {formatCurrency(totalPaid)}

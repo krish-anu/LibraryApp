@@ -89,6 +89,12 @@ export async function ensureFineInfrastructure(): Promise<void> {
      SET updated_at = COALESCE(updated_at, created_at, NOW())
      WHERE updated_at IS NULL`,
   );
+  await query(
+    `UPDATE fines
+     SET fine_amount = NULL
+     WHERE fine_amount IS NOT NULL
+       AND fine_amount::text = 'NaN'`,
+  );
 
   await query(
     `CREATE TABLE IF NOT EXISTS fine_payments (
@@ -134,20 +140,38 @@ export async function syncOverdueLoanFines(): Promise<void> {
   await ensureFineInfrastructure();
 
   const loanColumns = await getTableColumnSet("loans");
-  const dueCandidates = ["due_date", "returned_date", "return_date"].filter((c) =>
+  const dueCandidates = ["returned_date", "due_date", "return_date"].filter((c) =>
     loanColumns.has(c),
   );
   let dueColumn: string | null = null;
+  let fallbackDueColumn: string | null = null;
+  let bestOverdueCount = -1;
   for (const candidate of dueCandidates) {
-    const row = await query<{ count: number }>(
-      `SELECT COUNT(*)::int AS count
+    const row = await query<{
+      non_null_count: number;
+      overdue_count: number;
+    }>(
+      `SELECT
+         COUNT(*) FILTER (WHERE ${candidate} IS NOT NULL)::int AS non_null_count,
+         COUNT(*) FILTER (
+           WHERE ${candidate} IS NOT NULL AND ${candidate}::date < CURRENT_DATE
+         )::int AS overdue_count
        FROM loans
-       WHERE ${candidate} IS NOT NULL`,
+      `,
     );
-    if (Number(row[0]?.count || 0) > 0) {
-      dueColumn = candidate;
-      break;
+    const nonNullCount = Number(row[0]?.non_null_count || 0);
+    const overdueCount = Number(row[0]?.overdue_count || 0);
+
+    if (!fallbackDueColumn && nonNullCount > 0) {
+      fallbackDueColumn = candidate;
     }
+    if (overdueCount > bestOverdueCount) {
+      bestOverdueCount = overdueCount;
+      dueColumn = candidate;
+    }
+  }
+  if (bestOverdueCount <= 0) {
+    dueColumn = fallbackDueColumn;
   }
   if (!dueColumn && dueCandidates.length) {
     dueColumn = dueCandidates[0];
@@ -177,22 +201,33 @@ export async function syncOverdueLoanFines(): Promise<void> {
        LIMIT 1`,
     );
     if (settings[0]) {
-      dailyFineRate = Number(settings[0].daily_fine_rate || 0.5);
-      maxFineCap = Number(settings[0].max_fine_cap || 25);
+      const parsedDailyFineRate = Number(settings[0].daily_fine_rate);
+      const parsedMaxFineCap = Number(settings[0].max_fine_cap);
+      dailyFineRate =
+        Number.isFinite(parsedDailyFineRate) && parsedDailyFineRate > 0
+          ? parsedDailyFineRate
+          : 0.5;
+      maxFineCap =
+        Number.isFinite(parsedMaxFineCap) && parsedMaxFineCap > 0
+          ? parsedMaxFineCap
+          : 25;
     }
   } catch {
     // Use defaults when settings are unavailable.
   }
+  maxFineCap = Math.max(maxFineCap, dailyFineRate);
 
   const overdueLoans = await query<{
     loan_id: string;
     member_id: string;
     due_date: string;
+    overdue_days: number;
   }>(
     `SELECT
       CAST(l.id AS TEXT) AS loan_id,
       CAST(l.${memberColumn} AS TEXT) AS member_id,
-      l.${dueColumn}::date AS due_date
+      l.${dueColumn}::date AS due_date,
+      GREATEST(1, CURRENT_DATE - l.${dueColumn}::date)::int AS overdue_days
      FROM loans l
      WHERE l.${memberColumn} IS NOT NULL
        AND l.${dueColumn} IS NOT NULL
@@ -202,60 +237,43 @@ export async function syncOverdueLoanFines(): Promise<void> {
   for (const loan of overdueLoans) {
     if (!loan.member_id) continue;
 
-    const dueDate = new Date(`${loan.due_date}T00:00:00`);
-    const elapsedMs = Date.now() - dueDate.getTime();
-    const overdueDays = Math.max(
-      1,
-      Math.floor(elapsedMs / (1000 * 60 * 60 * 24)),
-    );
-    const amount = Math.min(overdueDays * dailyFineRate, maxFineCap);
+    const overdueDaysRaw = Number(loan.overdue_days);
+    const overdueDays =
+      Number.isFinite(overdueDaysRaw) && overdueDaysRaw > 0 ? overdueDaysRaw : 1;
+    const computedAmount = Math.min(overdueDays * dailyFineRate, maxFineCap);
+    if (!Number.isFinite(computedAmount) || computedAmount <= 0) continue;
+    const amount = Number(computedAmount.toFixed(2));
+    if (!Number.isFinite(amount) || amount <= 0) continue;
 
-    const existing = await query<{
-      id: string;
-      status: string;
-      total_paid: number;
-    }>(
+    const cyclePaid = await query<{ total_paid: number }>(
       `SELECT
-         f.id,
-         LOWER(COALESCE(f.status, 'unpaid')) AS status,
-         COALESCE((
-           SELECT SUM(fp.payment_amount)
-           FROM fine_payments fp
-           WHERE fp.fine_id = f.id
-         ), 0)::float8 AS total_paid
-       FROM fines f
+         COALESCE(SUM(fp.payment_amount), 0)::float8 AS total_paid
+       FROM fine_payments fp
+       JOIN fines f ON f.id = fp.fine_id
+       WHERE f.loan_id = $1
+         AND f.due_date::date = $2::date`,
+      [loan.loan_id, loan.due_date],
+    );
+    const cyclePaidRaw = Number(cyclePaid[0]?.total_paid);
+    const totalPaid =
+      Number.isFinite(cyclePaidRaw) && cyclePaidRaw > 0 ? cyclePaidRaw : 0;
+
+    const remainingAmount = Math.max(0, Number((amount - totalPaid).toFixed(2)));
+    if (!Number.isFinite(remainingAmount)) continue;
+    const nextStatus = remainingAmount <= 0.00001 ? "paid" : "unpaid";
+
+    const unpaidFine = await query<{ id: string }>(
+      `SELECT id
+       FROM fines
        WHERE loan_id = $1
-       ORDER BY COALESCE(created_at, NOW()) ASC
+         AND due_date::date = $2::date
+         AND LOWER(COALESCE(status, 'unpaid')) = 'unpaid'
+       ORDER BY COALESCE(updated_at, created_at, NOW()) DESC
        LIMIT 1`,
-      [loan.loan_id],
+      [loan.loan_id, loan.due_date],
     );
 
-    if (!existing.length) {
-      await query(
-        `INSERT INTO fines (
-          id,
-          member_id,
-          loan_id,
-          fine_date,
-          fine_amount,
-          status,
-          reason,
-          due_date,
-          created_at,
-          updated_at
-        ) VALUES (
-          $1, $2, $3, CURRENT_DATE, $4, 'unpaid',
-          'Overdue return', $5, NOW(), NOW()
-        )`,
-        [crypto.randomUUID(), loan.member_id, loan.loan_id, amount, loan.due_date],
-      );
-      continue;
-    }
-
-    if (existing[0].status === "unpaid") {
-      const totalPaid = Number(existing[0].total_paid || 0);
-      const remainingAmount = Math.max(0, amount - totalPaid);
-      const nextStatus = remainingAmount <= 0.00001 ? "paid" : "unpaid";
+    if (unpaidFine.length) {
       await query(
         `UPDATE fines
          SET
@@ -275,8 +293,99 @@ export async function syncOverdueLoanFines(): Promise<void> {
            END,
            updated_at = NOW()
          WHERE id = $5`,
-        [loan.member_id, remainingAmount, loan.due_date, nextStatus, existing[0].id],
+        [loan.member_id, remainingAmount, loan.due_date, nextStatus, unpaidFine[0].id],
+      );
+      continue;
+    }
+
+    if (remainingAmount > 0.00001) {
+      await query(
+        `INSERT INTO fines (
+          id,
+          member_id,
+          loan_id,
+          fine_date,
+          fine_amount,
+          status,
+          reason,
+          due_date,
+          created_at,
+          updated_at
+        ) VALUES (
+          $1, $2, $3, CURRENT_DATE, $4, 'unpaid',
+          'Overdue return', $5, NOW(), NOW()
+        )`,
+        [
+          crypto.randomUUID(),
+          loan.member_id,
+          loan.loan_id,
+          remainingAmount,
+          loan.due_date,
+        ],
       );
     }
+  }
+
+  // Repair legacy/invalid rows where overdue unpaid fines are stuck at 0/NaN.
+  const invalidUnpaidFines = await query<{
+    id: string;
+    due_date: string;
+    overdue_days: number;
+    total_paid: number;
+  }>(
+    `SELECT
+       f.id,
+       f.due_date::date AS due_date,
+       GREATEST(1, CURRENT_DATE - f.due_date::date)::int AS overdue_days,
+       COALESCE((
+         SELECT SUM(fp.payment_amount)
+         FROM fine_payments fp
+         WHERE fp.fine_id = f.id
+       ), 0)::float8 AS total_paid
+     FROM fines f
+     JOIN loans l ON CAST(l.id AS TEXT) = CAST(f.loan_id AS TEXT)
+     WHERE LOWER(COALESCE(f.status, 'unpaid')) = 'unpaid'
+       AND f.due_date IS NOT NULL
+       AND l.${dueColumn} IS NOT NULL
+       AND l.${dueColumn}::date = f.due_date::date
+       AND f.due_date::date < CURRENT_DATE
+       AND (
+         f.fine_amount IS NULL
+         OR f.fine_amount::text = 'NaN'
+         OR COALESCE(f.fine_amount, 0) <= 0
+       )`,
+  );
+
+  for (const fine of invalidUnpaidFines) {
+    const overdueDaysRaw = Number(fine.overdue_days);
+    const overdueDays =
+      Number.isFinite(overdueDaysRaw) && overdueDaysRaw > 0 ? overdueDaysRaw : 1;
+    const computedAmount = Math.min(overdueDays * dailyFineRate, maxFineCap);
+    if (!Number.isFinite(computedAmount) || computedAmount <= 0) continue;
+
+    const totalPaidRaw = Number(fine.total_paid);
+    const totalPaid =
+      Number.isFinite(totalPaidRaw) && totalPaidRaw > 0 ? totalPaidRaw : 0;
+    const remainingAmount = Math.max(0, Number(computedAmount.toFixed(2)) - totalPaid);
+    if (!Number.isFinite(remainingAmount)) continue;
+
+    const nextStatus = remainingAmount <= 0.00001 ? "paid" : "unpaid";
+    await query(
+      `UPDATE fines
+       SET
+         fine_amount = $1,
+         status = $2,
+         paid_at = CASE
+           WHEN $2 = 'paid' THEN COALESCE(paid_at, NOW())
+           ELSE NULL
+         END,
+         payment_method = CASE
+           WHEN $2 = 'paid' THEN COALESCE(payment_method, 'physical')
+           ELSE payment_method
+         END,
+         updated_at = NOW()
+       WHERE id = $3`,
+      [remainingAmount, nextStatus, fine.id],
+    );
   }
 }

@@ -18,6 +18,17 @@ interface SettingsRow extends Settings {
   id: string;
 }
 
+function toFiniteNumber(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toFiniteInt(value: unknown): number | null {
+  const parsed = toFiniteNumber(value);
+  return parsed === null ? null : Math.trunc(parsed);
+}
+
 async function ensureSettingsTableAndRow() {
   await query(
     `CREATE TABLE IF NOT EXISTS settings (
@@ -130,25 +141,84 @@ export async function PUT(request: NextRequest) {
     const body = (await request.json()) as Partial<Settings>;
     const existing = await getSettingsRow();
 
+    const parsedLoanPeriod = toFiniteInt(body.loan_period_days);
+    const parsedMaxBooks = toFiniteInt(body.max_books_per_user);
+    const parsedGraceDays = toFiniteInt(body.grace_period_days);
+    const parsedDailyFineRate = toFiniteNumber(body.daily_fine_rate);
+    const parsedMaxFineCap = toFiniteNumber(body.max_fine_cap);
+    const parsedFineThreshold = toFiniteNumber(body.fine_threshold);
+    const parsedNotifyDays = toFiniteInt(body.notification_days_before_due);
+
+    if (parsedLoanPeriod !== null && parsedLoanPeriod < 1) {
+      return NextResponse.json(
+        { error: "loan_period_days must be at least 1" },
+        { status: 400 },
+      );
+    }
+    if (parsedMaxBooks !== null && parsedMaxBooks < 1) {
+      return NextResponse.json(
+        { error: "max_books_per_user must be at least 1" },
+        { status: 400 },
+      );
+    }
+    if (parsedGraceDays !== null && parsedGraceDays < 0) {
+      return NextResponse.json(
+        { error: "grace_period_days cannot be negative" },
+        { status: 400 },
+      );
+    }
+    if (parsedDailyFineRate !== null && parsedDailyFineRate <= 0) {
+      return NextResponse.json(
+        { error: "daily_fine_rate must be greater than 0" },
+        { status: 400 },
+      );
+    }
+    if (parsedMaxFineCap !== null && parsedMaxFineCap <= 0) {
+      return NextResponse.json(
+        { error: "max_fine_cap must be greater than 0" },
+        { status: 400 },
+      );
+    }
+    if (parsedFineThreshold !== null && parsedFineThreshold < 0) {
+      return NextResponse.json(
+        { error: "fine_threshold cannot be negative" },
+        { status: 400 },
+      );
+    }
+    if (parsedNotifyDays !== null && parsedNotifyDays < 0) {
+      return NextResponse.json(
+        { error: "notification_days_before_due cannot be negative" },
+        { status: 400 },
+      );
+    }
+
     const merged: Settings = {
       loan_period_days:
-        body.loan_period_days ?? existing.loan_period_days ?? 14,
+        parsedLoanPeriod ?? existing.loan_period_days ?? 14,
       max_books_per_user:
-        body.max_books_per_user ?? existing.max_books_per_user ?? 5,
+        parsedMaxBooks ?? existing.max_books_per_user ?? 5,
       grace_period_days:
-        body.grace_period_days ?? existing.grace_period_days ?? 2,
-      daily_fine_rate: body.daily_fine_rate ?? existing.daily_fine_rate ?? 0.5,
-      max_fine_cap: body.max_fine_cap ?? existing.max_fine_cap ?? 25.0,
+        parsedGraceDays ?? existing.grace_period_days ?? 2,
+      daily_fine_rate:
+        parsedDailyFineRate ?? existing.daily_fine_rate ?? 0.5,
+      max_fine_cap: parsedMaxFineCap ?? existing.max_fine_cap ?? 25.0,
       block_on_unpaid_fines:
         body.block_on_unpaid_fines ?? existing.block_on_unpaid_fines ?? true,
-      fine_threshold: body.fine_threshold ?? existing.fine_threshold ?? 10.0,
+      fine_threshold: parsedFineThreshold ?? existing.fine_threshold ?? 10.0,
       send_notifications:
         body.send_notifications ?? existing.send_notifications ?? true,
       notification_days_before_due:
-        body.notification_days_before_due ??
+        parsedNotifyDays ??
         existing.notification_days_before_due ??
         3,
     };
+
+    if (merged.max_fine_cap < merged.daily_fine_rate) {
+      return NextResponse.json(
+        { error: "max_fine_cap must be greater than or equal to daily_fine_rate" },
+        { status: 400 },
+      );
+    }
 
     const updated = await queryOne<SettingsRow>(
       `UPDATE settings

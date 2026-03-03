@@ -67,7 +67,10 @@ export default function SettingsPage() {
       if (res.ok) {
         alert("Settings saved successfully!");
       } else {
-        alert("Failed to save settings");
+        const error = await res
+          .json()
+          .catch(() => ({ error: "Failed to save settings" }));
+        alert(error.error || "Failed to save settings");
       }
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -133,6 +136,7 @@ export default function SettingsPage() {
                       <Input
                         label="Default Loan Period (days)"
                         type="number"
+                        min="1"
                         value={settings.loan_period_days}
                         onChange={(e) =>
                           setSettings({
@@ -144,6 +148,7 @@ export default function SettingsPage() {
                       <Input
                         label="Max Books Per User"
                         type="number"
+                        min="1"
                         value={settings.max_books_per_user}
                         onChange={(e) =>
                           setSettings({
@@ -155,6 +160,7 @@ export default function SettingsPage() {
                       <Input
                         label="Grace Period (days)"
                         type="number"
+                        min="0"
                         value={settings.grace_period_days}
                         onChange={(e) =>
                           setSettings({
@@ -167,6 +173,7 @@ export default function SettingsPage() {
                         label="Daily Fine Rate (LKR)"
                         type="number"
                         step="0.01"
+                        min="0.01"
                         value={settings.daily_fine_rate}
                         onChange={(e) =>
                           setSettings({
@@ -179,6 +186,7 @@ export default function SettingsPage() {
                         label="Maximum Fine Cap (LKR)"
                         type="number"
                         step="0.01"
+                        min="0.01"
                         value={settings.max_fine_cap}
                         onChange={(e) =>
                           setSettings({
@@ -191,6 +199,7 @@ export default function SettingsPage() {
                         label="Fine Threshold for Blocking (LKR)"
                         type="number"
                         step="0.01"
+                        min="0"
                         value={settings.fine_threshold}
                         onChange={(e) =>
                           setSettings({
@@ -250,6 +259,7 @@ export default function SettingsPage() {
                         <Input
                           label="Days Before Due Date to Notify"
                           type="number"
+                          min="0"
                           value={settings.notification_days_before_due}
                           onChange={(e) =>
                             setSettings({
