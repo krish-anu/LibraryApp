@@ -7,10 +7,16 @@ import 'package:libraryapp/core/constants/server_constant.dart';
 /// Asgardeo Direct Authentication Configuration
 /// Uses Resource Owner Password Credentials (ROPC) grant for in-app authentication
 class AsgardeoDirectConfig {
-  static const String clientId = '1O70sZaVwlin70uGYeJlfKhvv2sa';
+  static const String clientId = String.fromEnvironment(
+    'ASGARDEO_CLIENT_ID',
+    defaultValue: '1O70sZaVwlin70uGYeJlfKhvv2sa',
+  );
   // Public client - no client secret needed for mobile apps
   static const String clientSecret = '';
-  static const String baseUrl = 'https://api.eu.asgardeo.io/t/orgd2ib6';
+  static const String baseUrl = String.fromEnvironment(
+    'ASGARDEO_BASE_URL',
+    defaultValue: 'https://api.eu.asgardeo.io/t/orgd2ib6',
+  );
   static const String tokenEndpoint = '$baseUrl/oauth2/token';
   static const String userInfoEndpoint = '$baseUrl/oauth2/userinfo';
   static const String scim2Endpoint = '$baseUrl/scim2';
@@ -181,35 +187,6 @@ class AsgardeoDirectAuthService {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final tokenResponse = AsgardeoTokenResponse.fromJson(json);
         debugPrint('Login successful!');
-
-        // Print ID Token details for debugging
-        if (tokenResponse.idToken != null) {
-          debugPrint('=== ID TOKEN RECEIVED ===');
-          debugPrint('ID Token: ${tokenResponse.idToken}');
-
-          // Decode and print JWT payload (ID tokens are JWTs)
-          try {
-            final parts = tokenResponse.idToken!.split('.');
-            if (parts.length == 3) {
-              // Decode the payload (second part)
-              final payload = parts[1];
-              // Add padding if needed for base64 decoding
-              final normalizedPayload = base64Url.normalize(payload);
-              final decodedPayload = utf8.decode(
-                base64Url.decode(normalizedPayload),
-              );
-              debugPrint('=== ID TOKEN PAYLOAD (DECODED) ===');
-              debugPrint(decodedPayload);
-            }
-          } catch (e) {
-            debugPrint('Could not decode ID token: $e');
-          }
-          debugPrint('=== END ID TOKEN ===');
-        }
-
-        debugPrint('Access Token: ${tokenResponse.accessToken}');
-        debugPrint('Refresh Token: ${tokenResponse.refreshToken}');
-        debugPrint('Expires In: ${tokenResponse.expiresIn} seconds');
 
         return AuthResult.success(tokenResponse);
       } else {

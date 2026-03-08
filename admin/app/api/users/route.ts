@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { User } from "@/lib/types";
+import { verifyAdmin } from "@/lib/auth/verify-admin";
 
 // GET all users with pagination and filtering
 export async function GET(request: NextRequest) {
@@ -54,8 +55,26 @@ export async function GET(request: NextRequest) {
 
 // POST create new user
 export async function POST(request: NextRequest) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     const body = await request.json();
+
+    // Input validation
+    if (!body.name || typeof body.name !== "string" || body.name.trim().length < 1 || body.name.trim().length > 200) {
+      return NextResponse.json({ error: "Name is required and must be 1-200 characters" }, { status: 400 });
+    }
+    if (!body.email || typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+      return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+    }
+    if (body.phone && (typeof body.phone !== "string" || body.phone.length > 20 || !/^[+\d\s()-]+$/.test(body.phone))) {
+      return NextResponse.json({ error: "Invalid phone number format" }, { status: 400 });
+    }
+    if (body.address && (typeof body.address !== "string" || body.address.length > 500)) {
+      return NextResponse.json({ error: "Address must be under 500 characters" }, { status: 400 });
+    }
+
     const id = crypto.randomUUID();
     const memberId = `MEM-${Date.now().toString(36).toUpperCase()}`;
 

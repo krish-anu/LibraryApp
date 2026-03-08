@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { Fine } from "@/lib/types";
 import { ensureFineInfrastructure, syncOverdueLoanFines } from "@/lib/fines";
+import { verifyAdmin } from "@/lib/auth/verify-admin";
 
 const INSERTABLE_FINE_COLUMNS = new Set([
   "id",
@@ -175,6 +176,9 @@ export async function GET(request: NextRequest) {
 
 // POST create new fine
 export async function POST(request: NextRequest) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     await ensureFineInfrastructure();
     const columns = await getFineColumnSet();

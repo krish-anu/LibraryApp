@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getClient, query } from "@/lib/db";
 import { ensureFineInfrastructure } from "@/lib/fines";
+import { verifyAdmin } from "@/lib/auth/verify-admin";
 
 const ADMIN_RENEWAL_DAYS = 14;
 const LOAN_DUE_COLUMN_CANDIDATES = [
@@ -57,6 +58,9 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await verifyAdmin(_request);
+  if (auth.error) return auth.error;
+
   try {
     const { id } = await params;
     await ensureFineInfrastructure();

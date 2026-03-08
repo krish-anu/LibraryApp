@@ -44,7 +44,7 @@ final class LoansNotifierProvider
   }
 }
 
-String _$loansNotifierHash() => r'cac0b1b3eeb0fdbcf75e6b202d285efd7472819a';
+String _$loansNotifierHash() => r'a66a56842bb02f0a5dd976d1e4a14a18df66cdd9';
 
 /// Global loans notifier - single source of truth for loans and reservations
 

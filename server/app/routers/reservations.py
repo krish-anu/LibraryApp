@@ -5,12 +5,12 @@ from typing import List
 from datetime import datetime, date
 import uuid
 
-from ..dependencies import get_db
+from ..dependencies import get_db, verify_access_token
 from ..models import reservation as reservation_model
 from ..models import loan as loan_model
 from ..pydantic_schemas import reservation as reservation_schema
 
-router = APIRouter(prefix="", tags=["reservations"])  # mount multiple paths manually
+router = APIRouter(prefix="", tags=["reservations"], dependencies=[Depends(verify_access_token)])  # mount multiple paths manually
 
 
 @router.get("/reservations", response_model=List[reservation_schema.Reservation])

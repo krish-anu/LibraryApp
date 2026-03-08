@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:libraryapp/auth/services/asgardeo_direct_auth_service.dart';
 
 part 'asgardeo_direct_provider.g.dart';
@@ -53,6 +53,7 @@ class AsgardeoDirectState {
 @Riverpod(keepAlive: true)
 class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
   final AsgardeoDirectAuthService _authService = AsgardeoDirectAuthService();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   static const String _accessTokenKey = 'asgardeo_access_token';
   static const String _refreshTokenKey = 'asgardeo_refresh_token';
@@ -65,13 +66,12 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
     return const AsgardeoDirectState();
   }
 
-  /// Restore session from shared preferences
+  /// Restore session from secure storage
   Future<void> _restoreSession() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString(_accessTokenKey);
-      final refreshToken = prefs.getString(_refreshTokenKey);
-      final idToken = prefs.getString(_idTokenKey);
+      final accessToken = await _secureStorage.read(key: _accessTokenKey);
+      final refreshToken = await _secureStorage.read(key: _refreshTokenKey);
+      final idToken = await _secureStorage.read(key: _idTokenKey);
 
       if (accessToken != null) {
         state = state.copyWith(
@@ -89,29 +89,33 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
     }
   }
 
-  /// Save tokens to shared preferences
+  /// Save tokens to secure storage
   Future<void> _saveTokens(AsgardeoTokenResponse tokens) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_accessTokenKey, tokens.accessToken);
+      await _secureStorage.write(
+        key: _accessTokenKey,
+        value: tokens.accessToken,
+      );
       if (tokens.refreshToken != null) {
-        await prefs.setString(_refreshTokenKey, tokens.refreshToken!);
+        await _secureStorage.write(
+          key: _refreshTokenKey,
+          value: tokens.refreshToken!,
+        );
       }
       if (tokens.idToken != null) {
-        await prefs.setString(_idTokenKey, tokens.idToken!);
+        await _secureStorage.write(key: _idTokenKey, value: tokens.idToken!);
       }
     } catch (e) {
       debugPrint('Error saving tokens: $e');
     }
   }
 
-  /// Clear tokens from shared preferences
+  /// Clear tokens from secure storage
   Future<void> _clearTokens() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_accessTokenKey);
-      await prefs.remove(_refreshTokenKey);
-      await prefs.remove(_idTokenKey);
+      await _secureStorage.delete(key: _accessTokenKey);
+      await _secureStorage.delete(key: _refreshTokenKey);
+      await _secureStorage.delete(key: _idTokenKey);
     } catch (e) {
       debugPrint('Error clearing tokens: $e');
     }

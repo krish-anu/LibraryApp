@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
@@ -6,7 +6,7 @@ from typing import Any, List, Optional, cast
 from datetime import date, timedelta
 import uuid
 
-from ..dependencies import get_db
+from ..dependencies import get_db, verify_access_token
 from ..models import (
     loan,
     book as book_model,
@@ -16,7 +16,7 @@ from ..models import (
 )
 from ..pydantic_schemas import loan as loan_schema
 
-router = APIRouter(prefix="/loans", tags=["loans"])
+router = APIRouter(prefix="/loans", tags=["loans"], dependencies=[Depends(verify_access_token)])
 
 
 @router.get("", response_model=List[loan_schema.Loan])
@@ -197,18 +197,9 @@ def return_book(loan_id: str, db: Session = Depends(get_db)):
 @router.post("/renew/{loan_id}", response_model=loan_schema.Loan)
 def renew_loan(
     loan_id: str,
-    x_admin_renewal: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
-    """Renew a loan. This action is restricted to admin workflows."""
-    if (x_admin_renewal or "").strip().lower() not in {"true", "1", "yes"}:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                "Book renewal is handled by library admins. "
-                "Please contact the library desk."
-            ),
-        )
+    """Renew a loan. Requires authenticated access (token verified at router level)."""
 
     db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
     if not db_loan:

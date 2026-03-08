@@ -33,6 +33,52 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Validate the session token is a properly-formed JWT (basic check)
+  // A JWT has 3 base64url-encoded parts separated by dots
+  const jwtParts = session.split(".");
+  if (jwtParts.length !== 3) {
+    // Invalid token format — clear the cookie and redirect to login
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+    const loginUrl = new URL("/login", request.url);
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.set("library_session", "", { path: "/", maxAge: 0 });
+    return response;
+  }
+
+  // Check token expiry from JWT payload
+  try {
+    const payload = JSON.parse(
+      Buffer.from(jwtParts[1], "base64url").toString("utf-8"),
+    );
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && typeof payload.exp === "number" && payload.exp < now) {
+      // Token expired
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json(
+          { error: "Session expired" },
+          { status: 401 },
+        );
+      }
+      const loginUrl = new URL("/login", request.url);
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.set("library_session", "", { path: "/", maxAge: 0 });
+      response.cookies.set("library_id_token", "", { path: "/", maxAge: 0 });
+      response.cookies.set("library_user", "", { path: "/", maxAge: 0 });
+      return response;
+    }
+  } catch {
+    // If we can't parse the JWT, reject
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+    const loginUrl = new URL("/login", request.url);
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.set("library_session", "", { path: "/", maxAge: 0 });
+    return response;
+  }
+
   return NextResponse.next();
 }
 

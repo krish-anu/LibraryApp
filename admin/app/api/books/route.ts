@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { Book } from "@/lib/types";
+import { verifyAdmin } from "@/lib/auth/verify-admin";
 
 const INSERTABLE_BOOK_COLUMNS = new Set([
   "id",
@@ -153,8 +154,41 @@ export async function GET(request: NextRequest) {
 
 // POST create new book
 export async function POST(request: NextRequest) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     const body = await request.json();
+
+    // Input validation
+    if (!body.title || typeof body.title !== "string" || body.title.trim().length < 1 || body.title.trim().length > 500) {
+      return NextResponse.json({ error: "Title is required and must be 1-500 characters" }, { status: 400 });
+    }
+    if (body.rating !== undefined && body.rating !== null) {
+      const rating = Number(body.rating);
+      if (isNaN(rating) || rating < 0 || rating > 5) {
+        return NextResponse.json({ error: "Rating must be between 0 and 5" }, { status: 400 });
+      }
+    }
+    if (body.publication_year !== undefined && body.publication_year !== null) {
+      const year = Number(body.publication_year);
+      if (isNaN(year) || year < 0 || year > new Date().getFullYear() + 1) {
+        return NextResponse.json({ error: "Invalid publication year" }, { status: 400 });
+      }
+    }
+    if (body.pages !== undefined && body.pages !== null) {
+      const pages = Number(body.pages);
+      if (isNaN(pages) || pages < 1 || pages > 100000) {
+        return NextResponse.json({ error: "Pages must be between 1 and 100000" }, { status: 400 });
+      }
+    }
+    if (body.copies_owned !== undefined && body.copies_owned !== null) {
+      const copies = Number(body.copies_owned);
+      if (isNaN(copies) || copies < 0 || copies > 10000) {
+        return NextResponse.json({ error: "Copies owned must be between 0 and 10000" }, { status: 400 });
+      }
+    }
+
     const id = crypto.randomUUID();
     const columns = await getBookColumnSet();
     const usesAuthorId = columns.has("author_id") && !columns.has("author");
@@ -229,18 +263,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: data[0] }, { status: 201 });
   } catch (error: unknown) {
     console.error("Error creating book:", error);
-    const err = error as {
-      message?: string;
-      code?: string;
-      detail?: string;
-      hint?: string;
-    };
     return NextResponse.json(
       {
-        error: err?.message || "Internal server error",
-        code: err?.code || null,
-        detail: err?.detail || null,
-        hint: err?.hint || null,
+        error: "Failed to create book. Please check your input and try again.",
       },
       { status: 500 },
     );

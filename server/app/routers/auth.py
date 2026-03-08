@@ -9,13 +9,15 @@ that has the necessary credentials to create users.
 import os
 import httpx
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from datetime import date
 import traceback
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.dependencies import get_db
 from app.pydantic_schemas import user as user_schema
@@ -27,10 +29,16 @@ load_dotenv(env_path)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# Rate limiter for auth endpoints (stricter than general API)
+limiter = Limiter(key_func=get_remote_address)
+
 # Asgardeo Configuration - Read from environment variables
 ASGARDEO_BASE_URL = os.getenv(
-    "ASGARDEO_BASE_URL", "https://api.eu.asgardeo.io/t/orgd2ib6"
+    "ASGARDEO_BASE_URL", ""
 )
+if not ASGARDEO_BASE_URL:
+    import warnings
+    warnings.warn("ASGARDEO_BASE_URL environment variable is not set. Auth endpoints will fail at runtime.")
 # This is your M2M (Machine-to-Machine) application credentials for the backend
 ASGARDEO_M2M_CLIENT_ID = os.getenv("ASGARDEO_M2M_CLIENT_ID", "")
 ASGARDEO_M2M_CLIENT_SECRET = os.getenv("ASGARDEO_M2M_CLIENT_SECRET", "")
@@ -47,6 +55,18 @@ class RegisterRequest(BaseModel):
     last_name: str
     username: Optional[str] = None
     phone_number: Optional[str] = None
+
+    @classmethod
+    def validate_password_strength(cls, password: str) -> str:
+        if len(password) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not any(c.isupper() for c in password):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c.islower() for c in password):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not any(c.isdigit() for c in password):
+            raise ValueError("Password must contain at least one digit")
+        return password
 
 
 class RegisterResponse(BaseModel):
@@ -124,7 +144,7 @@ async def get_client_credentials_token() -> Optional[str]:
 
         print(f"Token request status: {response.status_code}")
         if response.status_code != 200:
-            print(f"Token request failed: {response.text}")
+            print("Token request failed")
 
         if response.status_code == 200:
             data = response.json()
@@ -134,13 +154,20 @@ async def get_client_credentials_token() -> Optional[str]:
 
 
 @router.post("/register", response_model=RegisterResponse)
-async def register_user(request: RegisterRequest):
+@limiter.limit("5/minute")
+async def register_user(request: RegisterRequest, req: Request = None):
     """
     Register a new user via Asgardeo API.
 
     This endpoint allows mobile clients to register users without
     needing confidential client credentials on the device.
     """
+
+    # Validate password strength
+    try:
+        RegisterRequest.validate_password_strength(request.password)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     admin_token = await get_client_credentials_token()
 
@@ -152,7 +179,6 @@ async def register_user(request: RegisterRequest):
 
     async with httpx.AsyncClient() as client:
         # Try 1: Asgardeo User Management API
-        print("Trying Asgardeo User Management API /api/users/v1...")
         user_mgmt_body = {
             "userName": request.email,
             "password": request.password,
@@ -176,10 +202,6 @@ async def register_user(request: RegisterRequest):
             },
         )
 
-        print(
-            f"Response: {response.status_code} - {response.text[:500] if response.text else 'empty'}"
-        )
-
         if response.status_code in [200, 201]:
             data = response.json() if response.content else {}
             return RegisterResponse(
@@ -194,7 +216,6 @@ async def register_user(request: RegisterRequest):
             )
 
         # Try 2: SCIM2 with organization prefix /o/scim2/Users
-        print("Trying SCIM2 /o/scim2/Users...")
         scim_user = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": request.email,
@@ -221,10 +242,6 @@ async def register_user(request: RegisterRequest):
             },
         )
 
-        print(
-            f"Response: {response.status_code} - {response.text[:500] if response.text else 'empty'}"
-        )
-
         if response.status_code in [200, 201]:
             data = response.json()
             return RegisterResponse(
@@ -239,7 +256,6 @@ async def register_user(request: RegisterRequest):
             )
 
         # Try 3: Regular SCIM2 /scim2/Users
-        print("Trying SCIM2 /scim2/Users...")
         response = await client.post(
             f"{ASGARDEO_BASE_URL}/scim2/Users",
             json=scim_user,
@@ -248,10 +264,6 @@ async def register_user(request: RegisterRequest):
                 "Accept": "application/scim+json",
                 "Authorization": f"Bearer {admin_token}",
             },
-        )
-
-        print(
-            f"Response: {response.status_code} - {response.text[:500] if response.text else 'empty'}"
         )
 
         if response.status_code in [200, 201]:
@@ -293,8 +305,6 @@ async def _ensure_user_from_access_token(
         raise HTTPException(status_code=401, detail="Invalid Asgardeo access token")
 
     data = response.json() if response.content else {}
-    # Debug: show returned userinfo for investigation
-    print(f"Asgardeo userinfo response: {data}")
     sub = data.get("sub")
     if not sub:
         raise HTTPException(
@@ -319,7 +329,6 @@ async def _ensure_user_from_access_token(
     created = False
     try:
         user = db.query(UserModel).filter(UserModel.id == sub).first()
-        print(f"Local lookup for user id={sub} returned: {user}")
         if not user:
             user = UserModel(
                 id=sub,
@@ -335,7 +344,6 @@ async def _ensure_user_from_access_token(
             db.add(user)
             db.commit()
             db.refresh(user)
-            print(f"Created local user with id={user.id} email={user.email}")
             created = True
     except Exception as e:
         # Rollback on DB errors and raise a clear HTTP exception
@@ -345,7 +353,7 @@ async def _ensure_user_from_access_token(
             pass
         print("Exception while ensuring/creating local user:")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
 
     return user, created
 
@@ -384,8 +392,9 @@ async def asgardeo_login_sync(
 
 
 @router.post("/login/credentials", response_model=CredentialLoginResponse)
+@limiter.limit("10/minute")
 async def login_with_credentials(
-    request: CredentialLoginRequest, db: Session = Depends(get_db)
+    request: CredentialLoginRequest, req: Request = None, db: Session = Depends(get_db)
 ):
     """Validate email/password with Asgardeo, then ensure local user exists.
 

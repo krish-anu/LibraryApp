@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
 import { Settings } from "@/lib/types";
+import { verifyAdmin } from "@/lib/auth/verify-admin";
 
 const DEFAULT_SETTINGS: Settings = {
   loan_period_days: 14,
@@ -137,6 +138,9 @@ export async function GET() {
 
 // PUT update settings
 export async function PUT(request: NextRequest) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     const body = (await request.json()) as Partial<Settings>;
     const existing = await getSettingsRow();

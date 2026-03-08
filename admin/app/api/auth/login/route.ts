@@ -51,7 +51,7 @@ export async function GET() {
   // Store code_verifier and state in httpOnly cookies for the callback
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     path: "/",
     maxAge: 600, // 10 minutes – enough time to complete login
     sameSite: "lax" as const,

@@ -3,14 +3,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 
-from app.dependencies import get_db
+from app.dependencies import get_db, verify_access_token
 from app.models.users import User as UserModel
 from app.models.loan import Loan as LoanModel
 from app.models.fine import Fine as FineModel
 from app.models.reservation import Reservation as ReservationModel
 from app.pydantic_schemas import user as user_schema
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(verify_access_token)])
 
 
 @router.get("/{user_id}", response_model=user_schema.User)

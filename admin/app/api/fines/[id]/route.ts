@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClient, query } from "@/lib/db";
 import { Fine } from "@/lib/types";
 import { ensureFineInfrastructure } from "@/lib/fines";
+import { verifyAdmin } from "@/lib/auth/verify-admin";
 
 type FineStatus = "unpaid" | "paid" | "waived";
 
@@ -90,6 +91,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     await ensureFineInfrastructure();
     const { id } = await params;
@@ -351,6 +355,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     await ensureFineInfrastructure();
     const { id } = await params;

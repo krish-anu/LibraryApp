@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdmin } from "@/lib/auth/verify-admin";
 import {
   S3Client,
   PutObjectCommand,
@@ -7,9 +8,21 @@ import {
 
 export const runtime = "nodejs";
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml",
+]);
+const ALLOWED_EXTENSIONS = new Set([
+  ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg",
+]);
+
 const region = process.env.S3_REGION || "ap-south-1";
 const rawEndpoint =
-  process.env.S3_ENDPOINT || "https://gdervtvlkioxsobrwaqm.storage.supabase.co";
+  process.env.S3_ENDPOINT || "";
 const bucket =
   process.env.S3_BUCKET || process.env.SUPABASE_STORAGE_BUCKET || "";
 const endpointBase = rawEndpoint.replace(/\/+$/, "").replace(/\/storage\/v1\/s3$/, "");
@@ -27,6 +40,9 @@ function getClient() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await verifyAdmin(req);
+  if (auth.error) return auth.error;
+
   try {
     const contentType = req.headers.get("content-type") || "";
     if (!contentType.toLowerCase().includes("multipart/form-data")) {
@@ -44,6 +60,32 @@ export async function POST(req: NextRequest) {
     const file = form.get("file") as File | null;
     if (!file)
       return NextResponse.json({ error: "missing file" }, { status: 400 });
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+        { status: 413 },
+      );
+    }
+
+    // Validate MIME type
+    const mimeType = (file.type || "").toLowerCase();
+    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+      return NextResponse.json(
+        { error: `File type '${mimeType}' not allowed. Allowed types: ${[...ALLOWED_MIME_TYPES].join(", ")}` },
+        { status: 415 },
+      );
+    }
+
+    // Validate file extension
+    const ext = (file.name || "").toLowerCase().match(/\.[^.]+$/)?.[0] || "";
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return NextResponse.json(
+        { error: `File extension '${ext}' not allowed. Allowed: ${[...ALLOWED_EXTENSIONS].join(", ")}` },
+        { status: 415 },
+      );
+    }
 
     const filename = (form.get("filename") as string) || file.name || "upload";
     const safeName = filename.replace(/[^a-zA-Z0-9.-_]/g, "_");
@@ -99,7 +141,8 @@ export async function POST(req: NextRequest) {
       }
       if (Symbol.asyncIterator in stream) {
         const chunks: string[] = [];
-        for await (const chunk of stream) {
+        const asyncIterable = stream as AsyncIterable<Uint8Array | string>;
+        for await (const chunk of asyncIterable) {
           chunks.push(
             typeof chunk === "string"
               ? chunk
@@ -153,12 +196,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json(
         {
-          error: err.message || String(err),
-          code: err.name || null,
-          bucket,
-          endpoint: s3Endpoint,
-          availableBuckets,
-          raw,
+          error: "Failed to upload file to storage. Please try again.",
         },
         { status: 500 },
       );

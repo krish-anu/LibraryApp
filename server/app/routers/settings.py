@@ -3,11 +3,11 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db
+from ..dependencies import get_db, verify_access_token
 from ..models import settings as settings_model
 from ..pydantic_schemas import settings as settings_schema
 
-router = APIRouter(prefix="/settings", tags=["settings"])
+router = APIRouter(prefix="/settings", tags=["settings"], dependencies=[Depends(verify_access_token)])
 
 
 def _get_or_create_settings_row(db: Session) -> settings_model.Settings:

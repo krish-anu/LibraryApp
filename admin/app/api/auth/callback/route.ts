@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
 
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     path: "/",
     maxAge: Number(expiresIn),
     sameSite: "lax" as const,
@@ -141,10 +141,10 @@ export async function GET(req: NextRequest) {
     ...cookieOptions,
     // id_token is needed for logout redirect
   });
-  // Store user info in a non-httpOnly cookie so the client can read it
+  // Store user info in a httpOnly cookie for security
   response.cookies.set("library_user", userPayload, {
     ...cookieOptions,
-    httpOnly: false,
+    httpOnly: true,
   });
 
   // Clear PKCE cookies

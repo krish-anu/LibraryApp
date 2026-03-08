@@ -45,7 +45,7 @@ final class AsgardeoDirectAuthProvider
 }
 
 String _$asgardeoDirectAuthHash() =>
-    r'ec1565f9ca666d3358daa8b7fa69cda48f692ffd';
+    r'3f6c3c65adb76094f1a55b3887578fce6fe8006b';
 
 /// Provider for direct Asgardeo authentication
 
