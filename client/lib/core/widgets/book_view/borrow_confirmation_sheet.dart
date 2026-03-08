@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:libraryapp/auth/providers/asgardeo_direct_provider.dart';
 import 'package:libraryapp/core/providers/current_user_notifier.dart';
 import 'package:libraryapp/core/providers/loans_notifier.dart';
 import 'package:libraryapp/core/constants/server_constant.dart';
+import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/utils/image_helper.dart';
 import 'package:libraryapp/data/repository/book_repository.dart';
@@ -329,7 +329,7 @@ class _BorrowConfirmationSheetState
 
   Future<void> _loadSettings() async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/settings'),
       );
       if (res.statusCode != 200) return;

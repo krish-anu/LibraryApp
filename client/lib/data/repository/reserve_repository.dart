@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:fpdart/fpdart.dart';
 import 'package:libraryapp/core/constants/server_constant.dart';
 import 'package:libraryapp/core/failure/failure.dart';
+import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/models/reserve.dart';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'reserve_repository.g.dart';
@@ -27,7 +27,7 @@ Future<List<Reserve>> fetchReservationsByMember(
 class ReserveRepository {
   Future<Either<AppFailure, List<Reserve>>> getAllReservedBooks() async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/reservations'),
       );
       if (res.statusCode == 200) {
@@ -47,7 +47,7 @@ class ReserveRepository {
 
   Future<Either<AppFailure, Reserve>> addReserve(Reserve reserve) async {
     try {
-      final res = await http.post(
+      final res = await AuthenticatedHttpClient.post(
         Uri.parse('${ServerConstant.serverURL}/reservations'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(reserve.toMap()),
@@ -76,7 +76,7 @@ class ReserveRepository {
     String memberId,
   ) async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/reservations/member/$memberId'),
       );
       if (res.statusCode == 200) {

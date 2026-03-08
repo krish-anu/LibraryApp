@@ -296,10 +296,22 @@ async def register_user(request: RegisterRequest, req: Request = None):
 async def _ensure_user_from_access_token(
     access_token: str, db: Session
 ) -> tuple[UserModel, bool]:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{ASGARDEO_BASE_URL}/oauth2/userinfo",
-            headers={"Authorization": f"Bearer {access_token}"},
+    if not ASGARDEO_BASE_URL:
+        raise HTTPException(
+            status_code=503,
+            detail="Identity provider not configured. Set ASGARDEO_BASE_URL in .env",
+        )
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{ASGARDEO_BASE_URL}/oauth2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to reach identity provider",
         )
 
     if response.status_code != 200:

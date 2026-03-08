@@ -236,7 +236,18 @@ class AsgardeoDirectAuthService {
         body: jsonEncode({'access_token': accessToken}),
       );
 
-      final resBodyMap = jsonDecode(response.body) as Map<String, dynamic>;
+      // Handle non-JSON responses (e.g. plain text "Internal Server Error")
+      Map<String, dynamic> resBodyMap;
+      try {
+        resBodyMap = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        return AuthResult.failure(
+          response.statusCode == 200
+              ? 'Unexpected response from server'
+              : 'Server error (${response.statusCode})',
+        );
+      }
+
       if (response.statusCode != 200) {
         return AuthResult.failure(
           resBodyMap['detail']?.toString() ?? 'Failed to sync user',

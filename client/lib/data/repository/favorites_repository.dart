@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:libraryapp/core/constants/server_constant.dart';
 import 'package:libraryapp/core/failure/failure.dart';
+import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/models/book.dart';
 
 part 'favorites_repository.g.dart';
@@ -30,7 +30,7 @@ Future<Set<String>> fetchFavoriteIds(Ref ref, String memberId) async {
 class FavoritesRepository {
   Future<Either<Failure, List<Book>>> getFavorites(String memberId) async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/favorites/$memberId'),
       );
 
@@ -48,7 +48,7 @@ class FavoritesRepository {
 
   Future<Either<Failure, Set<String>>> getFavoriteIds(String memberId) async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/favorites/$memberId/ids'),
       );
 
@@ -69,7 +69,7 @@ class FavoritesRepository {
     String bookId,
   ) async {
     try {
-      final res = await http.post(
+      final res = await AuthenticatedHttpClient.post(
         Uri.parse('${ServerConstant.serverURL}/favorites/$memberId/$bookId'),
       );
 
@@ -89,7 +89,7 @@ class FavoritesRepository {
     String bookId,
   ) async {
     try {
-      final res = await http.delete(
+      final res = await AuthenticatedHttpClient.delete(
         Uri.parse('${ServerConstant.serverURL}/favorites/$memberId/$bookId'),
       );
 
@@ -120,7 +120,7 @@ class FavoritesRepository {
     String bookId,
   ) async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse(
           '${ServerConstant.serverURL}/favorites/$memberId/$bookId/check',
         ),

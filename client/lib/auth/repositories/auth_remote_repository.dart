@@ -4,6 +4,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:http/http.dart' as http;
 import 'package:libraryapp/core/constants/server_constant.dart';
 import 'package:libraryapp/core/failure/failure.dart';
+import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/models/user.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -59,7 +60,7 @@ class AuthRemoteRepository {
 
   Future<Either<AppFailure, User>> getCurrentUserData(String token) async {
     try {
-      final response = await http.get(
+      final response = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/auth/'),
         headers: {'Content-Type': 'application/json', 'x-auth-token': token},
       );
@@ -76,7 +77,7 @@ class AuthRemoteRepository {
 
   Future<Either<AppFailure, User>> getUserById(String id) async {
     try {
-      final response = await http.get(
+      final response = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/users/$id'),
         headers: {'Content-Type': 'application/json'},
       );
@@ -102,7 +103,7 @@ class AuthRemoteRepository {
 
   Future<Either<AppFailure, User>> getUserByMemberId(String memberId) async {
     try {
-      final response = await http.get(
+      final response = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/users/by-member/$memberId'),
         headers: {'Content-Type': 'application/json'},
       );

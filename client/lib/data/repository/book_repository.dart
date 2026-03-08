@@ -1,10 +1,9 @@
 import 'dart:convert';
-// import 'package:flutter_riverpod/misc.dart';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:libraryapp/core/constants/server_constant.dart';
 import 'package:libraryapp/core/failure/failure.dart';
+import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/models/book.dart';
 
 part 'book_repository.g.dart';
@@ -24,7 +23,7 @@ Future<List<Book>> fetchAllBooks(Ref ref) async {
 class BookRepository {
   Future<Either<Failure, List<Book>>> getAllBooks() async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/books'),
       );
 

@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:libraryapp/core/constants/server_constant.dart';
 import 'package:libraryapp/core/failure/failure.dart';
+import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/models/loan.dart';
 
 part 'loan_repository.g.dart';
@@ -30,7 +30,7 @@ Future<List<Loan>> fetchActiveLoans(Ref ref, {String? memberId}) async {
 class LoanRepository {
   Future<Either<Failure, List<Loan>>> getAllLoans() async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/loans'),
       );
 
@@ -52,7 +52,7 @@ class LoanRepository {
       if (memberId != null) {
         url += '?member_id=$memberId';
       }
-      final res = await http.get(Uri.parse(url));
+      final res = await AuthenticatedHttpClient.get(Uri.parse(url));
 
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(res.body);
@@ -71,7 +71,7 @@ class LoanRepository {
     String memberId,
   ) async {
     try {
-      final res = await http.post(
+      final res = await AuthenticatedHttpClient.post(
         Uri.parse(
           '${ServerConstant.serverURL}/loans/borrow?book_id=$bookId&member_id=$memberId',
         ),
@@ -97,7 +97,7 @@ class LoanRepository {
 
   Future<Either<Failure, String>> returnBook(String loanId) async {
     try {
-      final res = await http.post(
+      final res = await AuthenticatedHttpClient.post(
         Uri.parse('${ServerConstant.serverURL}/loans/return/$loanId'),
       );
 
@@ -113,7 +113,7 @@ class LoanRepository {
 
   Future<Either<Failure, Loan>> renewLoan(String loanId) async {
     try {
-      final res = await http.post(
+      final res = await AuthenticatedHttpClient.post(
         Uri.parse('${ServerConstant.serverURL}/loans/renew/$loanId'),
       );
 

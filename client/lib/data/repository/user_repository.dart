@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:libraryapp/core/constants/server_constant.dart';
 import 'package:libraryapp/core/failure/failure.dart';
+import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/models/user_profile.dart';
 import 'package:libraryapp/models/profile_stats.dart';
 
@@ -31,7 +31,7 @@ Future<ProfileStats> fetchUserStats(Ref ref, String userId) async {
 class UserRepository {
   Future<Either<Failure, UserProfile>> getUserById(String userId) async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/users/$userId'),
         headers: {'Content-Type': 'application/json'},
       );
@@ -51,7 +51,7 @@ class UserRepository {
     String memberId,
   ) async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/users/by-member/$memberId'),
         headers: {'Content-Type': 'application/json'},
       );
@@ -69,7 +69,7 @@ class UserRepository {
 
   Future<Either<Failure, ProfileStats>> getUserStats(String userId) async {
     try {
-      final res = await http.get(
+      final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/users/$userId/stats'),
         headers: {'Content-Type': 'application/json'},
       );
@@ -90,7 +90,7 @@ class UserRepository {
     Map<String, dynamic> updateData,
   ) async {
     try {
-      final res = await http.put(
+      final res = await AuthenticatedHttpClient.put(
         Uri.parse('${ServerConstant.serverURL}/users/$userId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(updateData),
