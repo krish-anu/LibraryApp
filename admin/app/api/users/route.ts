@@ -62,17 +62,46 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Input validation
-    if (!body.name || typeof body.name !== "string" || body.name.trim().length < 1 || body.name.trim().length > 200) {
-      return NextResponse.json({ error: "Name is required and must be 1-200 characters" }, { status: 400 });
+    if (
+      !body.name ||
+      typeof body.name !== "string" ||
+      body.name.trim().length < 1 ||
+      body.name.trim().length > 200
+    ) {
+      return NextResponse.json(
+        { error: "Name is required and must be 1-200 characters" },
+        { status: 400 },
+      );
     }
-    if (!body.email || typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
-      return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+    if (
+      !body.email ||
+      typeof body.email !== "string" ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)
+    ) {
+      return NextResponse.json(
+        { error: "Valid email is required" },
+        { status: 400 },
+      );
     }
-    if (body.phone && (typeof body.phone !== "string" || body.phone.length > 20 || !/^[+\d\s()-]+$/.test(body.phone))) {
-      return NextResponse.json({ error: "Invalid phone number format" }, { status: 400 });
+    if (
+      body.phone &&
+      (typeof body.phone !== "string" ||
+        body.phone.length > 20 ||
+        !/^[+\d\s()-]+$/.test(body.phone))
+    ) {
+      return NextResponse.json(
+        { error: "Invalid phone number format" },
+        { status: 400 },
+      );
     }
-    if (body.address && (typeof body.address !== "string" || body.address.length > 500)) {
-      return NextResponse.json({ error: "Address must be under 500 characters" }, { status: 400 });
+    if (
+      body.address &&
+      (typeof body.address !== "string" || body.address.length > 500)
+    ) {
+      return NextResponse.json(
+        { error: "Address must be under 500 characters" },
+        { status: 400 },
+      );
     }
 
     const id = crypto.randomUUID();

@@ -8,11 +8,12 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const region = process.env.S3_REGION || "ap-south-1";
-const rawEndpoint =
-  process.env.S3_ENDPOINT || "";
+const rawEndpoint = process.env.S3_ENDPOINT || "";
 const bucket =
   process.env.S3_BUCKET || process.env.SUPABASE_STORAGE_BUCKET || "";
-const endpointBase = rawEndpoint.replace(/\/+$/, "").replace(/\/storage\/v1\/s3$/, "");
+const endpointBase = rawEndpoint
+  .replace(/\/+$/, "")
+  .replace(/\/storage\/v1\/s3$/, "");
 const s3Endpoint = `${endpointBase}/storage/v1/s3`;
 
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -51,7 +52,9 @@ export async function POST(req: NextRequest) {
     // Validate content type
     if (!ALLOWED_CONTENT_TYPES.has(contentType.toLowerCase())) {
       return NextResponse.json(
-        { error: `Content type '${contentType}' not allowed. Allowed: ${[...ALLOWED_CONTENT_TYPES].join(", ")}` },
+        {
+          error: `Content type '${contentType}' not allowed. Allowed: ${[...ALLOWED_CONTENT_TYPES].join(", ")}`,
+        },
         { status: 415 },
       );
     }
@@ -66,10 +69,7 @@ export async function POST(req: NextRequest) {
 
     // Prevent path traversal
     if (key.includes("..") || key.includes("//")) {
-      return NextResponse.json(
-        { error: "Invalid key path" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid key path" }, { status: 400 });
     }
     if (!bucket) {
       return NextResponse.json(
@@ -99,9 +99,6 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("/api/storage/presign error:", errorMessage);
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

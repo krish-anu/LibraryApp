@@ -49,7 +49,10 @@ function pickLoanColumns(columns: Set<string>): {
   memberColumn: LoanMemberColumn | null;
 } {
   const dueColumn = pickAllowedColumn(columns, LOAN_DUE_COLUMN_CANDIDATES);
-  const memberColumn = pickAllowedColumn(columns, LOAN_MEMBER_COLUMN_CANDIDATES);
+  const memberColumn = pickAllowedColumn(
+    columns,
+    LOAN_MEMBER_COLUMN_CANDIDATES,
+  );
 
   return { dueColumn, memberColumn };
 }
@@ -93,9 +96,7 @@ export async function POST(
         `SELECT
            id,
            ${
-             safeMemberColumn
-               ? `CAST(${safeMemberColumn} AS TEXT)`
-               : "NULL"
+             safeMemberColumn ? `CAST(${safeMemberColumn} AS TEXT)` : "NULL"
            } AS member_id,
            ${safeDueColumn}::date AS due_date
          FROM loans
@@ -119,7 +120,9 @@ export async function POST(
           `SELECT GREATEST(0, CURRENT_DATE - $1::date)::int AS overdue_days`,
           [dueDate],
         );
-        const overdueDays = Number(overdueDaysResult.rows[0]?.overdue_days || 0);
+        const overdueDays = Number(
+          overdueDaysResult.rows[0]?.overdue_days || 0,
+        );
 
         if (overdueDays > 0) {
           const settings = await client.query<{
@@ -151,7 +154,9 @@ export async function POST(
           );
           const cyclePaidRaw = Number(cyclePaidResult.rows[0]?.total_paid || 0);
           const cyclePaid =
-            Number.isFinite(cyclePaidRaw) && cyclePaidRaw > 0 ? cyclePaidRaw : 0;
+            Number.isFinite(cyclePaidRaw) && cyclePaidRaw > 0
+              ? cyclePaidRaw
+              : 0;
 
           const computedAmount = Math.min(
             overdueDays * dailyFineRate,
@@ -187,7 +192,12 @@ export async function POST(
                    paid_at = NULL,
                    updated_at = NOW()
                  WHERE id = $4`,
-                [memberId, remainingAmount, dueDate, unpaidFineResult.rows[0].id],
+                [
+                  memberId,
+                  remainingAmount,
+                  dueDate,
+                  unpaidFineResult.rows[0].id,
+                ],
               );
             } else {
               await client.query(

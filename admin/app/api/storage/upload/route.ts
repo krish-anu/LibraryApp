@@ -17,15 +17,21 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/svg+xml",
 ]);
 const ALLOWED_EXTENSIONS = new Set([
-  ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".svg",
 ]);
 
 const region = process.env.S3_REGION || "ap-south-1";
-const rawEndpoint =
-  process.env.S3_ENDPOINT || "";
+const rawEndpoint = process.env.S3_ENDPOINT || "";
 const bucket =
   process.env.S3_BUCKET || process.env.SUPABASE_STORAGE_BUCKET || "";
-const endpointBase = rawEndpoint.replace(/\/+$/, "").replace(/\/storage\/v1\/s3$/, "");
+const endpointBase = rawEndpoint
+  .replace(/\/+$/, "")
+  .replace(/\/storage\/v1\/s3$/, "");
 const s3Endpoint = `${endpointBase}/storage/v1/s3`;
 
 function getClient() {
@@ -64,7 +70,9 @@ export async function POST(req: NextRequest) {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+        {
+          error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
+        },
         { status: 413 },
       );
     }
@@ -73,7 +81,9 @@ export async function POST(req: NextRequest) {
     const mimeType = (file.type || "").toLowerCase();
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
       return NextResponse.json(
-        { error: `File type '${mimeType}' not allowed. Allowed types: ${[...ALLOWED_MIME_TYPES].join(", ")}` },
+        {
+          error: `File type '${mimeType}' not allowed. Allowed types: ${[...ALLOWED_MIME_TYPES].join(", ")}`,
+        },
         { status: 415 },
       );
     }
@@ -82,7 +92,9 @@ export async function POST(req: NextRequest) {
     const ext = (file.name || "").toLowerCase().match(/\.[^.]+$/)?.[0] || "";
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       return NextResponse.json(
-        { error: `File extension '${ext}' not allowed. Allowed: ${[...ALLOWED_EXTENSIONS].join(", ")}` },
+        {
+          error: `File extension '${ext}' not allowed. Allowed: ${[...ALLOWED_EXTENSIONS].join(", ")}`,
+        },
         { status: 415 },
       );
     }
@@ -209,13 +221,7 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     const errorStack = err instanceof Error ? err.stack : undefined;
-    console.error(
-      "/api/storage/upload error:",
-      errorStack || errorMessage,
-    );
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 },
-    );
+    console.error("/api/storage/upload error:", errorStack || errorMessage);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

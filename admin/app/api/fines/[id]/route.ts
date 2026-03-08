@@ -9,7 +9,11 @@ type FineStatus = "unpaid" | "paid" | "waived";
 function parseFineStatus(value: unknown): FineStatus | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim().toLowerCase();
-  if (normalized === "unpaid" || normalized === "paid" || normalized === "waived") {
+  if (
+    normalized === "unpaid" ||
+    normalized === "paid" ||
+    normalized === "waived"
+  ) {
     return normalized;
   }
   return null;
@@ -117,7 +121,10 @@ export async function PUT(
 
     const fineAmount =
       body.fine_amount === undefined ? null : Number(body.fine_amount);
-    if (fineAmount !== null && (!Number.isFinite(fineAmount) || fineAmount < 0)) {
+    if (
+      fineAmount !== null &&
+      (!Number.isFinite(fineAmount) || fineAmount < 0)
+    ) {
       return NextResponse.json(
         { error: "fine_amount must be a valid positive number" },
         { status: 400 },
@@ -297,7 +304,15 @@ export async function PUT(
           updated_at = NOW()
          WHERE id = $7
          RETURNING *`,
-        [resolvedFineAmount, fineDate, reason, dueDate, nextStatus, requestedPaidAt, id],
+        [
+          resolvedFineAmount,
+          fineDate,
+          reason,
+          dueDate,
+          nextStatus,
+          requestedPaidAt,
+          id,
+        ],
       );
 
       const updatedFine = updatedFineResult.rows[0];

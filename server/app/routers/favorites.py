@@ -8,7 +8,9 @@ from ..models.interactions import Interaction
 from ..models.book import Book
 from ..pydantic_schemas import book as book_schema
 
-router = APIRouter(prefix="/favorites", tags=["favorites"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(
+    prefix="/favorites", tags=["favorites"], dependencies=[Depends(verify_access_token)]
+)
 
 
 @router.get("/{member_id}", response_model=List[book_schema.Book])

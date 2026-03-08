@@ -33,12 +33,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 limiter = Limiter(key_func=get_remote_address)
 
 # Asgardeo Configuration - Read from environment variables
-ASGARDEO_BASE_URL = os.getenv(
-    "ASGARDEO_BASE_URL", ""
-)
+ASGARDEO_BASE_URL = os.getenv("ASGARDEO_BASE_URL", "")
 if not ASGARDEO_BASE_URL:
     import warnings
-    warnings.warn("ASGARDEO_BASE_URL environment variable is not set. Auth endpoints will fail at runtime.")
+
+    warnings.warn(
+        "ASGARDEO_BASE_URL environment variable is not set. Auth endpoints will fail at runtime."
+    )
 # This is your M2M (Machine-to-Machine) application credentials for the backend
 ASGARDEO_M2M_CLIENT_ID = os.getenv("ASGARDEO_M2M_CLIENT_ID", "")
 ASGARDEO_M2M_CLIENT_SECRET = os.getenv("ASGARDEO_M2M_CLIENT_SECRET", "")
@@ -353,7 +354,10 @@ async def _ensure_user_from_access_token(
             pass
         print("Exception while ensuring/creating local user:")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
+        raise HTTPException(
+            status_code=500,
+            detail="An internal error occurred. Please try again later.",
+        )
 
     return user, created
 

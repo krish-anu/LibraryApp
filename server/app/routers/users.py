@@ -10,7 +10,9 @@ from app.models.fine import Fine as FineModel
 from app.models.reservation import Reservation as ReservationModel
 from app.pydantic_schemas import user as user_schema
 
-router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(
+    prefix="/users", tags=["users"], dependencies=[Depends(verify_access_token)]
+)
 
 
 @router.get("/{user_id}", response_model=user_schema.User)

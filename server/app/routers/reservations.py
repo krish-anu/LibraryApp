@@ -10,7 +10,9 @@ from ..models import reservation as reservation_model
 from ..models import loan as loan_model
 from ..pydantic_schemas import reservation as reservation_schema
 
-router = APIRouter(prefix="", tags=["reservations"], dependencies=[Depends(verify_access_token)])  # mount multiple paths manually
+router = APIRouter(
+    prefix="", tags=["reservations"], dependencies=[Depends(verify_access_token)]
+)  # mount multiple paths manually
 
 
 @router.get("/reservations", response_model=List[reservation_schema.Reservation])

@@ -197,14 +197,10 @@ export async function PUT(request: NextRequest) {
     }
 
     const merged: Settings = {
-      loan_period_days:
-        parsedLoanPeriod ?? existing.loan_period_days ?? 14,
-      max_books_per_user:
-        parsedMaxBooks ?? existing.max_books_per_user ?? 5,
-      grace_period_days:
-        parsedGraceDays ?? existing.grace_period_days ?? 2,
-      daily_fine_rate:
-        parsedDailyFineRate ?? existing.daily_fine_rate ?? 0.5,
+      loan_period_days: parsedLoanPeriod ?? existing.loan_period_days ?? 14,
+      max_books_per_user: parsedMaxBooks ?? existing.max_books_per_user ?? 5,
+      grace_period_days: parsedGraceDays ?? existing.grace_period_days ?? 2,
+      daily_fine_rate: parsedDailyFineRate ?? existing.daily_fine_rate ?? 0.5,
       max_fine_cap: parsedMaxFineCap ?? existing.max_fine_cap ?? 25.0,
       block_on_unpaid_fines:
         body.block_on_unpaid_fines ?? existing.block_on_unpaid_fines ?? true,
@@ -212,14 +208,15 @@ export async function PUT(request: NextRequest) {
       send_notifications:
         body.send_notifications ?? existing.send_notifications ?? true,
       notification_days_before_due:
-        parsedNotifyDays ??
-        existing.notification_days_before_due ??
-        3,
+        parsedNotifyDays ?? existing.notification_days_before_due ?? 3,
     };
 
     if (merged.max_fine_cap < merged.daily_fine_rate) {
       return NextResponse.json(
-        { error: "max_fine_cap must be greater than or equal to daily_fine_rate" },
+        {
+          error:
+            "max_fine_cap must be greater than or equal to daily_fine_rate",
+        },
         { status: 400 },
       );
     }

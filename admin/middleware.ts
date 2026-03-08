@@ -56,10 +56,7 @@ export function middleware(request: NextRequest) {
     if (payload.exp && typeof payload.exp === "number" && payload.exp < now) {
       // Token expired
       if (pathname.startsWith("/api/")) {
-        return NextResponse.json(
-          { error: "Session expired" },
-          { status: 401 },
-        );
+        return NextResponse.json({ error: "Session expired" }, { status: 401 });
       }
       const loginUrl = new URL("/login", request.url);
       const response = NextResponse.redirect(loginUrl);

@@ -16,7 +16,9 @@ from ..models import (
 )
 from ..pydantic_schemas import loan as loan_schema
 
-router = APIRouter(prefix="/loans", tags=["loans"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(
+    prefix="/loans", tags=["loans"], dependencies=[Depends(verify_access_token)]
+)
 
 
 @router.get("", response_model=List[loan_schema.Loan])
@@ -103,7 +105,9 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=detail)
 
     max_books_allowed = _max_books_per_user(db)
-    active_loans_count = db.query(loan.Loan).filter(loan.Loan.member_id == member_id).count()
+    active_loans_count = (
+        db.query(loan.Loan).filter(loan.Loan.member_id == member_id).count()
+    )
     if active_loans_count >= max_books_allowed:
         raise HTTPException(
             status_code=400,
@@ -116,8 +120,7 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
             db.query(func.coalesce(func.sum(fine_model.Fine.fine_amount), 0))
             .filter(
                 fine_model.Fine.member_id == member_id,
-                func.lower(func.coalesce(fine_model.Fine.status, "unpaid"))
-                == "unpaid",
+                func.lower(func.coalesce(fine_model.Fine.status, "unpaid")) == "unpaid",
             )
             .scalar()
         )
@@ -182,7 +185,7 @@ def return_book(loan_id: str, db: Session = Depends(get_db)):
     # Increase book copies
     db_book = cast(
         Any,
-        db.query(book_model.Book).filter(book_model.Book.id == db_loan.book_id).first()
+        db.query(book_model.Book).filter(book_model.Book.id == db_loan.book_id).first(),
     )
     if db_book:
         db_book.copies_owned = int(cast(Any, db_book.copies_owned) or 0) + 1

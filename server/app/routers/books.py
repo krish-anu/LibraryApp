@@ -10,7 +10,9 @@ from ..models import category as category_model
 from ..models.interactions import Interaction
 from ..pydantic_schemas import book as book_schema
 
-router = APIRouter(prefix="/books", tags=["books"], dependencies=[Depends(verify_access_token)])
+router = APIRouter(
+    prefix="/books", tags=["books"], dependencies=[Depends(verify_access_token)]
+)
 
 
 def _book_to_response(book_obj: book.Book) -> book_schema.Book:

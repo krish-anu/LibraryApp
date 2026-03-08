@@ -55,7 +55,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const bookColumns = await getBookColumnSet();
-    const usesAuthorId = bookColumns.has("author_id") && !bookColumns.has("author");
+    const usesAuthorId =
+      bookColumns.has("author_id") && !bookColumns.has("author");
 
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -161,31 +162,51 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Input validation
-    if (!body.title || typeof body.title !== "string" || body.title.trim().length < 1 || body.title.trim().length > 500) {
-      return NextResponse.json({ error: "Title is required and must be 1-500 characters" }, { status: 400 });
+    if (
+      !body.title ||
+      typeof body.title !== "string" ||
+      body.title.trim().length < 1 ||
+      body.title.trim().length > 500
+    ) {
+      return NextResponse.json(
+        { error: "Title is required and must be 1-500 characters" },
+        { status: 400 },
+      );
     }
     if (body.rating !== undefined && body.rating !== null) {
       const rating = Number(body.rating);
       if (isNaN(rating) || rating < 0 || rating > 5) {
-        return NextResponse.json({ error: "Rating must be between 0 and 5" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Rating must be between 0 and 5" },
+          { status: 400 },
+        );
       }
     }
     if (body.publication_year !== undefined && body.publication_year !== null) {
       const year = Number(body.publication_year);
       if (isNaN(year) || year < 0 || year > new Date().getFullYear() + 1) {
-        return NextResponse.json({ error: "Invalid publication year" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid publication year" },
+          { status: 400 },
+        );
       }
     }
     if (body.pages !== undefined && body.pages !== null) {
       const pages = Number(body.pages);
       if (isNaN(pages) || pages < 1 || pages > 100000) {
-        return NextResponse.json({ error: "Pages must be between 1 and 100000" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Pages must be between 1 and 100000" },
+          { status: 400 },
+        );
       }
     }
     if (body.copies_owned !== undefined && body.copies_owned !== null) {
       const copies = Number(body.copies_owned);
       if (isNaN(copies) || copies < 0 || copies > 10000) {
-        return NextResponse.json({ error: "Copies owned must be between 0 and 10000" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Copies owned must be between 0 and 10000" },
+          { status: 400 },
+        );
       }
     }
 
@@ -211,7 +232,9 @@ export async function POST(request: NextRequest) {
     if (usesAuthorId) {
       const authorText =
         typeof body.author === "string" ? body.author.trim() : "";
-      const authorId = authorText ? await resolveAuthorIdByName(authorText) : null;
+      const authorId = authorText
+        ? await resolveAuthorIdByName(authorText)
+        : null;
       add("author_id", authorId);
     } else {
       add("author", body.author);
