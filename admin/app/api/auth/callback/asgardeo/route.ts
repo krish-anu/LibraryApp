@@ -17,7 +17,10 @@ export async function GET(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   console.log("[CALLBACK] Start — code:", !!code, "state:", !!state);
-  console.log("[CALLBACK] All cookies:", req.cookies.getAll().map(c => c.name));
+  console.log(
+    "[CALLBACK] All cookies:",
+    req.cookies.getAll().map((c) => c.name),
+  );
 
   // Handle error response from IdP
   if (error) {
@@ -34,10 +37,21 @@ export async function GET(req: NextRequest) {
 
   // Validate state
   const storedState = req.cookies.get("pkce_state")?.value;
-  console.log("[CALLBACK] storedState:", storedState ? storedState.substring(0, 10) + "..." : "MISSING");
-  console.log("[CALLBACK] incomingState:", state ? state.substring(0, 10) + "..." : "MISSING");
+  console.log(
+    "[CALLBACK] storedState:",
+    storedState ? storedState.substring(0, 10) + "..." : "MISSING",
+  );
+  console.log(
+    "[CALLBACK] incomingState:",
+    state ? state.substring(0, 10) + "..." : "MISSING",
+  );
   if (!storedState || storedState !== state) {
-    console.error("[CALLBACK] State mismatch! stored:", !!storedState, "matches:", storedState === state);
+    console.error(
+      "[CALLBACK] State mismatch! stored:",
+      !!storedState,
+      "matches:",
+      storedState === state,
+    );
     return NextResponse.redirect(`${appUrl}/login?error=state_mismatch`);
   }
 
@@ -93,14 +107,22 @@ export async function GET(req: NextRequest) {
       errorBody?.error_description ||
       errorBody?.error ||
       "Token exchange failed";
-    console.error("[CALLBACK] Token exchange failed:", tokenRes.status, detail, JSON.stringify(errorBody));
+    console.error(
+      "[CALLBACK] Token exchange failed:",
+      tokenRes.status,
+      detail,
+      JSON.stringify(errorBody),
+    );
     return NextResponse.redirect(
       `${appUrl}/login?error=${encodeURIComponent(detail)}`,
     );
   }
 
   const tokenJson = await tokenRes.json();
-  console.log("[CALLBACK] Token exchange success, access_token:", !!tokenJson.access_token);
+  console.log(
+    "[CALLBACK] Token exchange success, access_token:",
+    !!tokenJson.access_token,
+  );
   const accessToken = tokenJson.access_token;
   const idToken = tokenJson.id_token || "";
   const expiresIn = tokenJson.expires_in || 3600;
@@ -165,16 +187,14 @@ export async function GET(req: NextRequest) {
     `library_user=${encodeURIComponent(userPayload)}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
   );
   // Clear PKCE cookies
-  respHeaders.append(
-    "Set-Cookie",
-    `pkce_code_verifier=; Path=/; Max-Age=0`,
-  );
-  respHeaders.append(
-    "Set-Cookie",
-    `pkce_state=; Path=/; Max-Age=0`,
-  );
+  respHeaders.append("Set-Cookie", `pkce_code_verifier=; Path=/; Max-Age=0`);
+  respHeaders.append("Set-Cookie", `pkce_state=; Path=/; Max-Age=0`);
 
-  console.log("[CALLBACK] Returning 200 HTML with", respHeaders.getSetCookie().length, "Set-Cookie headers");
+  console.log(
+    "[CALLBACK] Returning 200 HTML with",
+    respHeaders.getSetCookie().length,
+    "Set-Cookie headers",
+  );
 
   return new NextResponse(html, { status: 200, headers: respHeaders });
 }
