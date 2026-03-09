@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const userCookie = req.cookies.get("library_user")?.value;
   if (userCookie) {
     try {
-      const user = JSON.parse(userCookie);
+      const user = JSON.parse(decodeURIComponent(userCookie));
       return NextResponse.json({ authenticated: true, user });
     } catch {
       // fall through to userinfo

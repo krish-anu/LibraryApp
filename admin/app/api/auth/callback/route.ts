@@ -127,9 +127,10 @@ export async function GET(req: NextRequest) {
 
   const response = NextResponse.redirect(`${appUrl}/dashboard`);
 
+  const isProduction = process.env.NODE_ENV === "production";
   const cookieOptions = {
     httpOnly: true,
-    secure: true,
+    secure: isProduction,
     path: "/",
     maxAge: Number(expiresIn),
     sameSite: "lax" as const,

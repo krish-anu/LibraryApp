@@ -16,31 +16,38 @@ export async function GET(req: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+  console.log("[CALLBACK] Start — code:", !!code, "state:", !!state);
+  console.log("[CALLBACK] All cookies:", req.cookies.getAll().map(c => c.name));
+
   // Handle error response from IdP
   if (error) {
-    console.error("OAuth callback error:", error, errorDescription);
+    console.error("[CALLBACK] OAuth IdP error:", error, errorDescription);
     return NextResponse.redirect(
       `${appUrl}/login?error=${encodeURIComponent(errorDescription || error)}`,
     );
   }
 
   if (!code) {
+    console.error("[CALLBACK] Missing code");
     return NextResponse.redirect(`${appUrl}/login?error=missing_code`);
   }
 
   // Validate state
   const storedState = req.cookies.get("pkce_state")?.value;
+  console.log("[CALLBACK] storedState:", storedState ? storedState.substring(0, 10) + "..." : "MISSING");
+  console.log("[CALLBACK] incomingState:", state ? state.substring(0, 10) + "..." : "MISSING");
   if (!storedState || storedState !== state) {
-    console.error("OAuth state mismatch");
+    console.error("[CALLBACK] State mismatch! stored:", !!storedState, "matches:", storedState === state);
     return NextResponse.redirect(`${appUrl}/login?error=state_mismatch`);
   }
 
   // Retrieve code_verifier
   const codeVerifier = req.cookies.get("pkce_code_verifier")?.value;
   if (!codeVerifier) {
-    console.error("Missing PKCE code_verifier cookie");
+    console.error("[CALLBACK] Missing PKCE code_verifier cookie");
     return NextResponse.redirect(`${appUrl}/login?error=missing_verifier`);
   }
+  console.log("[CALLBACK] PKCE cookies present, proceeding to token exchange");
 
   const tokenEndpoint = process.env.ASGARDEO_TOKEN_ENDPOINT;
   const clientId = process.env.ASGARDEO_CLIENT_ID;
@@ -86,13 +93,14 @@ export async function GET(req: NextRequest) {
       errorBody?.error_description ||
       errorBody?.error ||
       "Token exchange failed";
-    console.error("/api/auth/callback token error:", detail);
+    console.error("[CALLBACK] Token exchange failed:", tokenRes.status, detail, JSON.stringify(errorBody));
     return NextResponse.redirect(
       `${appUrl}/login?error=${encodeURIComponent(detail)}`,
     );
   }
 
   const tokenJson = await tokenRes.json();
+  console.log("[CALLBACK] Token exchange success, access_token:", !!tokenJson.access_token);
   const accessToken = tokenJson.access_token;
   const idToken = tokenJson.id_token || "";
   const expiresIn = tokenJson.expires_in || 3600;
@@ -125,31 +133,48 @@ export async function GET(req: NextRequest) {
     // userinfo is best-effort
   }
 
-  const response = NextResponse.redirect(`${appUrl}/dashboard`);
+  // Build Set-Cookie headers manually to bypass Next.js cookie API issues.
+  // Use JavaScript redirect (not meta-refresh) to ensure the browser has fully
+  // processed and persisted the Set-Cookie response headers before navigating.
+  const isProduction = process.env.NODE_ENV === "production";
+  const maxAge = Number(expiresIn);
+  const securePart = isProduction ? "; Secure" : "";
 
-  const cookieOptions = {
-    httpOnly: true,
-    secure: true,
-    path: "/",
-    maxAge: Number(expiresIn),
-    sameSite: "lax" as const,
-  };
+  const dashboardUrl = `${appUrl}/dashboard`;
+  const html = `<!DOCTYPE html>
+<html><head><title>Signing in…</title></head>
+<body>
+<p>Signing in…</p>
+<script>window.location.replace("${dashboardUrl}");</script>
+</body></html>`;
 
-  // Store session tokens in httpOnly cookies
-  response.cookies.set("library_session", accessToken, cookieOptions);
-  response.cookies.set("library_id_token", idToken, {
-    ...cookieOptions,
-    // id_token is needed for logout redirect
-  });
-  // Store user info in a httpOnly cookie for security
-  response.cookies.set("library_user", userPayload, {
-    ...cookieOptions,
-    httpOnly: true,
-  });
-
+  const respHeaders = new Headers();
+  respHeaders.set("Content-Type", "text/html; charset=utf-8");
+  respHeaders.set("Cache-Control", "no-store");
+  // Session cookies — use append so each Set-Cookie is its own header
+  respHeaders.append(
+    "Set-Cookie",
+    `library_session=${accessToken}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
+  );
+  respHeaders.append(
+    "Set-Cookie",
+    `library_id_token=${idToken}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
+  );
+  respHeaders.append(
+    "Set-Cookie",
+    `library_user=${encodeURIComponent(userPayload)}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
+  );
   // Clear PKCE cookies
-  response.cookies.set("pkce_code_verifier", "", { path: "/", maxAge: 0 });
-  response.cookies.set("pkce_state", "", { path: "/", maxAge: 0 });
+  respHeaders.append(
+    "Set-Cookie",
+    `pkce_code_verifier=; Path=/; Max-Age=0`,
+  );
+  respHeaders.append(
+    "Set-Cookie",
+    `pkce_state=; Path=/; Max-Age=0`,
+  );
 
-  return response;
+  console.log("[CALLBACK] Returning 200 HTML with", respHeaders.getSetCookie().length, "Set-Cookie headers");
+
+  return new NextResponse(html, { status: 200, headers: respHeaders });
 }

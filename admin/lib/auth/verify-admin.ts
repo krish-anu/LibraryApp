@@ -3,59 +3,129 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Verify that the current request has a valid admin session.
  *
- * Checks the library_session cookie for a valid JWT and verifies
- * the token against the Asgardeo userinfo endpoint.
+ * Accepts either JWT or opaque access tokens.
+ * - For JWTs, uses payload claims and exp locally.
+ * - For opaque/non-decodable tokens, validates through userinfo endpoint.
  *
  * Returns the user info if valid, or a NextResponse error if not.
  */
+
+type VerifiedUser = { sub: string; email: string; name: string };
+type VerifyAdminResult =
+  | { user: VerifiedUser; error?: never }
+  | { user?: never; error: NextResponse };
+
+type JwtPayload = {
+  sub?: string;
+  email?: string;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  exp?: number;
+};
+
+function parseJwtPayload(token: string): JwtPayload | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function userFromPayload(payload: JwtPayload): VerifiedUser | null {
+  const sub = (payload.sub || "").trim();
+  if (!sub) {
+    return null;
+  }
+
+  return {
+    sub,
+    email: (payload.email || "").trim(),
+    name:
+      (payload.name || "").trim() ||
+      [payload.given_name, payload.family_name].filter(Boolean).join(" "),
+  };
+}
+
+function unauthorized(message: string): VerifyAdminResult {
+  return {
+    error: NextResponse.json({ error: message }, { status: 401 }),
+  };
+}
+
+async function userFromUserInfo(accessToken: string): Promise<VerifiedUser | null> {
+  const userinfoEndpoint = (
+    process.env.ASGARDEO_USERINFO_ENDPOINT || ""
+  ).trim();
+  if (!userinfoEndpoint) {
+    return null;
+  }
+
+  try {
+    const res = await fetch(userinfoEndpoint, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      return null;
+    }
+
+    const info = await res.json();
+    const sub = typeof info.sub === "string" ? info.sub.trim() : "";
+    if (!sub) {
+      return null;
+    }
+
+    return {
+      sub,
+      email: typeof info.email === "string" ? info.email : "",
+      name:
+        [info.given_name, info.family_name].filter(Boolean).join(" ") ||
+        info.name ||
+        info.preferred_username ||
+        info.username ||
+        "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function verifyAdmin(
   req: NextRequest,
-): Promise<
-  | { user: { sub: string; email: string; name: string }; error?: never }
-  | { user?: never; error: NextResponse }
-> {
+): Promise<VerifyAdminResult> {
   const accessToken = req.cookies.get("library_session")?.value;
 
   if (!accessToken) {
-    return {
-      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
-    };
+    return unauthorized("Unauthorized");
   }
 
-  // Validate the token format (basic JWT check)
-  const jwtParts = accessToken.split(".");
-  if (jwtParts.length !== 3) {
-    return {
-      error: NextResponse.json({ error: "Invalid session" }, { status: 401 }),
-    };
-  }
-
-  // Check token expiry
-  try {
-    const payload = JSON.parse(
-      Buffer.from(jwtParts[1], "base64url").toString("utf-8"),
-    );
+  const jwtPayload = parseJwtPayload(accessToken);
+  if (jwtPayload) {
     const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && typeof payload.exp === "number" && payload.exp < now) {
-      return {
-        error: NextResponse.json({ error: "Session expired" }, { status: 401 }),
-      };
+    if (
+      typeof jwtPayload.exp === "number" &&
+      Number.isFinite(jwtPayload.exp) &&
+      jwtPayload.exp < now
+    ) {
+      return unauthorized("Session expired");
     }
 
-    // Return user info from the JWT payload
-    return {
-      user: {
-        sub: payload.sub || "",
-        email: payload.email || "",
-        name:
-          payload.name ||
-          [payload.given_name, payload.family_name].filter(Boolean).join(" ") ||
-          "",
-      },
-    };
-  } catch {
-    return {
-      error: NextResponse.json({ error: "Invalid session" }, { status: 401 }),
-    };
+    const jwtUser = userFromPayload(jwtPayload);
+    if (jwtUser) {
+      return { user: jwtUser };
+    }
   }
+
+  const user = await userFromUserInfo(accessToken);
+  if (user) {
+    return { user };
+  }
+
+  return unauthorized("Invalid session");
 }

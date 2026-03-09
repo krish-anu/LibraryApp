@@ -11,7 +11,57 @@ const PUBLIC_PATHS = [
   "/api/auth/me",
 ];
 
-export function middleware(request: NextRequest) {
+const COOKIE_CLEAR_OPTIONS = { path: "/", maxAge: 0 };
+
+function unauthorized(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const loginUrl = new URL("/login", request.url);
+  const response = NextResponse.redirect(loginUrl);
+  response.cookies.set("library_session", "", COOKIE_CLEAR_OPTIONS);
+  response.cookies.set("library_id_token", "", COOKIE_CLEAR_OPTIONS);
+  response.cookies.set("library_user", "", COOKIE_CLEAR_OPTIONS);
+  return response;
+}
+
+function parseJwtPayload(token: string): { exp?: number } | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const json = atob(padded);
+    return JSON.parse(json) as { exp?: number };
+  } catch {
+    return null;
+  }
+}
+
+async function validateWithUserInfo(accessToken: string): Promise<boolean> {
+  const userInfoEndpoint = (process.env.ASGARDEO_USERINFO_ENDPOINT || "").trim();
+  if (!userInfoEndpoint) {
+    return false;
+  }
+
+  try {
+    const res = await fetch(userInfoEndpoint, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths through without auth check
@@ -21,59 +71,24 @@ export function middleware(request: NextRequest) {
 
   // Check for session cookie
   const session = request.cookies.get("library_session")?.value;
-
   if (!session) {
-    // Never redirect API requests to /login; clients expect JSON/status codes.
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Redirect unauthenticated users to login
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+    return unauthorized(request);
   }
 
-  // Validate the session token is a properly-formed JWT (basic check)
-  // A JWT has 3 base64url-encoded parts separated by dots
-  const jwtParts = session.split(".");
-  if (jwtParts.length !== 3) {
-    // Invalid token format — clear the cookie and redirect to login
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
-    }
-    const loginUrl = new URL("/login", request.url);
-    const response = NextResponse.redirect(loginUrl);
-    response.cookies.set("library_session", "", { path: "/", maxAge: 0 });
-    return response;
-  }
-
-  // Check token expiry from JWT payload
-  try {
-    const payload = JSON.parse(
-      Buffer.from(jwtParts[1], "base64url").toString("utf-8"),
-    );
+  // JWT tokens can be checked locally for expiry.
+  const payload = parseJwtPayload(session);
+  if (payload) {
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp && typeof payload.exp === "number" && payload.exp < now) {
-      // Token expired
-      if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: "Session expired" }, { status: 401 });
-      }
-      const loginUrl = new URL("/login", request.url);
-      const response = NextResponse.redirect(loginUrl);
-      response.cookies.set("library_session", "", { path: "/", maxAge: 0 });
-      response.cookies.set("library_id_token", "", { path: "/", maxAge: 0 });
-      response.cookies.set("library_user", "", { path: "/", maxAge: 0 });
-      return response;
+      return unauthorized(request);
     }
-  } catch {
-    // If we can't parse the JWT, reject
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
-    }
-    const loginUrl = new URL("/login", request.url);
-    const response = NextResponse.redirect(loginUrl);
-    response.cookies.set("library_session", "", { path: "/", maxAge: 0 });
-    return response;
+    return NextResponse.next();
+  }
+
+  // Non-JWT token (opaque/JWE): validate through userinfo endpoint.
+  const valid = await validateWithUserInfo(session);
+  if (!valid) {
+    return unauthorized(request);
   }
 
   return NextResponse.next();

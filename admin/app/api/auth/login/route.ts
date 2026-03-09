@@ -17,6 +17,7 @@ export async function GET() {
   const clientId = process.env.ASGARDEO_CLIENT_ID;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const scope = process.env.ASGARDEO_SCOPE || "openid profile email";
+  const prompt = (process.env.ASGARDEO_PROMPT || "login").trim();
 
   if (!authorizeEndpoint || !clientId) {
     return NextResponse.json(
@@ -43,19 +44,31 @@ export async function GET() {
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
   });
+  if (prompt) {
+    params.set("prompt", prompt);
+  }
 
   const authUrl = `${authorizeEndpoint}?${params.toString()}`;
 
-  const response = NextResponse.redirect(authUrl);
-
-  // Store code_verifier and state in httpOnly cookies for the callback
+  // Return an HTML page that sets cookies (via Set-Cookie headers on a 200
+  // response) and THEN redirects.  Using a 307 redirect with Set-Cookie is
+  // unreliable — some browsers/environments don't persist cookies on redirect
+  // responses before following the Location header.
+  const isProduction = process.env.NODE_ENV === "production";
   const cookieOptions = {
     httpOnly: true,
-    secure: true,
+    secure: isProduction,
     path: "/",
     maxAge: 600, // 10 minutes – enough time to complete login
     sameSite: "lax" as const,
   };
+
+  const html = `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${authUrl}"></head><body>Redirecting to login…</body></html>`;
+
+  const response = new NextResponse(html, {
+    status: 200,
+    headers: { "Content-Type": "text/html" },
+  });
 
   response.cookies.set("pkce_code_verifier", codeVerifier, cookieOptions);
   response.cookies.set("pkce_state", state, cookieOptions);
