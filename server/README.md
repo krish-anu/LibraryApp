@@ -1,0 +1,83 @@
+# Server Docker Setup
+
+This backend can run either:
+
+- against your existing external PostgreSQL database
+- or with a local PostgreSQL container via Docker Compose
+
+## Files
+
+- `Dockerfile`: production-style image for the FastAPI backend
+- `compose.yaml`: local backend + PostgreSQL stack
+- `.env.example`: environment variables used by the backend
+
+## 1. Prepare environment variables
+
+From the `server` directory:
+
+```bash
+cp .env.example .env
+```
+
+Update the values in `.env` as needed.
+
+Notes:
+
+- `DATABASE_URL` is optional. If set, it overrides the split `DB_*` variables.
+- For the included `compose.yaml`, the API is forced to use the local `db` service with `sslmode=disable`.
+- For external PostgreSQL or Supabase, keep `DB_SSLMODE=require` or provide a full `DATABASE_URL`.
+
+## 2. Run with Docker Compose
+
+This starts:
+
+- `api` on `http://localhost:8000`
+- `db` on `localhost:5432`
+
+```bash
+docker compose up --build
+```
+
+To run in the background:
+
+```bash
+docker compose up --build -d
+```
+
+To stop:
+
+```bash
+docker compose down
+```
+
+To stop and remove the database volume:
+
+```bash
+docker compose down -v
+```
+
+## 3. Run only the backend container
+
+Use this if you already have a PostgreSQL database.
+
+Build:
+
+```bash
+docker build -t libraryapp-server .
+```
+
+Run:
+
+```bash
+docker run --env-file .env -p 8000:8000 libraryapp-server
+```
+
+## 4. Health check
+
+The container health check calls:
+
+```text
+GET /
+```
+
+The API root should respond with a small JSON message when the app is healthy.

@@ -178,8 +178,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve client assets (book covers etc.) at /assets
-project_root = Path(__file__).resolve().parents[1].parent
+# Serve client assets (book covers etc.) at /assets when they are available.
+server_root = Path(__file__).resolve().parents[1]
+repo_root = server_root.parent
+project_root = repo_root if (repo_root / "client").exists() else server_root
 client_assets = project_root / "client" / "assets"
 if client_assets.exists():
     app.mount("/assets", StaticFiles(directory=str(client_assets)), name="assets")

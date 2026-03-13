@@ -14,18 +14,23 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
+DB_SSLMODE = os.getenv("DB_SSLMODE", "require")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
-if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME]):
-    raise ValueError("One or more database environment variables are missing!")
+if not DATABASE_URL and not all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME]):
+    raise ValueError("DATABASE_URL or the split DB_* environment variables are required.")
 
-encoded_user = quote_plus(str(DB_USER))
-encoded_password = quote_plus(str(DB_PASSWORD))
+if not DATABASE_URL:
+    encoded_user = quote_plus(str(DB_USER))
+    encoded_password = quote_plus(str(DB_PASSWORD))
 
-DATABASE_URL = (
-    f"postgresql+psycopg2://{encoded_user}:{encoded_password}"
-    f"@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
-)
+    DATABASE_URL = (
+        f"postgresql+psycopg2://{encoded_user}:{encoded_password}"
+        f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    )
+    if DB_SSLMODE:
+        DATABASE_URL = f"{DATABASE_URL}?sslmode={DB_SSLMODE}"
 
 engine = create_engine(
     DATABASE_URL,
