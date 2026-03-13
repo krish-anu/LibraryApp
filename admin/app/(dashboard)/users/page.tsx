@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { formatDate } from "@/lib/utils";
 import { User } from "@/lib/types";
@@ -52,11 +51,7 @@ export default function UsersPage() {
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [page, searchQuery, statusFilter]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -75,7 +70,11 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, page, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleOpenModal = (user?: User) => {
     if (user) {
@@ -145,19 +144,6 @@ export default function UsersPage() {
 
   const totalPages = Math.ceil(totalCount / limit);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge variant="success">Active</Badge>;
-      case "suspended":
-        return <Badge variant="warning">Suspended</Badge>;
-      case "inactive":
-        return <Badge variant="danger">Inactive</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
   return (
     <div>
       <Header
@@ -165,11 +151,11 @@ export default function UsersPage() {
         subtitle="Manage library members and their accounts"
       />
 
-      <div className="p-8">
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
         {/* Filters */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-50">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+            <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
@@ -182,144 +168,238 @@ export default function UsersPage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <Select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              options={[
-                { value: "", label: "All Status" },
-                { value: "active", label: "Active" },
-                { value: "suspended", label: "Suspended" },
-                { value: "inactive", label: "Inactive" },
-              ]}
-              className="w-40"
-            />
-            <Button onClick={() => handleOpenModal()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create New User
-            </Button>
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-none">
+              <Select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: "", label: "All Status" },
+                  { value: "active", label: "Active" },
+                  { value: "suspended", label: "Suspended" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
+                className="w-full sm:w-40"
+              />
+              <Button
+                onClick={() => handleOpenModal()}
+                className="w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create New User
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Users Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  User
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Member ID
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Contact
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Joined
-                </th>
-                <th className="text-right px-6 py-3 text-sm font-semibold text-gray-900">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    <div className="flex justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
+          <div className="divide-y divide-gray-200 md:hidden">
+            {loading ? (
+              <div className="px-6 py-12 text-center text-gray-500">
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
+                </div>
+              </div>
+            ) : users.length === 0 ? (
+              <div className="px-6 py-12 text-center text-gray-500">
+                <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No users found</p>
+              </div>
+            ) : (
+              users.map((user) => (
+                <div key={user.id} className="space-y-4 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1E3A5F] font-medium text-white">
+                      {user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
                     </div>
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No users found</p>
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#1E3A5F] rounded-full flex items-center justify-center text-white font-medium">
-                          {user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .slice(0, 2)
-                            .toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {user.name}
-                          </p>
-                          <p className="text-sm text-gray-500">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {user.member_id || "-"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900">{user.name}</p>
+                      <p className="truncate text-sm text-gray-500">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 text-sm text-gray-600 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Member ID
+                      </p>
+                      <p>{user.member_id || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Joined
+                      </p>
+                      <p>{user.joined_date ? formatDate(user.joined_date) : "-"}</p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Contact
+                      </p>
+                      <div className="mt-1 space-y-1">
                         {user.phone && (
-                          <p className="flex items-center gap-1 text-gray-600">
-                            <Phone className="w-3 h-3" />
+                          <p className="flex items-center gap-2 text-gray-600">
+                            <Phone className="h-3 w-3" />
                             {user.phone}
                           </p>
                         )}
                         {user.email && (
-                          <p className="flex items-center gap-1 text-gray-500">
-                            <Mail className="w-3 h-3" />
+                          <p className="flex items-center gap-2 text-gray-500">
+                            <Mail className="h-3 w-3" />
                             {user.email}
                           </p>
                         )}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {user.joined_date ? formatDate(user.joined_date) : "-"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleOpenModal(user)}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-gray-600" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user)}
-                          className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleOpenModal(user)}
+                      className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+                    >
+                      <Edit className="h-4 w-4 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user)}
+                      className="rounded-lg p-2 transition-colors hover:bg-red-100"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[760px]">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    User
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Member ID
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Contact
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Joined
+                  </th>
+                  <th className="text-right px-6 py-3 text-sm font-semibold text-gray-900">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : users.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
+                      <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p>No users found</p>
+                    </td>
+                  </tr>
+                ) : (
+                  users.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#1E3A5F] rounded-full flex items-center justify-center text-white font-medium">
+                            {user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {user.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {user.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {user.member_id || "-"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm">
+                          {user.phone && (
+                            <p className="flex items-center gap-1 text-gray-600">
+                              <Phone className="w-3 h-3" />
+                              {user.phone}
+                            </p>
+                          )}
+                          {user.email && (
+                            <p className="flex items-center gap-1 text-gray-500">
+                              <Mail className="w-3 h-3" />
+                              {user.email}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {user.joined_date ? formatDate(user.joined_date) : "-"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenModal(user)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-4 h-4 text-gray-600" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user)}
+                            className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <p className="text-sm text-gray-500">
                 Showing {(page - 1) * limit + 1} to{" "}
                 {Math.min(page * limit, totalCount)} of {totalCount} users
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 sm:justify-end">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
@@ -387,15 +467,16 @@ export default function UsersPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="secondary"
+              className="w-full sm:w-auto"
               onClick={handleCloseModal}
             >
               Cancel
             </Button>
-            <Button type="submit" isLoading={isSubmitting}>
+            <Button type="submit" isLoading={isSubmitting} className="w-full sm:w-auto">
               {editingUser ? "Update User" : "Create User"}
             </Button>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,10 +69,6 @@ export default function BooksPage() {
     fetchCategories();
   }, []);
 
-  useEffect(() => {
-    fetchBooks();
-  }, [page, searchQuery, statusFilter, categoryFilter]);
-
   const fetchCategories = async () => {
     try {
       const res = await fetch("/api/categories");
@@ -83,7 +79,7 @@ export default function BooksPage() {
     }
   };
 
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -103,7 +99,11 @@ export default function BooksPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryFilter, limit, page, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    fetchBooks();
+  }, [fetchBooks]);
 
   const handleOpenModal = (book?: Book) => {
     if (book) {
@@ -246,11 +246,11 @@ export default function BooksPage() {
         subtitle="Manage your library's book collection"
       />
 
-      <div className="p-8">
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
         {/* Filters */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-50">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+            <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
@@ -263,159 +263,254 @@ export default function BooksPage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <Select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              options={[
-                { value: "", label: "All Status" },
-                { value: "available", label: "Available" },
-                { value: "not_available", label: "Not Available" },
-              ]}
-              className="w-40"
-            />
-            <Select
-              value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value);
-                setPage(1);
-              }}
-              options={[
-                { value: "", label: "All Categories" },
-                ...categories.map((c) => ({ value: c.id, label: c.name })),
-              ]}
-              className="w-40"
-            />
-            <Button onClick={() => handleOpenModal()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Book
-            </Button>
+            <div className="flex flex-col gap-3 sm:flex-row xl:flex-none">
+              <Select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: "", label: "All Status" },
+                  { value: "available", label: "Available" },
+                  { value: "not_available", label: "Not Available" },
+                ]}
+                className="w-full sm:w-40"
+              />
+              <Select
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: "", label: "All Categories" },
+                  ...categories.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+                className="w-full sm:w-44"
+              />
+              <Button
+                onClick={() => handleOpenModal()}
+                className="w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add New Book
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Books Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Book
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Category
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Copies
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Status
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Year
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Rating
-                </th>
-                <th className="text-right px-6 py-3 text-sm font-semibold text-gray-900">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    <div className="flex justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
+          <div className="divide-y divide-gray-200 md:hidden">
+            {loading ? (
+              <div className="px-6 py-12 text-center text-gray-500">
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
+                </div>
+              </div>
+            ) : books.length === 0 ? (
+              <div className="px-6 py-12 text-center text-gray-500">
+                <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No books found</p>
+              </div>
+            ) : (
+              books.map((book) => (
+                <div key={book.id} className="space-y-4 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-16 w-12 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-200">
+                      {book.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={book.image}
+                          alt={book.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <BookOpen className="h-5 w-5 text-gray-400" />
+                      )}
                     </div>
-                  </td>
-                </tr>
-              ) : books.length === 0 ? (
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900">{book.title}</p>
+                      <p className="text-sm text-gray-500">{book.author}</p>
+                      <div className="mt-2">{getStatusBadge(book)}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Category
+                      </p>
+                      <p>{book.category || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Copies
+                      </p>
+                      <p>{book.copies_owned}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Year
+                      </p>
+                      <p>{book.publication_year || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Rating
+                      </p>
+                      <p>
+                        {typeof book.rating === "number"
+                          ? book.rating.toFixed(1)
+                          : "-"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleOpenModal(book)}
+                      className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+                    >
+                      <Edit className="h-4 w-4 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(book)}
+                      className="rounded-lg p-2 transition-colors hover:bg-red-100"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[880px]">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No books found</p>
-                  </td>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Book
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Category
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Copies
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Status
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Year
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Rating
+                  </th>
+                  <th className="text-right px-6 py-3 text-sm font-semibold text-gray-900">
+                    Actions
+                  </th>
                 </tr>
-              ) : (
-                books.map((book) => (
-                  <tr key={book.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-14 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
-                          {book.image ? (
-                            <img
-                              src={book.image}
-                              alt={book.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <BookOpen className="w-5 h-5 text-gray-400" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {book.title}
-                          </p>
-                          <p className="text-sm text-gray-500">{book.author}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {book.category || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {book.copies_owned}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {getStatusBadge(book)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {book.publication_year || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {typeof book.rating === "number"
-                        ? book.rating.toFixed(1)
-                        : "-"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleOpenModal(book)}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-gray-600" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(book)}
-                          className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : books.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
+                      <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p>No books found</p>
+                    </td>
+                  </tr>
+                ) : (
+                  books.map((book) => (
+                    <tr key={book.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-14 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
+                            {book.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={book.image}
+                                alt={book.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <BookOpen className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {book.title}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {book.author}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {book.category || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {book.copies_owned}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {getStatusBadge(book)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {book.publication_year || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {typeof book.rating === "number"
+                          ? book.rating.toFixed(1)
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenModal(book)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-4 h-4 text-gray-600" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(book)}
+                            className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <p className="text-sm text-gray-500">
                 Showing {(page - 1) * limit + 1} to{" "}
                 {Math.min(page * limit, totalCount)} of {totalCount} books
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 sm:justify-end">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
@@ -447,7 +542,7 @@ export default function BooksPage() {
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
               label="Title"
               value={formData.title}
@@ -465,7 +560,7 @@ export default function BooksPage() {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Select
               label="Category"
               value={formData.category_id}
@@ -492,7 +587,7 @@ export default function BooksPage() {
               }
             />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Input
               label="Copies Owned"
               type="number"
@@ -530,7 +625,7 @@ export default function BooksPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Cover Image
             </label>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div className="w-24 h-32 bg-gray-100 rounded overflow-hidden flex items-center justify-center border">
                 {coverPreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -590,15 +685,16 @@ export default function BooksPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="secondary"
+              className="w-full sm:w-auto"
               onClick={handleCloseModal}
             >
               Cancel
             </Button>
-            <Button type="submit" isLoading={isSubmitting}>
+            <Button type="submit" isLoading={isSubmitting} className="w-full sm:w-auto">
               {editingBook ? "Update Book" : "Add Book"}
             </Button>
           </div>

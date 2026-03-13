@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings } from "@/lib/types";
 import { Save, BookOpen, Building, User } from "lucide-react";
 
 interface SettingsFormData {
@@ -88,7 +87,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E3A5F]" />
       </div>
     );
@@ -101,25 +100,27 @@ export default function SettingsPage() {
         subtitle="Configure library rules and preferences"
       />
 
-      <div className="p-8">
-        <div className="flex gap-6">
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-6 xl:flex-row">
           {/* Sidebar Tabs */}
-          <div className="w-64 shrink-0">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                    activeTab === tab.key
-                      ? "bg-[#1E3A5F] text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <tab.icon className="w-5 h-5" />
-                  <span className="font-medium">{tab.label}</span>
-                </button>
-              ))}
+          <div className="shrink-0 xl:w-64">
+            <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white p-2 shadow-sm">
+              <div className="flex min-w-max gap-2 xl:min-w-0 xl:flex-col">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors xl:w-full ${
+                      activeTab === tab.key
+                        ? "bg-[#1E3A5F] text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <tab.icon className="w-5 h-5" />
+                    <span className="font-medium">{tab.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -132,7 +133,7 @@ export default function SettingsPage() {
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">
                       Loan & Fine Rules
                     </h2>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <Input
                         label="Default Loan Period (days)"
                         type="number"
@@ -291,7 +292,7 @@ export default function SettingsPage() {
                     defaultValue="123 Main Street, City, State 12345"
                     placeholder="Enter library address"
                   />
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <Input
                       label="Phone"
                       defaultValue="(555) 123-4567"
@@ -322,7 +323,7 @@ export default function SettingsPage() {
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Admin Profile
                   </h2>
-                  <div className="flex items-center gap-4 mb-6">
+                  <div className="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                     <div className="w-20 h-20 bg-[#1E3A5F] rounded-full flex items-center justify-center text-white text-2xl font-bold">
                       A
                     </div>
@@ -376,8 +377,12 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <div className="flex justify-end pt-6 border-t border-gray-200 mt-6">
-                <Button onClick={handleSave} isLoading={saving}>
+              <div className="mt-6 flex border-t border-gray-200 pt-6 sm:justify-end">
+                <Button
+                  onClick={handleSave}
+                  isLoading={saving}
+                  className="w-full sm:w-auto"
+                >
                   <Save className="w-4 h-4 mr-2" />
                   Save Changes
                 </Button>

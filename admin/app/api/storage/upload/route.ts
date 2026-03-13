@@ -189,13 +189,13 @@ export async function POST(req: NextRequest) {
       }
       console.error("Raw error body:", raw);
 
-      let availableBuckets: string[] | undefined;
       if (err.name === "NoSuchBucket" || err.message === "Bucket not found") {
         try {
           const listed = await client.send(new ListBucketsCommand({}));
-          availableBuckets = (listed?.Buckets || [])
+          const bucketNames = (listed?.Buckets || [])
             .map((b) => b.Name)
             .filter((name): name is string => Boolean(name));
+          console.error("Available buckets:", bucketNames);
         } catch (listErr: unknown) {
           const listErrMessage =
             listErr instanceof Error ? listErr.message : String(listErr);

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatRelativeDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { Users, BookOpen, AlertCircle, Clock, TrendingUp } from "lucide-react";
 import {
   BarChart,
@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E3A5F]" />
       </div>
     );
@@ -80,9 +80,9 @@ export default function DashboardPage() {
         subtitle="Welcome back! Here's your library overview."
       />
 
-      <div className="p-8">
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 sm:gap-6">
           <StatCard
             title="Active Users"
             value={(data?.stats?.activeUsers ?? 0).toLocaleString()}
@@ -117,16 +117,16 @@ export default function DashboardPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           {/* Most Viewed Books Chart */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6 flex items-center justify-between gap-4">
               <h2 className="text-lg font-semibold text-gray-900">
                 Most Borrowed Books
               </h2>
               <TrendingUp className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="h-64">
+            <div className="h-64 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical">
                   <CartesianGrid
@@ -138,7 +138,7 @@ export default function DashboardPage() {
                   <YAxis
                     dataKey="name"
                     type="category"
-                    width={100}
+                    width={84}
                     tick={{ fontSize: 12 }}
                   />
                   <Tooltip />
@@ -150,7 +150,7 @@ export default function DashboardPage() {
 
           {/* Recent Fines */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6 flex items-center justify-between gap-4">
               <h2 className="text-lg font-semibold text-gray-900">
                 Recent Fines
               </h2>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
                 data?.recentFines?.map((fine) => (
                   <div
                     key={fine.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex flex-col gap-3 rounded-lg bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
                       <p className="font-medium text-gray-900">
@@ -178,7 +178,7 @@ export default function DashboardPage() {
                       </p>
                       <p className="text-sm text-gray-500">{fine.reason}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="sm:text-right">
                       <p className="font-semibold text-gray-900">
                         {formatCurrency(fine.amount)}
                       </p>
@@ -196,11 +196,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Inventory Overview */}
-        <div className="mt-6 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="mt-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <a
               href="/books"
               className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"

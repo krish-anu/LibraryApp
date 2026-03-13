@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,10 +84,6 @@ export default function FinesPage() {
     fetchUsers();
   }, []);
 
-  useEffect(() => {
-    fetchFines();
-  }, [page, searchQuery, activeTab]);
-
   const fetchUsers = async () => {
     try {
       const usersRes = await fetch("/api/users?limit=100");
@@ -98,7 +94,7 @@ export default function FinesPage() {
     }
   };
 
-  const fetchFines = async () => {
+  const fetchFines = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage(null);
@@ -129,7 +125,11 @@ export default function FinesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, limit, page, searchQuery]);
+
+  useEffect(() => {
+    fetchFines();
+  }, [fetchFines]);
 
   const handleOpenModal = () => {
     setFormData(initialFormData);
@@ -346,29 +346,31 @@ export default function FinesPage() {
         subtitle="Manage library fines and overdue penalties"
       />
 
-      <div className="p-8">
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
         {/* Tabs */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => {
-                  setActiveTab(tab.key);
-                  setPage(1);
-                }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === tab.key
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="overflow-x-auto">
+            <div className="flex min-w-max rounded-lg bg-gray-100 p-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setActiveTab(tab.key);
+                    setPage(1);
+                  }}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === tab.key
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex-1" />
-          <Button onClick={handleOpenModal}>
+          <div className="hidden flex-1 lg:block" />
+          <Button onClick={handleOpenModal} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Create Manual Fine
           </Button>
@@ -397,90 +399,56 @@ export default function FinesPage() {
 
         {/* Fines Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  User
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  References
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Fine Details
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Date Details
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Payment Details
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
-                  Status
-                </th>
-                <th className="text-right px-6 py-3 text-sm font-semibold text-gray-900">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    <div className="flex justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
+          <div className="divide-y divide-gray-200 md:hidden">
+            {loading ? (
+              <div className="px-6 py-12 text-center text-gray-500">
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
+                </div>
+              </div>
+            ) : errorMessage ? (
+              <div className="px-6 py-12 text-center text-red-600">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-300" />
+                <p>{errorMessage}</p>
+              </div>
+            ) : fines.length === 0 ? (
+              <div className="px-6 py-12 text-center text-gray-500">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No fines found</p>
+              </div>
+            ) : (
+              fines.map((fine) => {
+                const fineStatus = (fine.status || "unpaid").toLowerCase();
+                const remainingDue = Math.max(0, toAmount(fine.fine_amount));
+                const totalPaid = Math.max(
+                  0,
+                  toAmount(fine.total_paid ?? fine.payment_amount),
+                );
+                const totalFine = Math.max(
+                  remainingDue,
+                  toAmount(fine.total_fine_amount ?? remainingDue + totalPaid),
+                );
+                const userTotalDue = Math.max(0, toAmount(fine.user_total_due));
+
+                return (
+                  <div key={fine.id} className="space-y-4 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900">
+                          {fine.user_name || "Unknown User"}
+                        </p>
+                        <p className="truncate text-sm text-gray-500">
+                          {fine.user_email}
+                        </p>
+                      </div>
+                      {getStatusBadge(fineStatus)}
                     </div>
-                  </td>
-                </tr>
-              ) : errorMessage ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-red-600"
-                  >
-                    <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-300" />
-                    <p>{errorMessage}</p>
-                  </td>
-                </tr>
-              ) : fines.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No fines found</p>
-                  </td>
-                </tr>
-              ) : (
-                fines.map((fine) => {
-                  const fineStatus = (fine.status || "unpaid").toLowerCase();
-                  const remainingDue = Math.max(0, toAmount(fine.fine_amount));
-                  const totalPaid = Math.max(
-                    0,
-                    toAmount(fine.total_paid ?? fine.payment_amount),
-                  );
-                  const totalFine = Math.max(
-                    remainingDue,
-                    toAmount(fine.total_fine_amount ?? remainingDue + totalPaid),
-                  );
-                  const userTotalDue = Math.max(0, toAmount(fine.user_total_due));
-                  return (
-                    <tr key={fine.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {fine.user_name || "Unknown User"}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {fine.user_email}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+
+                    <div className="space-y-3 text-sm text-gray-600">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                          References
+                        </p>
                         <p>Book: {fine.book_title || "-"}</p>
                         <p className="text-xs text-gray-500">Fine ID: {fine.id}</p>
                         <p className="text-xs text-gray-500">
@@ -489,87 +457,267 @@ export default function FinesPage() {
                         <p className="text-xs text-gray-500">
                           Loan ID: {fine.loan_id || "-"}
                         </p>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                          Fine Details
+                        </p>
                         <p className="font-medium text-gray-900">
                           {fine.reason || "Overdue fine"}
                         </p>
                         <p className="text-xs text-gray-500">
                           Current payment method: {fine.payment_method || "-"}
                         </p>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                          Dates
+                        </p>
                         <p>Fine date: {formatDate(fine.fine_date)}</p>
                         <p>
                           Due date:{" "}
                           {fine.due_date ? formatDate(fine.due_date) : "-"}
                         </p>
                         <p>Paid at: {formatDateTime(fine.paid_at)}</p>
-                        <p>Payment date: {fine.payment_date ? formatDate(fine.payment_date) : "-"}</p>
-                        <p>Created: {formatDateTime(fine.created_at)}</p>
-                        <p>Updated: {formatDateTime(fine.updated_at)}</p>
-                      </td>
-                      <td className="px-6 py-4 font-semibold text-gray-900">
-                        <p>Current due: {formatCurrency(remainingDue)}</p>
-                        <p className="text-xs font-normal text-gray-500">
+                        <p>
+                          Payment date:{" "}
+                          {fine.payment_date ? formatDate(fine.payment_date) : "-"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                          Payment
+                        </p>
+                        <p className="font-semibold text-gray-900">
+                          Current due: {formatCurrency(remainingDue)}
+                        </p>
+                        <p className="text-xs text-gray-500">
                           Original total fine: {formatCurrency(totalFine)}
                         </p>
-                        <p className="text-xs font-normal text-gray-500">
+                        <p className="text-xs text-gray-500">
                           Paid so far: {formatCurrency(totalPaid)}
                         </p>
-                        <p className="text-xs font-normal text-gray-500">
+                        <p className="text-xs text-gray-500">
                           User total due: {formatCurrency(userTotalDue)}
                         </p>
-                        <p className="text-xs font-normal text-gray-500">
+                        <p className="text-xs text-gray-500">
                           Payments count: {toAmount(fine.payment_count)}
                         </p>
-                        <p className="text-xs font-normal text-gray-500">
+                        <p className="text-xs text-gray-500">
                           Handled by: {fine.payment_handled_by || "-"}
                         </p>
-                        <p className="text-xs font-normal text-gray-500">
-                          Notes: {fine.payment_notes || "-"}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        {getStatusBadge(fineStatus)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          {fineStatus !== "paid" && fineStatus !== "waived" && (
-                            <button
-                              onClick={() => handleOpenManageModal(fine)}
-                              className="p-2 hover:bg-green-100 rounded-lg transition-colors"
-                              title="Manage Payment & Renewal"
-                            >
-                              <Wallet className="w-4 h-4 text-green-600" />
-                            </button>
-                          )}
-                          {fineStatus !== "waived" && (
-                            <button
-                              onClick={() => handleWaive(fine)}
-                              className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                              title="Waive Fine"
-                            >
-                              <X className="w-4 h-4 text-red-600" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2">
+                      {fineStatus !== "paid" && fineStatus !== "waived" && (
+                        <button
+                          onClick={() => handleOpenManageModal(fine)}
+                          className="rounded-lg p-2 transition-colors hover:bg-green-100"
+                          title="Manage Payment & Renewal"
+                        >
+                          <Wallet className="h-4 w-4 text-green-600" />
+                        </button>
+                      )}
+                      {fineStatus !== "waived" && (
+                        <button
+                          onClick={() => handleWaive(fine)}
+                          className="rounded-lg p-2 transition-colors hover:bg-red-100"
+                          title="Waive Fine"
+                        >
+                          <X className="h-4 w-4 text-red-600" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[1180px]">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    User
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    References
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Fine Details
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Date Details
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Payment Details
+                  </th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
+                    Status
+                  </th>
+                  <th className="text-right px-6 py-3 text-sm font-semibold text-gray-900">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A5F]" />
+                      </div>
+                    </td>
+                  </tr>
+                ) : errorMessage ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-12 text-center text-red-600"
+                    >
+                      <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-300" />
+                      <p>{errorMessage}</p>
+                    </td>
+                  </tr>
+                ) : fines.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
+                      <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p>No fines found</p>
+                    </td>
+                  </tr>
+                ) : (
+                  fines.map((fine) => {
+                    const fineStatus = (fine.status || "unpaid").toLowerCase();
+                    const remainingDue = Math.max(0, toAmount(fine.fine_amount));
+                    const totalPaid = Math.max(
+                      0,
+                      toAmount(fine.total_paid ?? fine.payment_amount),
+                    );
+                    const totalFine = Math.max(
+                      remainingDue,
+                      toAmount(fine.total_fine_amount ?? remainingDue + totalPaid),
+                    );
+                    const userTotalDue = Math.max(0, toAmount(fine.user_total_due));
+                    return (
+                      <tr key={fine.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {fine.user_name || "Unknown User"}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {fine.user_email}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          <p>Book: {fine.book_title || "-"}</p>
+                          <p className="text-xs text-gray-500">
+                            Fine ID: {fine.id}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Member ID: {fine.member_id || "-"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Loan ID: {fine.loan_id || "-"}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          <p className="font-medium text-gray-900">
+                            {fine.reason || "Overdue fine"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Current payment method: {fine.payment_method || "-"}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          <p>Fine date: {formatDate(fine.fine_date)}</p>
+                          <p>
+                            Due date:{" "}
+                            {fine.due_date ? formatDate(fine.due_date) : "-"}
+                          </p>
+                          <p>Paid at: {formatDateTime(fine.paid_at)}</p>
+                          <p>
+                            Payment date:{" "}
+                            {fine.payment_date ? formatDate(fine.payment_date) : "-"}
+                          </p>
+                          <p>Created: {formatDateTime(fine.created_at)}</p>
+                          <p>Updated: {formatDateTime(fine.updated_at)}</p>
+                        </td>
+                        <td className="px-6 py-4 font-semibold text-gray-900">
+                          <p>Current due: {formatCurrency(remainingDue)}</p>
+                          <p className="text-xs font-normal text-gray-500">
+                            Original total fine: {formatCurrency(totalFine)}
+                          </p>
+                          <p className="text-xs font-normal text-gray-500">
+                            Paid so far: {formatCurrency(totalPaid)}
+                          </p>
+                          <p className="text-xs font-normal text-gray-500">
+                            User total due: {formatCurrency(userTotalDue)}
+                          </p>
+                          <p className="text-xs font-normal text-gray-500">
+                            Payments count: {toAmount(fine.payment_count)}
+                          </p>
+                          <p className="text-xs font-normal text-gray-500">
+                            Handled by: {fine.payment_handled_by || "-"}
+                          </p>
+                          <p className="text-xs font-normal text-gray-500">
+                            Notes: {fine.payment_notes || "-"}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(fineStatus)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            {fineStatus !== "paid" && fineStatus !== "waived" && (
+                              <button
+                                onClick={() => handleOpenManageModal(fine)}
+                                className="p-2 hover:bg-green-100 rounded-lg transition-colors"
+                                title="Manage Payment & Renewal"
+                              >
+                                <Wallet className="w-4 h-4 text-green-600" />
+                              </button>
+                            )}
+                            {fineStatus !== "waived" && (
+                              <button
+                                onClick={() => handleWaive(fine)}
+                                className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                                title="Waive Fine"
+                              >
+                                <X className="w-4 h-4 text-red-600" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <p className="text-sm text-gray-500">
                 Showing {(page - 1) * limit + 1} to{" "}
                 {Math.min(page * limit, totalCount)} of {totalCount} fines
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 sm:justify-end">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
@@ -645,6 +793,7 @@ export default function FinesPage() {
               <Button
                 onClick={handleRecordPhysicalPayment}
                 isLoading={isRecordingPayment}
+                className="w-full sm:w-auto"
               >
                 Record Physical Payment
               </Button>
@@ -663,6 +812,7 @@ export default function FinesPage() {
                 isLoading={isRenewingLoan}
                 disabled={!selectedFine.loan_id}
                 variant="secondary"
+                className="w-full sm:w-auto"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Renew Loan
@@ -735,15 +885,16 @@ export default function FinesPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="secondary"
+              className="w-full sm:w-auto"
               onClick={handleCloseModal}
             >
               Cancel
             </Button>
-            <Button type="submit" isLoading={isSubmitting}>
+            <Button type="submit" isLoading={isSubmitting} className="w-full sm:w-auto">
               Create Fine
             </Button>
           </div>
