@@ -1,6 +1,10 @@
 import { Pool, PoolClient, type PoolConfig } from "pg";
 
 type DbSslMode = "verify" | "no-verify" | "disable";
+type ResolvedSslMode = {
+  mode: DbSslMode;
+  source: "env" | "url" | "supabase-pooler-default" | "default";
+};
 
 function sanitizeEnvValue(value?: string | null): string {
   if (!value) {
@@ -22,10 +26,8 @@ function normalizeConnectionString(value: string): string {
   return value.replace(/^postgresql\+[^:]+:\/\//i, "postgresql://");
 }
 
-function resolveSslMode(): DbSslMode {
-  const raw = sanitizeEnvValue(
-    process.env.DB_SSL_MODE || process.env.DB_SSLMODE,
-  ).toLowerCase();
+function parseSslMode(rawValue?: string | null): DbSslMode | null {
+  const raw = sanitizeEnvValue(rawValue).toLowerCase();
 
   if (raw === "verify" || raw === "no-verify" || raw === "disable") {
     return raw;
@@ -33,13 +35,46 @@ function resolveSslMode(): DbSslMode {
   if (raw === "require" || raw === "prefer" || raw === "allow") {
     return "no-verify";
   }
+  if (raw === "verify-ca" || raw === "verify-full") {
+    return "verify";
+  }
 
-  // Default to strict TLS in production, relaxed verification in local dev.
-  return process.env.NODE_ENV === "production" ? "verify" : "no-verify";
+  return null;
 }
 
-function resolveSslConfig(): PoolConfig["ssl"] {
-  const mode = resolveSslMode();
+function resolveSslMode(connectionString?: string): ResolvedSslMode {
+  const envMode = parseSslMode(process.env.DB_SSL_MODE || process.env.DB_SSLMODE);
+  if (envMode) {
+    return { mode: envMode, source: "env" };
+  }
+
+  if (connectionString) {
+    try {
+      const url = new URL(connectionString);
+      const urlMode = parseSslMode(url.searchParams.get("sslmode") || "");
+      if (urlMode) {
+        return { mode: urlMode, source: "url" };
+      }
+
+      // Supabase transaction pooler connections frequently present a cert chain
+      // that Node's strict verifier rejects in serverless runtimes.
+      if (url.hostname.toLowerCase().endsWith(".pooler.supabase.com")) {
+        return { mode: "no-verify", source: "supabase-pooler-default" };
+      }
+    } catch {
+      // Fall through to the default mode when the URL cannot be parsed.
+    }
+  }
+
+  // Default to strict TLS in production, relaxed verification in local dev.
+  return {
+    mode: process.env.NODE_ENV === "production" ? "verify" : "no-verify",
+    source: "default",
+  };
+}
+
+function resolveSslConfig(connectionString?: string): PoolConfig["ssl"] {
+  const { mode } = resolveSslMode(connectionString);
   if (mode === "disable") {
     return false;
   }
@@ -58,9 +93,10 @@ function resolvePoolConfig(): PoolConfig {
   const connectionString = sanitizeEnvValue(process.env.DATABASE_URL);
 
   if (connectionString) {
+    const normalizedConnectionString = normalizeConnectionString(connectionString);
     return {
-      connectionString: normalizeConnectionString(connectionString),
-      ssl: resolveSslConfig(),
+      connectionString: normalizedConnectionString,
+      ssl: resolveSslConfig(normalizedConnectionString),
     };
   }
 
