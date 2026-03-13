@@ -388,7 +388,7 @@ export default function BooksPage() {
           </div>
 
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[880px]">
+            <table className="w-full min-w-220">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-900">
