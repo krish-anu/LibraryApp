@@ -10,6 +10,12 @@ type ResolvedSslMode = {
     | "supabase-pooler-default"
     | "default";
 };
+type DbDiagnostics = {
+  host: string;
+  hasCaCert: boolean;
+  sslMode: ResolvedSslMode;
+  usesConnectionString: boolean;
+};
 
 function sanitizeEnvValue(value?: string | null): string {
   if (!value) {
@@ -29,6 +35,14 @@ function sanitizeEnvValue(value?: string | null): string {
 
 function normalizeConnectionString(value: string): string {
   return value.replace(/^postgresql\+[^:]+:\/\//i, "postgresql://");
+}
+
+function getConnectionStringHost(connectionString: string): string {
+  try {
+    return new URL(connectionString).hostname;
+  } catch {
+    return "";
+  }
 }
 
 function parseSslMode(rawValue?: string | null): DbSslMode | null {
@@ -98,14 +112,23 @@ function resolveSslConfig(connectionString?: string): PoolConfig["ssl"] {
   };
 }
 
-function resolvePoolConfig(): PoolConfig {
+function resolvePoolConfig(): { config: PoolConfig; diagnostics: DbDiagnostics } {
   const connectionString = sanitizeEnvValue(process.env.DATABASE_URL);
 
   if (connectionString) {
     const normalizedConnectionString = normalizeConnectionString(connectionString);
+    const sslMode = resolveSslMode(normalizedConnectionString);
     return {
-      connectionString: normalizedConnectionString,
-      ssl: resolveSslConfig(normalizedConnectionString),
+      config: {
+        connectionString: normalizedConnectionString,
+        ssl: resolveSslConfig(normalizedConnectionString),
+      },
+      diagnostics: {
+        host: getConnectionStringHost(normalizedConnectionString),
+        hasCaCert: Boolean(sanitizeEnvValue(process.env.DB_SSL_CA_CERT)),
+        sslMode,
+        usesConnectionString: true,
+      },
     };
   }
 
@@ -126,35 +149,85 @@ function resolvePoolConfig(): PoolConfig {
     throw new Error(`Invalid DB_PORT value: ${port}`);
   }
 
+  const sslMode = resolveSslMode();
   return {
-    host,
-    port: parsedPort,
-    database,
-    user,
-    password,
-    ssl: resolveSslConfig(),
+    config: {
+      host,
+      port: parsedPort,
+      database,
+      user,
+      password,
+      ssl: resolveSslConfig(),
+    },
+    diagnostics: {
+      host,
+      hasCaCert: Boolean(sanitizeEnvValue(process.env.DB_SSL_CA_CERT)),
+      sslMode,
+      usesConnectionString: false,
+    },
   };
 }
 
+const { config: poolConfig, diagnostics: dbDiagnostics } = resolvePoolConfig();
+
 const pool = new Pool({
-  ...resolvePoolConfig(),
+  ...poolConfig,
   max: 20,
   min: 2,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });
 
+pool.on("error", (error) => {
+  console.error("Postgres pool error", {
+    code: (error as NodeJS.ErrnoException).code,
+    message: error.message,
+    host: dbDiagnostics.host,
+    hasCaCert: dbDiagnostics.hasCaCert,
+    sslMode: dbDiagnostics.sslMode.mode,
+    sslSource: dbDiagnostics.sslMode.source,
+    usesConnectionString: dbDiagnostics.usesConnectionString,
+  });
+});
+
+function logDbOperationError(operation: string, error: unknown) {
+  const err = error as NodeJS.ErrnoException & {
+    detail?: string;
+    hint?: string;
+  };
+  console.error(`Postgres ${operation} error`, {
+    code: err?.code,
+    message: err?.message,
+    detail: err?.detail,
+    hint: err?.hint,
+    host: dbDiagnostics.host,
+    hasCaCert: dbDiagnostics.hasCaCert,
+    sslMode: dbDiagnostics.sslMode.mode,
+    sslSource: dbDiagnostics.sslMode.source,
+    usesConnectionString: dbDiagnostics.usesConnectionString,
+  });
+}
+
 export async function getClient(): Promise<PoolClient> {
-  return pool.connect();
+  try {
+    return await pool.connect();
+  } catch (error) {
+    logDbOperationError("connect", error);
+    throw error;
+  }
 }
 
 export async function query<T>(text: string, params?: unknown[]): Promise<T[]> {
-  const client = await pool.connect();
+  let client: PoolClient | null = null;
   try {
+    client = await getClient();
     const result = await client.query(text, params);
     return result.rows as T[];
+  } catch (error) {
+    logDbOperationError("query", error);
+    throw error;
   } finally {
-    client.release();
+    client?.release();
   }
 }
 
