@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   generateCodeVerifier,
   generateCodeChallenge,
   generateState,
 } from "@/lib/auth/pkce";
+import { resolveAppUrl, sanitizeEnvValue } from "@/lib/auth/env";
 
 function escapeHtml(value: string) {
   return value
@@ -21,12 +22,14 @@ function escapeHtml(value: string) {
 // ASGARDEO_SCOPE              – (optional) defaults to "openid profile email"
 // NEXT_PUBLIC_APP_URL          – e.g. http://localhost:3000
 
-export async function GET() {
-  const authorizeEndpoint = process.env.ASGARDEO_AUTHORIZE_ENDPOINT;
-  const clientId = process.env.ASGARDEO_CLIENT_ID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const scope = process.env.ASGARDEO_SCOPE || "openid profile email";
-  const prompt = (process.env.ASGARDEO_PROMPT || "login").trim();
+export async function GET(request: NextRequest) {
+  const authorizeEndpoint = sanitizeEnvValue(
+    process.env.ASGARDEO_AUTHORIZE_ENDPOINT,
+  );
+  const clientId = sanitizeEnvValue(process.env.ASGARDEO_CLIENT_ID);
+  const appUrl = resolveAppUrl(request);
+  const scope = sanitizeEnvValue(process.env.ASGARDEO_SCOPE) || "openid profile email";
+  const prompt = sanitizeEnvValue(process.env.ASGARDEO_PROMPT) || "login";
 
   if (!authorizeEndpoint || !clientId) {
     return NextResponse.json(

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveAppUrl, sanitizeEnvValue } from "@/lib/auth/env";
 
 // Logout — clears session cookies and optionally performs RP-initiated logout
 // Environment variables:
@@ -7,9 +8,11 @@ import { NextRequest, NextResponse } from "next/server";
 // NEXT_PUBLIC_APP_URL       – e.g. http://localhost:3000
 
 export async function GET(req: NextRequest) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const logoutEndpoint = (process.env.ASGARDEO_LOGOUT_ENDPOINT || "").trim();
-  const clientId = process.env.ASGARDEO_CLIENT_ID || "";
+  const appUrl = resolveAppUrl(req);
+  const logoutEndpoint = sanitizeEnvValue(
+    process.env.ASGARDEO_LOGOUT_ENDPOINT,
+  );
+  const clientId = sanitizeEnvValue(process.env.ASGARDEO_CLIENT_ID);
   const idToken = req.cookies.get("library_id_token")?.value || "";
 
   // Clear all session cookies

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveAppUrl, sanitizeEnvValue } from "@/lib/auth/env";
 
 // PKCE callback — exchanges the authorization code for tokens.
 // Environment variables:
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = resolveAppUrl(req);
 
   // Handle error response from IdP
   if (error) {
@@ -42,8 +43,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appUrl}/login?error=missing_verifier`);
   }
 
-  const tokenEndpoint = process.env.ASGARDEO_TOKEN_ENDPOINT;
-  const clientId = process.env.ASGARDEO_CLIENT_ID;
+  const tokenEndpoint = sanitizeEnvValue(process.env.ASGARDEO_TOKEN_ENDPOINT);
+  const clientId = sanitizeEnvValue(process.env.ASGARDEO_CLIENT_ID);
   const redirectUri = `${appUrl}/api/auth/callback`;
 
   if (!tokenEndpoint || !clientId) {
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest) {
   });
 
   // Include client authentication if a client secret is configured.
-  const clientSecret = process.env.ASGARDEO_CLIENT_SECRET || "";
+  const clientSecret = sanitizeEnvValue(process.env.ASGARDEO_CLIENT_SECRET);
   const headers: Record<string, string> = {
     "Content-Type": "application/x-www-form-urlencoded",
   };
@@ -100,9 +101,9 @@ export async function GET(req: NextRequest) {
   // Fetch userinfo
   let userPayload: string = JSON.stringify({ sub: "", email: "", name: "" });
   try {
-    const userinfoEndpoint = (
-      process.env.ASGARDEO_USERINFO_ENDPOINT || ""
-    ).trim();
+    const userinfoEndpoint = sanitizeEnvValue(
+      process.env.ASGARDEO_USERINFO_ENDPOINT,
+    );
     if (userinfoEndpoint && accessToken) {
       const ures = await fetch(userinfoEndpoint, {
         headers: { Authorization: `Bearer ${accessToken}` },
