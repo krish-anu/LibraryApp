@@ -1,16 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
+  Bell,
   LayoutDashboard,
+  Menu,
   BookOpen,
   Users,
   AlertCircle,
   Settings,
   LogOut,
   Library,
+  User,
+  X,
 } from "lucide-react";
 
 const navigation = [
@@ -23,8 +28,10 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
+    setIsMobileMenuOpen(false);
     window.location.href = "/api/auth/logout";
   };
 
@@ -91,37 +98,74 @@ export function Sidebar() {
           </div>
 
           <button
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
+            type="button"
+            onClick={() => setIsMobileMenuOpen((current) => !current)}
+            aria-expanded={isMobileMenuOpen}
+            aria-label="Toggle navigation menu"
+            className="inline-flex items-center justify-center rounded-lg border border-white/15 p-2.5 text-white/85 transition-colors hover:bg-white/10"
           >
-            <LogOut className="h-4 w-4" />
-            Logout
+            {isMobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </button>
         </div>
 
-        <nav className="overflow-x-auto px-4 pb-4">
-          <div className="flex min-w-max gap-2">
-            {navigation.map((item) => {
-              const isActive =
-                pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "border-white/30 bg-white text-[#1E3A5F]"
-                      : "border-white/15 bg-white/5 text-white/85 hover:bg-white/10",
-                  )}
+        {isMobileMenuOpen && (
+          <div className="border-t border-white/10 px-4 py-4">
+            <nav className="space-y-2">
+              {navigation.map((item) => {
+                const isActive =
+                  pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-white text-[#1E3A5F]"
+                        : "bg-white/5 text-white/85 hover:bg-white/10",
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
                 >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.name}</span>
+                  <Bell className="h-4 w-4" />
+                  Notifications
+                </button>
+                <Link
+                  href="/settings"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
+                >
+                  <User className="h-4 w-4" />
+                  Profile
                 </Link>
-              );
-            })}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+              </div>
+            </div>
           </div>
-        </nav>
+        )}
       </div>
     </>
   );
