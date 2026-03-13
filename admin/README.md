@@ -103,7 +103,7 @@ admin/
 │   └── utils.ts               # Utility functions
 ├── supabase/
 │   └── schema.sql             # Database schema
-└── middleware.ts              # Auth middleware
+└── proxy.ts                   # Auth proxy
 ```
 
 ## API Endpoints
