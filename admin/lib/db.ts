@@ -3,7 +3,12 @@ import { Pool, PoolClient, type PoolConfig } from "pg";
 type DbSslMode = "verify" | "no-verify" | "disable";
 type ResolvedSslMode = {
   mode: DbSslMode;
-  source: "env" | "url" | "supabase-pooler-default" | "default";
+  source:
+    | "env"
+    | "url"
+    | "ca-cert-default"
+    | "supabase-pooler-default"
+    | "default";
 };
 
 function sanitizeEnvValue(value?: string | null): string {
@@ -54,6 +59,10 @@ function resolveSslMode(connectionString?: string): ResolvedSslMode {
       const urlMode = parseSslMode(url.searchParams.get("sslmode") || "");
       if (urlMode) {
         return { mode: urlMode, source: "url" };
+      }
+
+      if (sanitizeEnvValue(process.env.DB_SSL_CA_CERT)) {
+        return { mode: "verify", source: "ca-cert-default" };
       }
 
       // Supabase transaction pooler connections frequently present a cert chain

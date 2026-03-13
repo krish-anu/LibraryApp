@@ -54,6 +54,7 @@ NEXT_PUBLIC_ASGARDEO_BASE_URL=https://api.asgardeo.io/t/your-org
 DATABASE_URL=postgres://...
 # If local or hosted cert verification fails (SELF_SIGNED_CERT_IN_CHAIN), use:
 DB_SSL_MODE=no-verify
+# If you add DB_SSL_CA_CERT, switch to DB_SSL_MODE=verify or remove DB_SSL_MODE
 ```
 
 ### 4. Install Dependencies
