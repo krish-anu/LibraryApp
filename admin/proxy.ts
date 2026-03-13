@@ -13,6 +13,12 @@ const PUBLIC_PATHS = [
 
 const COOKIE_CLEAR_OPTIONS = { path: "/", maxAge: 0 };
 
+type StoredUser = {
+  sub?: string;
+  email?: string;
+  name?: string;
+};
+
 function unauthorized(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname.startsWith("/api/")) {
@@ -40,6 +46,22 @@ function parseJwtPayload(token: string): { exp?: number } | null {
     return JSON.parse(json) as { exp?: number };
   } catch {
     return null;
+  }
+}
+
+function hasStoredUserCookie(request: NextRequest): boolean {
+  const userCookie = request.cookies.get("library_user")?.value;
+  if (!userCookie) {
+    return false;
+  }
+
+  try {
+    const parsed = JSON.parse(
+      decodeURIComponent(userCookie),
+    ) as StoredUser | null;
+    return Boolean(parsed?.sub);
+  } catch {
+    return false;
   }
 }
 
@@ -82,6 +104,12 @@ export async function proxy(request: NextRequest) {
     if (payload.exp && typeof payload.exp === "number" && payload.exp < now) {
       return unauthorized(request);
     }
+    return NextResponse.next();
+  }
+
+  // For opaque tokens, trust the user cookie created by the callback route
+  // before falling back to a network validation step.
+  if (hasStoredUserCookie(request)) {
     return NextResponse.next();
   }
 

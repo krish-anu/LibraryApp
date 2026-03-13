@@ -24,6 +24,30 @@ type JwtPayload = {
   exp?: number;
 };
 
+function userFromStoredCookie(cookieValue?: string): VerifiedUser | null {
+  if (!cookieValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(
+      decodeURIComponent(cookieValue),
+    ) as Partial<VerifiedUser> | null;
+    const sub = (parsed?.sub || "").trim();
+    if (!sub) {
+      return null;
+    }
+
+    return {
+      sub,
+      email: (parsed?.email || "").trim(),
+      name: (parsed?.name || "").trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function parseJwtPayload(token: string): JwtPayload | null {
   const parts = token.split(".");
   if (parts.length !== 3) {
@@ -100,6 +124,9 @@ export async function verifyAdmin(
   req: NextRequest,
 ): Promise<VerifyAdminResult> {
   const accessToken = req.cookies.get("library_session")?.value;
+  const storedUser = userFromStoredCookie(
+    req.cookies.get("library_user")?.value,
+  );
 
   if (!accessToken) {
     return unauthorized("Unauthorized");
@@ -120,6 +147,10 @@ export async function verifyAdmin(
     if (jwtUser) {
       return { user: jwtUser };
     }
+  }
+
+  if (storedUser) {
+    return { user: storedUser };
   }
 
   const user = await userFromUserInfo(accessToken);
