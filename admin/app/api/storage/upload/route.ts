@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
+import { createStorageClient } from "@/lib/storage/client";
 import {
-  S3Client,
+  buildPublicObjectUrl,
+  getStorageConfigErrors,
+  resolveStorageConfig,
+} from "@/lib/storage/config";
+import {
   PutObjectCommand,
   ListBucketsCommand,
 } from "@aws-sdk/client-s3";
@@ -24,26 +29,6 @@ const ALLOWED_EXTENSIONS = new Set([
   ".gif",
   ".svg",
 ]);
-
-const region = process.env.S3_REGION || "ap-south-1";
-const rawEndpoint = process.env.S3_ENDPOINT || "";
-const bucket =
-  process.env.S3_BUCKET || process.env.SUPABASE_STORAGE_BUCKET || "";
-const endpointBase = rawEndpoint
-  .replace(/\/+$/, "")
-  .replace(/\/storage\/v1\/s3$/, "");
-const s3Endpoint = `${endpointBase}/storage/v1/s3`;
-
-function getClient() {
-  const accessKeyId = process.env.S3_ACCESS_KEY_ID || "";
-  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || "";
-  return new S3Client({
-    region,
-    endpoint: s3Endpoint,
-    credentials: { accessKeyId, secretAccessKey },
-    forcePathStyle: true,
-  });
-}
 
 export async function POST(req: NextRequest) {
   const auth = await verifyAdmin(req);
@@ -103,30 +88,16 @@ export async function POST(req: NextRequest) {
     const safeName = filename.replace(/[^a-zA-Z0-9.-_]/g, "_");
     const key = `books/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
 
-    const client = getClient();
+    const storageConfig = resolveStorageConfig();
+    const storageErrors = getStorageConfigErrors(storageConfig);
+    if (storageErrors.length > 0) {
+      console.error(storageErrors[0]);
+      return NextResponse.json({ error: storageErrors[0] }, { status: 500 });
+    }
+
+    const client = createStorageClient(storageConfig);
 
     // Basic env checks for clearer diagnostics
-    const accessKeyId = process.env.S3_ACCESS_KEY_ID || "";
-    const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || "";
-    if (!accessKeyId || !secretAccessKey) {
-      console.error(
-        "S3 credentials not configured: S3_ACCESS_KEY_ID or S3_SECRET_ACCESS_KEY missing",
-      );
-      return NextResponse.json(
-        { error: "S3 credentials not configured on server" },
-        { status: 500 },
-      );
-    }
-    if (!bucket) {
-      console.error(
-        "S3 bucket not configured: set S3_BUCKET or SUPABASE_STORAGE_BUCKET",
-      );
-      return NextResponse.json(
-        { error: "S3 bucket not configured on server" },
-        { status: 500 },
-      );
-    }
-
     console.log(`/api/storage/upload starting upload`, {
       key,
       filename,
@@ -137,7 +108,7 @@ export async function POST(req: NextRequest) {
     const body = Buffer.from(arrayBuffer);
 
     const putCmd = new PutObjectCommand({
-      Bucket: bucket,
+      Bucket: storageConfig.bucket,
       Key: key,
       Body: body,
       ContentType: file.type || "application/octet-stream",
@@ -214,8 +185,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const encodedKey = key.split("/").map(encodeURIComponent).join("/");
-    const publicUrl = `${endpointBase}/storage/v1/object/public/${bucket}/${encodedKey}`;
+    const publicUrl = buildPublicObjectUrl(storageConfig, key);
 
     return NextResponse.json({ publicUrl, key }, { status: 201 });
   } catch (err: unknown) {

@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
+import { createStorageClient } from "@/lib/storage/client";
 import {
-  S3Client,
+  buildPublicObjectUrl,
+  getStorageConfigErrors,
+  resolveStorageConfig,
+} from "@/lib/storage/config";
+import {
   PutObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
-const region = process.env.S3_REGION || "ap-south-1";
-const rawEndpoint = process.env.S3_ENDPOINT || "";
-const bucket =
-  process.env.S3_BUCKET || process.env.SUPABASE_STORAGE_BUCKET || "";
-const endpointBase = rawEndpoint
-  .replace(/\/+$/, "")
-  .replace(/\/storage\/v1\/s3$/, "");
-const s3Endpoint = `${endpointBase}/storage/v1/s3`;
 
 const ALLOWED_CONTENT_TYPES = new Set([
   "image/jpeg",
@@ -23,17 +19,6 @@ const ALLOWED_CONTENT_TYPES = new Set([
   "image/gif",
   "image/svg+xml",
 ]);
-
-function getClient() {
-  const accessKeyId = process.env.S3_ACCESS_KEY_ID || "";
-  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || "";
-  return new S3Client({
-    region,
-    endpoint: s3Endpoint,
-    credentials: { accessKeyId, secretAccessKey },
-    forcePathStyle: true,
-  });
-}
 
 export async function POST(req: NextRequest) {
   const auth = await verifyAdmin(req);
@@ -71,29 +56,29 @@ export async function POST(req: NextRequest) {
     if (key.includes("..") || key.includes("//")) {
       return NextResponse.json({ error: "Invalid key path" }, { status: 400 });
     }
-    if (!bucket) {
+    const storageConfig = resolveStorageConfig();
+    const storageErrors = getStorageConfigErrors(storageConfig);
+    if (storageErrors.length > 0) {
       return NextResponse.json(
-        { error: "missing S3_BUCKET or SUPABASE_STORAGE_BUCKET in server env" },
+        { error: storageErrors[0] },
         { status: 500 },
       );
     }
 
-    const client = getClient();
+    const client = createStorageClient(storageConfig);
 
     const putCmd = new PutObjectCommand({
-      Bucket: bucket,
+      Bucket: storageConfig.bucket,
       Key: key,
       ContentType: contentType,
     });
     const putUrl = await getSignedUrl(client, putCmd, { expiresIn: 3600 });
 
     // Signed GET URL (optional) so client can fetch after upload
-    const getCmd = new GetObjectCommand({ Bucket: bucket, Key: key });
+    const getCmd = new GetObjectCommand({ Bucket: storageConfig.bucket, Key: key });
     const getUrl = await getSignedUrl(client, getCmd, { expiresIn: 3600 });
 
-    // Public object URL (works if bucket/object is public via Supabase storage)
-    const encodedKey = key.split("/").map(encodeURIComponent).join("/");
-    const publicUrl = `${endpointBase}/storage/v1/object/public/${bucket}/${encodedKey}`;
+    const publicUrl = buildPublicObjectUrl(storageConfig, key);
 
     return NextResponse.json({ putUrl, getUrl, publicUrl });
   } catch (err: unknown) {
