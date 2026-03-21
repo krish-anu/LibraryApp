@@ -62,7 +62,9 @@ function parseSslMode(rawValue?: string | null): DbSslMode | null {
 }
 
 function resolveSslMode(connectionString?: string): ResolvedSslMode {
-  const envMode = parseSslMode(process.env.DB_SSL_MODE || process.env.DB_SSLMODE);
+  const envMode = parseSslMode(
+    process.env.DB_SSL_MODE || process.env.DB_SSLMODE,
+  );
   if (envMode) {
     return { mode: envMode, source: "env" };
   }
@@ -102,21 +104,22 @@ function resolveSslConfig(connectionString?: string): PoolConfig["ssl"] {
     return false;
   }
 
-  const ca = sanitizeEnvValue(process.env.DB_SSL_CA_CERT).replace(
-    /\\n/g,
-    "\n",
-  );
+  const ca = sanitizeEnvValue(process.env.DB_SSL_CA_CERT).replace(/\\n/g, "\n");
   return {
     rejectUnauthorized: mode === "verify",
     ...(ca ? { ca } : {}),
   };
 }
 
-function resolvePoolConfig(): { config: PoolConfig; diagnostics: DbDiagnostics } {
+function resolvePoolConfig(): {
+  config: PoolConfig;
+  diagnostics: DbDiagnostics;
+} {
   const connectionString = sanitizeEnvValue(process.env.DATABASE_URL);
 
   if (connectionString) {
-    const normalizedConnectionString = normalizeConnectionString(connectionString);
+    const normalizedConnectionString =
+      normalizeConnectionString(connectionString);
     const sslMode = resolveSslMode(normalizedConnectionString);
     return {
       config: {

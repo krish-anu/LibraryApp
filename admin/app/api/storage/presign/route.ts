@@ -6,10 +6,7 @@ import {
   getStorageConfigErrors,
   resolveStorageConfig,
 } from "@/lib/storage/config";
-import {
-  PutObjectCommand,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
+import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -59,10 +56,7 @@ export async function POST(req: NextRequest) {
     const storageConfig = resolveStorageConfig();
     const storageErrors = getStorageConfigErrors(storageConfig);
     if (storageErrors.length > 0) {
-      return NextResponse.json(
-        { error: storageErrors[0] },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: storageErrors[0] }, { status: 500 });
     }
 
     const client = createStorageClient(storageConfig);
@@ -75,7 +69,10 @@ export async function POST(req: NextRequest) {
     const putUrl = await getSignedUrl(client, putCmd, { expiresIn: 3600 });
 
     // Signed GET URL (optional) so client can fetch after upload
-    const getCmd = new GetObjectCommand({ Bucket: storageConfig.bucket, Key: key });
+    const getCmd = new GetObjectCommand({
+      Bucket: storageConfig.bucket,
+      Key: key,
+    });
     const getUrl = await getSignedUrl(client, getCmd, { expiresIn: 3600 });
 
     const publicUrl = buildPublicObjectUrl(storageConfig, key);

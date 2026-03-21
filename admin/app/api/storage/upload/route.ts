@@ -6,10 +6,7 @@ import {
   getStorageConfigErrors,
   resolveStorageConfig,
 } from "@/lib/storage/config";
-import {
-  PutObjectCommand,
-  ListBucketsCommand,
-} from "@aws-sdk/client-s3";
+import { PutObjectCommand, ListBucketsCommand } from "@aws-sdk/client-s3";
 
 export const runtime = "nodejs";
 

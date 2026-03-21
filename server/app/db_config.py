@@ -19,7 +19,9 @@ def _build_database_url() -> str:
     database_url = os.getenv("DATABASE_URL")
 
     if not database_url and not all([db_user, db_password, db_host, db_port, db_name]):
-        raise ValueError("DATABASE_URL or the split DB_* environment variables are required.")
+        raise ValueError(
+            "DATABASE_URL or the split DB_* environment variables are required."
+        )
 
     if database_url:
         return database_url

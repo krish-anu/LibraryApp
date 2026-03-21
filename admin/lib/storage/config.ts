@@ -49,7 +49,9 @@ export function getStorageConfigErrors(config: StorageConfig): string[] {
     errors.push("S3 endpoint not configured: set S3_ENDPOINT");
   }
   if (!config.bucket) {
-    errors.push("S3 bucket not configured: set S3_BUCKET or SUPABASE_STORAGE_BUCKET");
+    errors.push(
+      "S3 bucket not configured: set S3_BUCKET or SUPABASE_STORAGE_BUCKET",
+    );
   }
   if (!config.accessKeyId || !config.secretAccessKey) {
     errors.push(
@@ -60,7 +62,10 @@ export function getStorageConfigErrors(config: StorageConfig): string[] {
   return errors;
 }
 
-export function buildPublicObjectUrl(config: StorageConfig, key: string): string {
+export function buildPublicObjectUrl(
+  config: StorageConfig,
+  key: string,
+): string {
   const encodedKey = key.split("/").map(encodeURIComponent).join("/");
   return `${config.endpointBase}/storage/v1/object/public/${config.bucket}/${encodedKey}`;
 }
