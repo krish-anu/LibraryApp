@@ -32,7 +32,7 @@ Notes:
 Before starting the API, run the idempotent migration script once:
 
 ```bash
-python scripts/migrate_startup_schema.py
+python scripts/migrations/migrate_startup_schema.py
 ```
 
 Or via Make:
