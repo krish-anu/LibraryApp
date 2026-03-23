@@ -4,7 +4,7 @@ ENV_FILE ?= .env
 HOST_PORT ?= 8000
 CONTAINER_PORT ?= 8000
 
-.PHONY: build run run-detached stop logs remove-all-containers dev
+.PHONY: build run run-detached stop logs remove-all-containers dev migrate
 
 build:
 	docker build -t $(IMAGE) .
@@ -31,3 +31,6 @@ remove-all-containers:
 
 dev:
 	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+migrate:
+	python scripts/migrate_startup_schema.py
