@@ -6,7 +6,6 @@ from . import (
     users,
     interactions,
     author,
-    book_author,
     reservation,
     fine,
     fine_payment,
