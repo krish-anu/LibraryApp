@@ -9,6 +9,7 @@ from app.database import engine
 
 
 MIGRATION_STATEMENTS = [
+    "DROP TABLE IF EXISTS book_author CASCADE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20)",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image TEXT",
@@ -70,6 +71,113 @@ MIGRATION_STATEMENTS = [
         NOW(),
         NOW()
     WHERE NOT EXISTS (SELECT 1 FROM settings)
+    """,
+    # Null out orphan references before adding FK constraints.
+    """
+    UPDATE reservations r
+    SET book_id = NULL
+    WHERE book_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM books b WHERE b.id = r.book_id)
+    """,
+    """
+    UPDATE reservations r
+    SET member_id = NULL
+    WHERE member_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = r.member_id)
+    """,
+    """
+    UPDATE fines f
+    SET member_id = NULL
+    WHERE member_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = f.member_id)
+    """,
+    """
+    UPDATE fines f
+    SET loan_id = NULL
+    WHERE loan_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM loans l WHERE l.id = f.loan_id)
+    """,
+    """
+    UPDATE fine_payments fp
+    SET member_id = NULL
+    WHERE member_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = fp.member_id)
+    """,
+    # Add missing foreign keys only if absent.
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'reservations_book_id_fkey'
+        ) THEN
+            ALTER TABLE reservations
+            ADD CONSTRAINT reservations_book_id_fkey
+            FOREIGN KEY (book_id) REFERENCES books(id);
+        END IF;
+    END
+    $$;
+    """,
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'reservations_member_id_fkey'
+        ) THEN
+            ALTER TABLE reservations
+            ADD CONSTRAINT reservations_member_id_fkey
+            FOREIGN KEY (member_id) REFERENCES users(id);
+        END IF;
+    END
+    $$;
+    """,
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'fines_member_id_fkey'
+        ) THEN
+            ALTER TABLE fines
+            ADD CONSTRAINT fines_member_id_fkey
+            FOREIGN KEY (member_id) REFERENCES users(id);
+        END IF;
+    END
+    $$;
+    """,
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'fines_loan_id_fkey'
+        ) THEN
+            ALTER TABLE fines
+            ADD CONSTRAINT fines_loan_id_fkey
+            FOREIGN KEY (loan_id) REFERENCES loans(id);
+        END IF;
+    END
+    $$;
+    """,
+    """
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'fine_payments_member_id_fkey'
+        ) THEN
+            ALTER TABLE fine_payments
+            ADD CONSTRAINT fine_payments_member_id_fkey
+            FOREIGN KEY (member_id) REFERENCES users(id);
+        END IF;
+    END
+    $$;
     """,
 ]
 
