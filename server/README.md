@@ -27,6 +27,20 @@ Notes:
 - For the included `compose.yaml`, the API is forced to use the local `db` service with `sslmode=disable`.
 - For external PostgreSQL or Supabase, keep `DB_SSLMODE=require` or provide a full `DATABASE_URL`.
 
+## 1.1 Run schema migration script
+
+Before starting the API, run the idempotent migration script once:
+
+```bash
+python scripts/migrate_startup_schema.py
+```
+
+Or via Make:
+
+```bash
+make migrate
+```
+
 ## 2. Run with Docker Compose
 
 This starts:
