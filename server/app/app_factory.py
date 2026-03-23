@@ -6,10 +6,16 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.types import ExceptionHandler
 
+from .security import (
+    create_limiter,
+    env_bool,
+    env_int,
+    parse_allowed_origins,
+)
 from .routers import (
     auth,
     books,
@@ -24,61 +30,86 @@ from .routers import (
 from .startup import lifespan
 
 
-def _env_bool(name: str, default: bool) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
+class MaxBodySizeExceeded(Exception):
+    pass
 
 
-def _parse_allowed_origins() -> list[str]:
-    raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
-    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
-    allow_credentials = _env_bool("CORS_ALLOW_CREDENTIALS", True)
+class MaxRequestBodySizeMiddleware:
+    def __init__(self, app, max_body_size: int):
+        self.app = app
+        self.max_body_size = max_body_size
 
-    if allow_credentials and "*" in origins:
-        raise ValueError(
-            "ALLOWED_ORIGINS cannot contain '*' when CORS_ALLOW_CREDENTIALS is true"
-        )
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
 
-    return origins
+        received = 0
+
+        async def limited_receive():
+            nonlocal received
+            message = await receive()
+
+            if message.get("type") == "http.request":
+                chunk = message.get("body", b"")
+                received += len(chunk)
+                if received > self.max_body_size:
+                    raise MaxBodySizeExceeded()
+
+            return message
+
+        try:
+            await self.app(scope, limited_receive, send)
+        except MaxBodySizeExceeded:
+            response = JSONResponse(
+                status_code=413,
+                content={"detail": "Request body too large"},
+            )
+            await response(scope, receive, send)
 
 
-def _client_identifier(request: Request) -> str:
-    trust_proxy_headers = _env_bool("TRUST_PROXY_HEADERS", False)
+class SafeStaticFiles(StaticFiles):
+    def __init__(self, *args, allowed_extensions: set[str] | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.allowed_extensions = allowed_extensions
 
-    if trust_proxy_headers:
-        x_forwarded_for = request.headers.get("x-forwarded-for")
-        if x_forwarded_for:
-            first = x_forwarded_for.split(",")[0].strip()
-            if first:
-                return first
+    async def get_response(self, path: str, scope):
+        normalized = Path(path)
+        if any(part.startswith(".") for part in normalized.parts):
+            return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
-        x_real_ip = request.headers.get("x-real-ip")
-        if x_real_ip:
-            real = x_real_ip.strip()
-            if real:
-                return real
+        if self.allowed_extensions is not None:
+            suffix = normalized.suffix.lower()
+            if suffix not in self.allowed_extensions:
+                return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
-    if request.client and request.client.host:
-        return request.client.host
+        return await super().get_response(path, scope)
 
-    return "unknown"
+
+def _parse_asset_extensions(default_serve_assets: bool) -> set[str] | None:
+    enforce_allowlist = env_bool("ASSET_EXTENSION_ALLOWLIST", not default_serve_assets)
+    if not enforce_allowlist:
+        return None
+
+    raw = os.getenv("ALLOWED_ASSET_EXTENSIONS", ".jpg,.jpeg,.png,.webp,.gif,.svg")
+    exts = {part.strip().lower() for part in raw.split(",") if part.strip()}
+    normalized = {ext if ext.startswith(".") else f".{ext}" for ext in exts}
+    return normalized
 
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Library App API", lifespan=lifespan)
 
     default_limit = os.getenv("DEFAULT_RATE_LIMIT", "60/minute")
-    limiter = Limiter(key_func=_client_identifier, default_limits=[default_limit])
+    limiter = create_limiter(default_limits=[default_limit])
     app.state.limiter = limiter
     app.add_exception_handler(
         RateLimitExceeded,
         cast(ExceptionHandler, _rate_limit_exceeded_handler),
     )
 
-    allowed_origins = _parse_allowed_origins()
-    allow_credentials = _env_bool("CORS_ALLOW_CREDENTIALS", True)
+    allowed_origins = parse_allowed_origins()
+    allow_credentials = env_bool("CORS_ALLOW_CREDENTIALS", True)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
@@ -87,7 +118,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    max_request_size_bytes = int(os.getenv("MAX_REQUEST_SIZE_BYTES", "10485760"))
+    max_request_size_bytes = env_int("MAX_REQUEST_SIZE_BYTES", 10485760, minimum=1024)
+    app.add_middleware(
+        MaxRequestBodySizeMiddleware, max_body_size=max_request_size_bytes
+    )
 
     @app.middleware("http")
     async def security_headers_middleware(request: Request, call_next):
@@ -115,9 +149,17 @@ def create_app() -> FastAPI:
     client_assets = project_root / "client" / "assets"
     environment = os.getenv("ENVIRONMENT", "development").strip().lower()
     default_serve_assets = environment != "production"
-    serve_local_assets = _env_bool("SERVE_LOCAL_ASSETS", default_serve_assets)
+    serve_local_assets = env_bool("SERVE_LOCAL_ASSETS", default_serve_assets)
+    allowed_asset_extensions = _parse_asset_extensions(default_serve_assets)
     if serve_local_assets and client_assets.exists():
-        app.mount("/assets", StaticFiles(directory=str(client_assets)), name="assets")
+        app.mount(
+            "/assets",
+            SafeStaticFiles(
+                directory=str(client_assets),
+                allowed_extensions=allowed_asset_extensions,
+            ),
+            name="assets",
+        )
 
     app.include_router(general.router)
     app.include_router(auth.router)

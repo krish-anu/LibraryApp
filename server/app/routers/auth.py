@@ -16,12 +16,11 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from datetime import date
 import traceback
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from app.dependencies import get_db
 from app.pydantic_schemas import user as user_schema
 from app.models.users import User as UserModel
+from app.security import create_limiter
 
 # Load environment variables from .env file
 env_path = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -30,7 +29,11 @@ load_dotenv(env_path)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Rate limiter for auth endpoints (stricter than general API)
-limiter = Limiter(key_func=get_remote_address)
+limiter = create_limiter()
+AUTH_REGISTER_RATE_LIMIT = os.getenv("AUTH_REGISTER_RATE_LIMIT", "5/minute")
+AUTH_CREDENTIAL_LOGIN_RATE_LIMIT = os.getenv(
+    "AUTH_CREDENTIAL_LOGIN_RATE_LIMIT", "10/minute"
+)
 
 # Asgardeo Configuration - Read from environment variables
 ASGARDEO_BASE_URL = os.getenv("ASGARDEO_BASE_URL", "")
@@ -155,7 +158,7 @@ async def get_client_credentials_token() -> Optional[str]:
 
 
 @router.post("/register", response_model=RegisterResponse)
-@limiter.limit("5/minute")
+@limiter.limit(AUTH_REGISTER_RATE_LIMIT)
 async def register_user(request: RegisterRequest, req: Request = None):
     """
     Register a new user via Asgardeo API.
@@ -408,7 +411,7 @@ async def asgardeo_login_sync(
 
 
 @router.post("/login/credentials", response_model=CredentialLoginResponse)
-@limiter.limit("10/minute")
+@limiter.limit(AUTH_CREDENTIAL_LOGIN_RATE_LIMIT)
 async def login_with_credentials(
     request: CredentialLoginRequest, req: Request = None, db: Session = Depends(get_db)
 ):
