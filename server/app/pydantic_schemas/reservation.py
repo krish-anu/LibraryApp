@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer
 from typing import Optional
 from datetime import date
 
@@ -27,5 +27,4 @@ class Reservation(BaseModel):
             return None
         return value.isoformat()
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

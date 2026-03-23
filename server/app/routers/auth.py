@@ -159,7 +159,7 @@ async def get_client_credentials_token() -> Optional[str]:
 
 @router.post("/register", response_model=RegisterResponse)
 @limiter.limit(AUTH_REGISTER_RATE_LIMIT)
-async def register_user(request: RegisterRequest, req: Request = None):
+async def register_user(payload: RegisterRequest, request: Request = None):
     """
     Register a new user via Asgardeo API.
 
@@ -169,7 +169,7 @@ async def register_user(request: RegisterRequest, req: Request = None):
 
     # Validate password strength
     try:
-        RegisterRequest.validate_password_strength(request.password)
+        RegisterRequest.validate_password_strength(payload.password)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -184,17 +184,17 @@ async def register_user(request: RegisterRequest, req: Request = None):
     async with httpx.AsyncClient() as client:
         # Try 1: Asgardeo User Management API
         user_mgmt_body = {
-            "userName": request.email,
-            "password": request.password,
+            "userName": payload.email,
+            "password": payload.password,
             "name": {
-                "givenName": request.first_name,
-                "familyName": request.last_name,
+                "givenName": payload.first_name,
+                "familyName": payload.last_name,
             },
-            "emails": [request.email],
+            "emails": [payload.email],
         }
 
-        if request.phone_number:
-            user_mgmt_body["phoneNumbers"] = [request.phone_number]
+        if payload.phone_number:
+            user_mgmt_body["phoneNumbers"] = [payload.phone_number]
 
         response = await client.post(
             f"{ASGARDEO_BASE_URL}/api/users/v1",
@@ -222,18 +222,18 @@ async def register_user(request: RegisterRequest, req: Request = None):
         # Try 2: SCIM2 with organization prefix /o/scim2/Users
         scim_user = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            "userName": request.email,
-            "password": request.password,
+            "userName": payload.email,
+            "password": payload.password,
             "name": {
-                "givenName": request.first_name,
-                "familyName": request.last_name,
+                "givenName": payload.first_name,
+                "familyName": payload.last_name,
             },
-            "emails": [{"value": request.email, "primary": True}],
+            "emails": [{"value": payload.email, "primary": True}],
         }
 
-        if request.phone_number:
+        if payload.phone_number:
             scim_user["phoneNumbers"] = [
-                {"value": request.phone_number, "type": "mobile"}
+                {"value": payload.phone_number, "type": "mobile"}
             ]
 
         response = await client.post(
@@ -413,7 +413,7 @@ async def asgardeo_login_sync(
 @router.post("/login/credentials", response_model=CredentialLoginResponse)
 @limiter.limit(AUTH_CREDENTIAL_LOGIN_RATE_LIMIT)
 async def login_with_credentials(
-    request: CredentialLoginRequest, req: Request = None, db: Session = Depends(get_db)
+    payload: CredentialLoginRequest, request: Request = None, db: Session = Depends(get_db)
 ):
     """Validate email/password with Asgardeo, then ensure local user exists.
 
@@ -433,8 +433,8 @@ async def login_with_credentials(
             f"{ASGARDEO_BASE_URL}/oauth2/token",
             data={
                 "grant_type": "password",
-                "username": request.email,
-                "password": request.password,
+                "username": payload.email,
+                "password": payload.password,
                 "client_id": ASGARDEO_PUBLIC_CLIENT_ID,
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"},
