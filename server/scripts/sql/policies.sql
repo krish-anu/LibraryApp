@@ -1,6 +1,5 @@
 -- Enable RLS on all tables
 ALTER TABLE authors ENABLE ROW LEVEL SECURITY;
-ALTER TABLE book_author ENABLE ROW LEVEL SECURITY;
 ALTER TABLE books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -26,12 +25,6 @@ USING (true);
 -- categories
 CREATE POLICY "Public read categories"
 ON categories
-FOR SELECT
-USING (true);
-
--- book_author
-CREATE POLICY "Public read book_author"
-ON book_author
 FOR SELECT
 USING (true);
 
