@@ -90,9 +90,7 @@ def create_app() -> FastAPI:
     max_request_size_bytes = int(os.getenv("MAX_REQUEST_SIZE_BYTES", "10485760"))
 
     @app.middleware("http")
-    async def security_headers_middleware(
-        request: Request, call_next
-    ):
+    async def security_headers_middleware(request: Request, call_next):
         content_length = request.headers.get("content-length")
         if content_length and content_length.isdigit():
             if int(content_length) > max_request_size_bytes:
