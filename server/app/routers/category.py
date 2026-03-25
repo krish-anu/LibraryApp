@@ -52,7 +52,7 @@ def getCategory(category_id: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{category_id}")
-def updateCategory(
+def updateCategory( # type: ignore
     category_id: str, data: CategoryCreate, db: Session = Depends(get_db)
 ):
     cat = (
@@ -61,8 +61,8 @@ def updateCategory(
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    cat.name = data.name
-    cat.image_url = data.image_url or None
+    cat.name = data.name # type: ignore
+    cat.image_url = data.image_url or None # type: ignore
 
     db.commit()
     db.refresh(cat)
@@ -79,8 +79,8 @@ def updateCategory(
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    cat.name = data.name
-    cat.description = data.description
+    cat.name = data.name # type: ignore
+    cat.description = data.description # type: ignore
 
     db.commit()
     db.refresh(cat)
