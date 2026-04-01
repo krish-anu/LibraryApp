@@ -43,119 +43,69 @@ async function getTableColumnSet(tableName: string): Promise<Set<string>> {
 let fineInfraPromise: Promise<void> | null = null;
 
 async function _ensureFineInfrastructure(): Promise<void> {
-  await query(
-    `ALTER TABLE fines
-     ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'unpaid'`,
-  );
-  await query(`ALTER TABLE fines ADD COLUMN IF NOT EXISTS member_id TEXT`);
-  await query(`ALTER TABLE fines ADD COLUMN IF NOT EXISTS fine_amount NUMERIC`);
-  await query(`ALTER TABLE fines ADD COLUMN IF NOT EXISTS fine_date DATE`);
-  await query(`ALTER TABLE fines ADD COLUMN IF NOT EXISTS reason TEXT`);
-  await query(`ALTER TABLE fines ADD COLUMN IF NOT EXISTS due_date DATE`);
-  await query(`ALTER TABLE fines ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`);
-  await query(`ALTER TABLE fines ADD COLUMN IF NOT EXISTS payment_method TEXT`);
-  await query(
-    `ALTER TABLE fines ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`,
-  );
-  await query(
-    `ALTER TABLE fines ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`,
-  );
-  await query(
-    `UPDATE fines
-     SET status = 'unpaid'
-     WHERE status IS NULL OR TRIM(status) = ''`,
-  );
-  await query(
-    `DO $$
-     BEGIN
-       IF EXISTS (
-         SELECT 1
-         FROM information_schema.columns
-         WHERE table_schema = 'public'
-           AND table_name = 'fines'
-           AND column_name = 'user_id'
-       ) THEN
-         UPDATE fines
-         SET member_id = COALESCE(member_id, user_id::text)
-         WHERE member_id IS NULL OR TRIM(member_id) = '';
-       END IF;
+  await query(`
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'unpaid';
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS member_id TEXT;
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS fine_amount NUMERIC;
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS fine_date DATE;
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS reason TEXT;
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS due_date DATE;
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP;
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS payment_method TEXT;
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+    ALTER TABLE fines ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
 
-       IF EXISTS (
-         SELECT 1
-         FROM information_schema.columns
-         WHERE table_schema = 'public'
-           AND table_name = 'fines'
-           AND column_name = 'amount'
-       ) THEN
-         UPDATE fines
-         SET fine_amount = COALESCE(fine_amount, amount)
-         WHERE fine_amount IS NULL;
-       END IF;
+    UPDATE fines SET status = 'unpaid' WHERE status IS NULL OR TRIM(status) = '';
 
-       IF EXISTS (
-         SELECT 1
-         FROM information_schema.columns
-         WHERE table_schema = 'public'
-           AND table_name = 'fines'
-           AND column_name = 'created_at'
-       ) THEN
-         UPDATE fines
-         SET fine_date = COALESCE(fine_date, created_at::date, CURRENT_DATE)
-         WHERE fine_date IS NULL;
-       ELSE
-         UPDATE fines
-         SET fine_date = COALESCE(fine_date, CURRENT_DATE)
-         WHERE fine_date IS NULL;
-       END IF;
-     END
-     $$`,
-  );
-  await query(
-    `UPDATE fines
-     SET updated_at = COALESCE(updated_at, created_at, NOW())
-     WHERE updated_at IS NULL`,
-  );
-  await query(
-    `UPDATE fines
-     SET fine_amount = NULL
-     WHERE fine_amount IS NOT NULL
-       AND fine_amount::text = 'NaN'`,
-  );
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'fines' AND column_name = 'user_id'
+      ) THEN
+        UPDATE fines SET member_id = COALESCE(member_id, user_id::text)
+        WHERE member_id IS NULL OR TRIM(member_id) = '';
+      END IF;
 
-  await query(
-    `CREATE TABLE IF NOT EXISTS fine_payments (
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'fines' AND column_name = 'amount'
+      ) THEN
+        UPDATE fines SET fine_amount = COALESCE(fine_amount, amount) WHERE fine_amount IS NULL;
+      END IF;
+
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'fines' AND column_name = 'created_at'
+      ) THEN
+        UPDATE fines SET fine_date = COALESCE(fine_date, created_at::date, CURRENT_DATE) WHERE fine_date IS NULL;
+      ELSE
+        UPDATE fines SET fine_date = COALESCE(fine_date, CURRENT_DATE) WHERE fine_date IS NULL;
+      END IF;
+    END;
+    $$;
+
+    UPDATE fines SET updated_at = COALESCE(updated_at, created_at, NOW()) WHERE updated_at IS NULL;
+    UPDATE fines SET fine_amount = NULL WHERE fine_amount IS NOT NULL AND fine_amount::text = 'NaN';
+
+    CREATE TABLE IF NOT EXISTS fine_payments (
       id TEXT PRIMARY KEY,
       member_id TEXT REFERENCES users(id),
       payment_date DATE,
       payment_amount NUMERIC
-    )`,
-  );
-  await query(
-    `ALTER TABLE fine_payments
-     ADD COLUMN IF NOT EXISTS fine_id TEXT REFERENCES fines(id) ON DELETE CASCADE`,
-  );
-  await query(
-    `ALTER TABLE fine_payments
-     ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'physical'`,
-  );
-  await query(
-    `ALTER TABLE fine_payments
-     ADD COLUMN IF NOT EXISTS handled_by TEXT`,
-  );
-  await query(`ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS notes TEXT`);
-  await query(
-    `ALTER TABLE fine_payments
-     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`,
-  );
-  await query(
-    `UPDATE fine_payments
-     SET payment_method = 'physical'
-     WHERE payment_method IS NULL OR TRIM(payment_method) = ''`,
-  );
-  await query(`CREATE INDEX IF NOT EXISTS idx_fines_status ON fines(status)`);
-  await query(
-    `CREATE INDEX IF NOT EXISTS idx_fine_payments_fine_id ON fine_payments(fine_id)`,
-  );
+    );
+
+    ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS fine_id TEXT REFERENCES fines(id) ON DELETE CASCADE;
+    ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'physical';
+    ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS handled_by TEXT;
+    ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS notes TEXT;
+    ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+
+    UPDATE fine_payments SET payment_method = 'physical' WHERE payment_method IS NULL OR TRIM(payment_method) = '';
+
+    CREATE INDEX IF NOT EXISTS idx_fines_status ON fines(status);
+    CREATE INDEX IF NOT EXISTS idx_fine_payments_fine_id ON fine_payments(fine_id);
+  `);
 }
 
 export async function ensureFineInfrastructure(): Promise<void> {
