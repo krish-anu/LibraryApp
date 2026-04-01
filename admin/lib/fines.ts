@@ -1,6 +1,5 @@
 import { query } from "@/lib/db";
 
-let fineInfraReady = false;
 const LOAN_DUE_COLUMN_CANDIDATES = [
   "returned_date",
   "due_date",
@@ -41,9 +40,9 @@ async function getTableColumnSet(tableName: string): Promise<Set<string>> {
   return new Set(rows.map((r) => r.column_name));
 }
 
-export async function ensureFineInfrastructure(): Promise<void> {
-  if (fineInfraReady) return;
+let fineInfraPromise: Promise<void> | null = null;
 
+async function _ensureFineInfrastructure(): Promise<void> {
   await query(
     `ALTER TABLE fines
      ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'unpaid'`,
@@ -157,8 +156,16 @@ export async function ensureFineInfrastructure(): Promise<void> {
   await query(
     `CREATE INDEX IF NOT EXISTS idx_fine_payments_fine_id ON fine_payments(fine_id)`,
   );
+}
 
-  fineInfraReady = true;
+export async function ensureFineInfrastructure(): Promise<void> {
+  if (!fineInfraPromise) {
+    fineInfraPromise = _ensureFineInfrastructure().catch((err) => {
+      fineInfraPromise = null;
+      throw err;
+    });
+  }
+  return fineInfraPromise;
 }
 
 export async function syncOverdueLoanFines(): Promise<void> {
