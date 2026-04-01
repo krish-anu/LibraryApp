@@ -388,64 +388,48 @@ export async function syncOverdueLoanFines(): Promise<void> {
       }
     }
 
-    // Execute batched updates (if too many, split into chunks or Promise.all in chunks)
-    const chunkSize = 100;
-    for (let i = 0; i < updates.length; i += chunkSize) {
-      await Promise.all(
-        updates.slice(i, i + chunkSize).map((u) =>
-          query(
-            `UPDATE fines
-             SET
-               member_id = COALESCE(member_id, $1),
-               fine_amount = $2,
-               fine_date = COALESCE(fine_date, CURRENT_DATE),
-               reason = COALESCE(reason, 'Overdue return'),
-               due_date = COALESCE(due_date, $3::date),
-               status = $4,
-               paid_at = CASE
-                 WHEN $4 = 'paid' THEN COALESCE(paid_at, NOW())
-                 ELSE NULL
-               END,
-               payment_method = CASE
-                 WHEN $4 = 'paid' THEN COALESCE(payment_method, 'physical')
-                 ELSE payment_method
-               END,
-               updated_at = NOW()
-             WHERE id = $5`,
-            [u.member_id, u.remainingAmount, u.due_date, u.nextStatus, u.id],
-          ),
-        ),
+    for (const u of updates) {
+      await query(
+        `UPDATE fines
+         SET
+           member_id = COALESCE(member_id, $1),
+           fine_amount = $2,
+           fine_date = COALESCE(fine_date, CURRENT_DATE),
+           reason = COALESCE(reason, 'Overdue return'),
+           due_date = COALESCE(due_date, $3::date),
+           status = $4,
+           paid_at = CASE
+             WHEN $4 = 'paid' THEN COALESCE(paid_at, NOW())
+             ELSE NULL
+           END,
+           payment_method = CASE
+             WHEN $4 = 'paid' THEN COALESCE(payment_method, 'physical')
+             ELSE payment_method
+           END,
+           updated_at = NOW()
+         WHERE id = $5`,
+        [u.member_id, u.remainingAmount, u.due_date, u.nextStatus, u.id],
       );
     }
 
-    for (let i = 0; i < inserts.length; i += chunkSize) {
-      await Promise.all(
-        inserts.slice(i, i + chunkSize).map((ins) =>
-          query(
-            `INSERT INTO fines (
-              id,
-              member_id,
-              loan_id,
-              fine_date,
-              fine_amount,
-              status,
-              reason,
-              due_date,
-              created_at,
-              updated_at
-            ) VALUES (
-              $1, $2, $3, CURRENT_DATE, $4, 'unpaid',
-              'Overdue return', $5, NOW(), NOW()
-            )`,
-            [
-              ins.id,
-              ins.member_id,
-              ins.loan_id,
-              ins.remainingAmount,
-              ins.due_date,
-            ],
-          ),
-        ),
+    for (const ins of inserts) {
+      await query(
+        `INSERT INTO fines (
+          id,
+          member_id,
+          loan_id,
+          fine_date,
+          fine_amount,
+          status,
+          reason,
+          due_date,
+          created_at,
+          updated_at
+        ) VALUES (
+          $1, $2, $3, CURRENT_DATE, $4, 'unpaid',
+          'Overdue return', $5, NOW(), NOW()
+        )`,
+        [ins.id, ins.member_id, ins.loan_id, ins.remainingAmount, ins.due_date],
       );
     }
   }
@@ -511,28 +495,23 @@ export async function syncOverdueLoanFines(): Promise<void> {
     });
   }
 
-  const repairChunkSize = 100;
-  for (let i = 0; i < repairUpdates.length; i += repairChunkSize) {
-    await Promise.all(
-      repairUpdates.slice(i, i + repairChunkSize).map((u) =>
-        query(
-          `UPDATE fines
-           SET
-             fine_amount = $1,
-             status = $2,
-             paid_at = CASE
-               WHEN $2 = 'paid' THEN COALESCE(paid_at, NOW())
-               ELSE NULL
-             END,
-             payment_method = CASE
-               WHEN $2 = 'paid' THEN COALESCE(payment_method, 'physical')
-               ELSE payment_method
-             END,
-             updated_at = NOW()
-           WHERE id = $3`,
-          [u.remainingAmount, u.nextStatus, u.id],
-        ),
-      ),
+  for (const u of repairUpdates) {
+    await query(
+      `UPDATE fines
+       SET
+         fine_amount = $1,
+         status = $2,
+         paid_at = CASE
+           WHEN $2 = 'paid' THEN COALESCE(paid_at, NOW())
+           ELSE NULL
+         END,
+         payment_method = CASE
+           WHEN $2 = 'paid' THEN COALESCE(payment_method, 'physical')
+           ELSE payment_method
+         END,
+         updated_at = NOW()
+       WHERE id = $3`,
+      [u.remainingAmount, u.nextStatus, u.id],
     );
   }
 }
