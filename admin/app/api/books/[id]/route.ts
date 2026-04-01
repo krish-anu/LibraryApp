@@ -38,7 +38,7 @@ async function resolveAuthorIdByName(authorName: string): Promise<string> {
   );
   if (found[0]?.id) return found[0].id;
 
-  const id = crypto.randomUUID();
+  const id = `b${Math.floor(100000 + Math.random() * 900000)}`;
   const created = await query<{ id: string }>(
     `INSERT INTO authors (id, first_name, last_name)
      VALUES ($1, $2, $3)

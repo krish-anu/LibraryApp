@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const id = crypto.randomUUID();
+    const id = `f${Math.floor(100000 + Math.random() * 900000)}`;
     const insertColumns: string[] = [];
     const insertValues: unknown[] = [];
     const add = (column: string, value: unknown) => {

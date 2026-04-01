@@ -261,7 +261,7 @@ export async function PUT(
             created_at
           ) VALUES ($1, $2, $3, $4, $5, 'physical', $6, $7, NOW())`,
           [
-            crypto.randomUUID(),
+            `f${Math.floor(100000 + Math.random() * 900000)}`,
             id,
             currentFine.member_id,
             paymentDate,
@@ -337,7 +337,7 @@ export async function PUT(
             created_at
           ) VALUES ($1, $2, $3, $4, $5, 'physical', $6, $7, NOW())`,
           [
-            crypto.randomUUID(),
+            `f${Math.floor(100000 + Math.random() * 900000)}`,
             id,
             currentFine.member_id,
             paymentDate,

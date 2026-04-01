@@ -98,7 +98,7 @@ def create_reservation(
         )
 
     # prepare fields
-    rid = uuid.uuid4().hex
+    rid = f'r{__import__("random").randint(100000, 999999)}'
     reservation_date = None
     if res_in.reservation_date:
         try:

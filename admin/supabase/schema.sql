@@ -1,12 +1,12 @@
 -- Library Admin Database Schema for Supabase
 -- Run this script in Supabase SQL Editor to create all necessary tables
 
--- Enable UUID extension
+-- Enable VARCHAR(7) extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Categories table
 CREATE TABLE IF NOT EXISTS categories (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id VARCHAR(7) PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   image_url TEXT,
@@ -16,11 +16,11 @@ CREATE TABLE IF NOT EXISTS categories (
 
 -- Books table
 CREATE TABLE IF NOT EXISTS books (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id VARCHAR(7) PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   author VARCHAR(255) NOT NULL,
   isbn VARCHAR(20),
-  category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+  category_id VARCHAR(7) REFERENCES categories(id) ON DELETE SET NULL,
   description TEXT,
   cover_image_url TEXT,
   copies_owned INTEGER DEFAULT 1,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS books (
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id VARCHAR(7) PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   membership_id VARCHAR(50) UNIQUE,
@@ -46,9 +46,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Loans table
 CREATE TABLE IF NOT EXISTS loans (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  book_id UUID REFERENCES books(id) ON DELETE CASCADE,
+  id VARCHAR(7) PRIMARY KEY,
+  user_id VARCHAR(7) REFERENCES users(id) ON DELETE CASCADE,
+  book_id VARCHAR(7) REFERENCES books(id) ON DELETE CASCADE,
   loan_date DATE DEFAULT CURRENT_DATE,
   due_date DATE NOT NULL,
   return_date DATE,
@@ -58,10 +58,10 @@ CREATE TABLE IF NOT EXISTS loans (
 
 -- Fines table
 CREATE TABLE IF NOT EXISTS fines (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  loan_id UUID REFERENCES loans(id) ON DELETE SET NULL,
-  book_id UUID REFERENCES books(id) ON DELETE SET NULL,
+  id VARCHAR(7) PRIMARY KEY,
+  user_id VARCHAR(7) REFERENCES users(id) ON DELETE CASCADE,
+  loan_id VARCHAR(7) REFERENCES loans(id) ON DELETE SET NULL,
+  book_id VARCHAR(7) REFERENCES books(id) ON DELETE SET NULL,
   amount DECIMAL(10, 2) NOT NULL,
   reason TEXT,
   status VARCHAR(50) DEFAULT 'unpaid',
@@ -72,9 +72,9 @@ CREATE TABLE IF NOT EXISTS fines (
 
 -- Reservations table
 CREATE TABLE IF NOT EXISTS reservations (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  book_id UUID REFERENCES books(id) ON DELETE CASCADE,
+  id VARCHAR(7) PRIMARY KEY,
+  user_id VARCHAR(7) REFERENCES users(id) ON DELETE CASCADE,
+  book_id VARCHAR(7) REFERENCES books(id) ON DELETE CASCADE,
   reservation_date DATE DEFAULT CURRENT_DATE,
   status VARCHAR(50) DEFAULT 'pending',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS reservations (
 
 -- Settings table (singleton)
 CREATE TABLE IF NOT EXISTS settings (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id VARCHAR(7) PRIMARY KEY,
   loan_period_days INTEGER DEFAULT 14,
   max_books_per_user INTEGER DEFAULT 5,
   grace_period_days INTEGER DEFAULT 2,

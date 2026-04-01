@@ -216,7 +216,7 @@ export async function POST(
                   $1, $2, $3, CURRENT_DATE, $4, 'unpaid',
                   'Overdue return', $5, NOW(), NOW()
                 )`,
-                [crypto.randomUUID(), memberId, id, remainingAmount, dueDate],
+                [`l${Math.floor(100000 + Math.random() * 900000)}`, memberId, id, remainingAmount, dueDate],
               );
             }
             lateFineCreatedOrUpdated = true;

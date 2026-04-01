@@ -329,7 +329,7 @@ export async function syncOverdueLoanFines(): Promise<void> {
 
       if (remainingAmount > 0.00001) {
         inserts.push({
-          id: crypto.randomUUID(),
+          id: `f${Math.floor(100000 + Math.random() * 900000)}`,
           member_id: loan.member_id,
           loan_id: loan.loan_id,
           remainingAmount,

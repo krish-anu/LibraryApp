@@ -147,7 +147,7 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="No copies available")
 
     # Use UUID-based IDs to avoid collisions from lexicographic string sorting.
-    new_id = f"l{uuid.uuid4().hex}"
+    new_id = f'l{__import__("random").randint(100000, 999999)}'
 
     loan_period_days = _loan_period_days(db)
     # Create new loan (based on settings loan period)

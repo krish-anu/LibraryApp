@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const id = crypto.randomUUID();
+    const id = `u${Math.floor(100000 + Math.random() * 900000)}`;
     const memberId = `MEM-${Date.now().toString(36).toUpperCase()}`;
 
     const sql = `

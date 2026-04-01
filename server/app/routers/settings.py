@@ -21,7 +21,7 @@ def _get_or_create_settings_row(db: Session) -> settings_model.Settings:
     if row:
         return row
 
-    row = settings_model.Settings(id=str(uuid.uuid4()))
+    row = settings_model.Settings(id=f'x{__import__("random").randint(100000, 999999)}')
     db.add(row)
     db.commit()
     db.refresh(row)
