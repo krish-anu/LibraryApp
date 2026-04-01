@@ -388,31 +388,39 @@ export async function syncOverdueLoanFines(): Promise<void> {
       }
     }
 
-    for (const u of updates) {
+    if (updates.length > 0) {
       await query(
-        `UPDATE fines
+        `UPDATE fines AS f
          SET
-           member_id = COALESCE(member_id, $1),
-           fine_amount = $2,
-           fine_date = COALESCE(fine_date, CURRENT_DATE),
-           reason = COALESCE(reason, 'Overdue return'),
-           due_date = COALESCE(due_date, $3::date),
-           status = $4,
+           member_id = COALESCE(f.member_id, v.member_id),
+           fine_amount = v.fine_amount,
+           fine_date = COALESCE(f.fine_date, CURRENT_DATE),
+           reason = COALESCE(f.reason, 'Overdue return'),
+           due_date = COALESCE(f.due_date, v.due_date::date),
+           status = v.status,
            paid_at = CASE
-             WHEN $4 = 'paid' THEN COALESCE(paid_at, NOW())
+             WHEN v.status = 'paid' THEN COALESCE(f.paid_at, NOW())
              ELSE NULL
            END,
            payment_method = CASE
-             WHEN $4 = 'paid' THEN COALESCE(payment_method, 'physical')
-             ELSE payment_method
+             WHEN v.status = 'paid' THEN COALESCE(f.payment_method, 'physical')
+             ELSE f.payment_method
            END,
            updated_at = NOW()
-         WHERE id = $5`,
-        [u.member_id, u.remainingAmount, u.due_date, u.nextStatus, u.id],
+         FROM unnest($1::text[], $2::text[], $3::numeric[], $4::date[], $5::text[]) 
+           AS v(id, member_id, fine_amount, due_date, status)
+         WHERE f.id = v.id`,
+        [
+          updates.map((u) => u.id),
+          updates.map((u) => u.member_id),
+          updates.map((u) => u.remainingAmount),
+          updates.map((u) => u.due_date),
+          updates.map((u) => u.nextStatus),
+        ],
       );
     }
 
-    for (const ins of inserts) {
+    if (inserts.length > 0) {
       await query(
         `INSERT INTO fines (
           id,
@@ -425,11 +433,18 @@ export async function syncOverdueLoanFines(): Promise<void> {
           due_date,
           created_at,
           updated_at
-        ) VALUES (
-          $1, $2, $3, CURRENT_DATE, $4, 'unpaid',
-          'Overdue return', $5, NOW(), NOW()
-        )`,
-        [ins.id, ins.member_id, ins.loan_id, ins.remainingAmount, ins.due_date],
+        )
+        SELECT v.id, v.member_id, v.loan_id, CURRENT_DATE, v.fine_amount, 'unpaid',
+               'Overdue return', v.due_date::date, NOW(), NOW()
+        FROM unnest($1::text[], $2::text[], $3::text[], $4::numeric[], $5::date[])
+          AS v(id, member_id, loan_id, fine_amount, due_date)`,
+        [
+          inserts.map((i) => i.id),
+          inserts.map((i) => i.member_id),
+          inserts.map((i) => i.loan_id),
+          inserts.map((i) => i.remainingAmount),
+          inserts.map((i) => i.due_date),
+        ],
       );
     }
   }
@@ -495,23 +510,29 @@ export async function syncOverdueLoanFines(): Promise<void> {
     });
   }
 
-  for (const u of repairUpdates) {
+  if (repairUpdates.length > 0) {
     await query(
-      `UPDATE fines
+      `UPDATE fines AS f
        SET
-         fine_amount = $1,
-         status = $2,
+         fine_amount = v.fine_amount,
+         status = v.status,
          paid_at = CASE
-           WHEN $2 = 'paid' THEN COALESCE(paid_at, NOW())
+           WHEN v.status = 'paid' THEN COALESCE(f.paid_at, NOW())
            ELSE NULL
          END,
          payment_method = CASE
-           WHEN $2 = 'paid' THEN COALESCE(payment_method, 'physical')
-           ELSE payment_method
+           WHEN v.status = 'paid' THEN COALESCE(f.payment_method, 'physical')
+           ELSE f.payment_method
          END,
          updated_at = NOW()
-       WHERE id = $3`,
-      [u.remainingAmount, u.nextStatus, u.id],
+       FROM unnest($1::text[], $2::numeric[], $3::text[]) 
+         AS v(id, fine_amount, status)
+       WHERE f.id = v.id`,
+      [
+        repairUpdates.map((u) => u.id),
+        repairUpdates.map((u) => u.remainingAmount),
+        repairUpdates.map((u) => u.nextStatus),
+      ],
     );
   }
 }
