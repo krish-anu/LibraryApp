@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -6,6 +8,7 @@ import 'package:http/http.dart' as http;
 class AuthenticatedHttpClient {
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static const String _accessTokenKey = 'asgardeo_access_token';
+  static const Duration _requestTimeout = Duration(seconds: 15);
 
   /// Read the current access token from secure storage.
   static Future<String?> _getToken() async {
@@ -33,7 +36,14 @@ class AuthenticatedHttpClient {
     Map<String, String>? headers,
   }) async {
     final h = await _authHeaders(headers);
-    return http.get(url, headers: h);
+    return http
+        .get(url, headers: h)
+        .timeout(
+          _requestTimeout,
+          onTimeout: () => throw TimeoutException(
+            'Request timed out while connecting to $url',
+          ),
+        );
   }
 
   /// Authenticated POST request.
@@ -43,7 +53,14 @@ class AuthenticatedHttpClient {
     Object? body,
   }) async {
     final h = await _authHeaders(headers);
-    return http.post(url, headers: h, body: body);
+    return http
+        .post(url, headers: h, body: body)
+        .timeout(
+          _requestTimeout,
+          onTimeout: () => throw TimeoutException(
+            'Request timed out while connecting to $url',
+          ),
+        );
   }
 
   /// Authenticated PUT request.
@@ -53,7 +70,14 @@ class AuthenticatedHttpClient {
     Object? body,
   }) async {
     final h = await _authHeaders(headers);
-    return http.put(url, headers: h, body: body);
+    return http
+        .put(url, headers: h, body: body)
+        .timeout(
+          _requestTimeout,
+          onTimeout: () => throw TimeoutException(
+            'Request timed out while connecting to $url',
+          ),
+        );
   }
 
   /// Authenticated DELETE request.
@@ -63,6 +87,13 @@ class AuthenticatedHttpClient {
     Object? body,
   }) async {
     final h = await _authHeaders(headers);
-    return http.delete(url, headers: h, body: body);
+    return http
+        .delete(url, headers: h, body: body)
+        .timeout(
+          _requestTimeout,
+          onTimeout: () => throw TimeoutException(
+            'Request timed out while connecting to $url',
+          ),
+        );
   }
 }

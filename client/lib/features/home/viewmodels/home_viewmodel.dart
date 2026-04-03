@@ -10,29 +10,36 @@ part 'home_viewmodel.g.dart';
 class HomeState {
   final List<Book> books;
   final List<Category> categories;
-  final bool isLoading;
+  final bool hasLoadedBooks;
+  final bool hasLoadedCategories;
   final String? error;
 
   const HomeState({
     this.books = const [],
     this.categories = const [],
-    this.isLoading = false,
+    this.hasLoadedBooks = false,
+    this.hasLoadedCategories = false,
     this.error,
   });
 
   HomeState copyWith({
     List<Book>? books,
     List<Category>? categories,
-    bool? isLoading,
+    bool? hasLoadedBooks,
+    bool? hasLoadedCategories,
     String? error,
+    bool clearError = false,
   }) {
     return HomeState(
       books: books ?? this.books,
       categories: categories ?? this.categories,
-      isLoading: isLoading ?? this.isLoading,
-      error: error,
+      hasLoadedBooks: hasLoadedBooks ?? this.hasLoadedBooks,
+      hasLoadedCategories: hasLoadedCategories ?? this.hasLoadedCategories,
+      error: clearError ? null : (error ?? this.error),
     );
   }
+
+  bool get isLoading => !(hasLoadedBooks && hasLoadedCategories);
 
   /// Get trending books (first 6)
   List<Book> get trendingBooks => books.take(6).toList();
@@ -47,7 +54,7 @@ class HomeViewModel extends _$HomeViewModel {
   HomeState build() {
     // Defer loading until after build completes to avoid accessing state before initialization
     Future.microtask(() => _loadInitialData());
-    return const HomeState(isLoading: true);
+    return const HomeState();
   }
 
   Future<void> _loadInitialData() async {
@@ -62,16 +69,16 @@ class HomeViewModel extends _$HomeViewModel {
       final result = await repository.getAllBooks();
       if (!ref.mounted) return;
       result.fold(
-        (failure) =>
-            state = state.copyWith(isLoading: false, error: failure.message),
-        (books) => state = state.copyWith(
-          books: books,
-          isLoading: state.categories.isEmpty,
+        (failure) => state = state.copyWith(
+          hasLoadedBooks: true,
+          error: failure.message,
         ),
+        (books) =>
+            state = state.copyWith(books: books, hasLoadedBooks: true),
       );
     } catch (e) {
       if (!ref.mounted) return;
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(hasLoadedBooks: true, error: e.toString());
     }
   }
 
@@ -82,16 +89,24 @@ class HomeViewModel extends _$HomeViewModel {
       if (!ref.mounted) return;
       state = state.copyWith(
         categories: categories,
-        isLoading: state.books.isEmpty,
+        hasLoadedCategories: true,
       );
     } catch (e) {
       if (!ref.mounted) return;
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        hasLoadedCategories: true,
+        error: e.toString(),
+      );
     }
   }
 
   Future<void> refresh() async {
-    state = state.copyWith(isLoading: true, error: null);
+    ref.invalidate(fetchCategoriesProvider);
+    state = state.copyWith(
+      hasLoadedBooks: false,
+      hasLoadedCategories: false,
+      clearError: true,
+    );
     await _loadInitialData();
   }
 }

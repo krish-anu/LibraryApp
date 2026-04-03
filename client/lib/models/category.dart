@@ -24,7 +24,7 @@ class Category {
     return Category(
       id: map['id']?.toString() ?? '',
       name: map['name']?.toString() ?? '',
-      image: map['image']?.toString(),
+      image: map['image']?.toString() ?? map['image_url']?.toString(),
     );
   }
 

@@ -7,7 +7,7 @@ import 'package:libraryapp/models/category.dart';
 
 final fetchCategoriesProvider = FutureProvider<List<Category>>((ref) async {
   final res = await AuthenticatedHttpClient.get(
-    Uri.parse('${ServerConstant.serverURL}/category'),
+    Uri.parse('${ServerConstant.serverURL}/categories'),
   );
   if (res.statusCode == 200) {
     final List<dynamic> data = jsonDecode(res.body);
