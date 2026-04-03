@@ -4,15 +4,15 @@ ENV_FILE ?= .env
 HOST_PORT ?= 8000
 CONTAINER_PORT ?= 8000
 
-.PHONY: build run run-detached stop logs remove-all-containers dev migrate
+.PHONY: build run run-detached stop logs remove-all-containers remove-container dev migrate
 
 build:
 	docker build -t $(IMAGE) .
 
-run: build
+run: build remove-container
 	docker run --rm --name $(CONTAINER) --env-file $(ENV_FILE) -p $(HOST_PORT):$(CONTAINER_PORT) $(IMAGE)
 
-run-detached: build
+run-detached: build remove-container
 	docker run -d --name $(CONTAINER) --env-file $(ENV_FILE) -p $(HOST_PORT):$(CONTAINER_PORT) $(IMAGE)
 
 stop:
@@ -20,6 +20,12 @@ stop:
 
 logs:
 	docker logs -f $(CONTAINER)
+
+remove-container:
+	@id=$$(docker ps -aq -f name=^/$(CONTAINER)$$); \
+	if [ -n "$$id" ]; then \
+		docker rm -f $(CONTAINER); \
+	fi
 
 remove-all-containers:
 	@ids=$$(docker ps -aq); \
