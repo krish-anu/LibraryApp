@@ -53,6 +53,7 @@
                 <key>CFBundleURLSchemes</key>
                 <array>
                     <string>com.example.libraryapp</string>
+                    <string>libraryapp</string>
                 </array>
             </dict>
             </array>	

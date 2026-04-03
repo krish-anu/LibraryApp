@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
+import 'package:libraryapp/core/utils/book_share_link.dart';
 import 'package:libraryapp/core/widgets/book_view/book_view.dart';
 import 'package:libraryapp/features/book_details/viewmodels/book_details_viewmodel.dart';
 import 'package:libraryapp/models/book.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Book details view using MVVM pattern.
 class BookDetailsView extends ConsumerWidget {
@@ -24,6 +26,7 @@ class BookDetailsView extends ConsumerWidget {
         isFavorite: state.isFavorite,
         isLoadingFavorite: state.isLoadingFavorite,
         onFavoritePressed: () => viewModel.toggleFavorite(),
+        onSharePressed: () => _shareBook(currentBook),
       ),
       body: state.isLoadingFavorite && state.error != null
           ? _buildErrorState(context, viewModel, state.error!)
@@ -106,6 +109,15 @@ class BookDetailsView extends ConsumerWidget {
       SnackBar(
         content: Text('$feature coming soon!'),
         backgroundColor: Pallete.primaryLight,
+      ),
+    );
+  }
+
+  Future<void> _shareBook(Book book) async {
+    await SharePlus.instance.share(
+      ShareParams(
+        text: BookShareLink.buildShareText(book),
+        subject: 'Book Recommendation: ${book.title}',
       ),
     );
   }

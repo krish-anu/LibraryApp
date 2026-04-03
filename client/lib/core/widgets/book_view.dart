@@ -9,7 +9,9 @@ import 'package:libraryapp/core/widgets/book_view/category_chips.dart';
 import 'package:libraryapp/core/widgets/book_view/summary_section.dart';
 import 'package:libraryapp/core/widgets/book_view/borrow_confirmation_sheet.dart';
 import 'package:libraryapp/core/providers/favorites_notifier.dart';
+import 'package:libraryapp/core/utils/book_share_link.dart';
 import 'package:libraryapp/models/book.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Displays detailed information about a book.
 class BookView extends ConsumerStatefulWidget {
@@ -85,6 +87,7 @@ class _BookViewState extends ConsumerState<BookView> {
         isFavorite: isFavorite,
         isLoadingFavorite: _isLoadingFavorite || favoritesState.isLoading,
         onFavoritePressed: _toggleFavorite,
+        onSharePressed: _shareBook,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -124,6 +127,15 @@ class _BookViewState extends ConsumerState<BookView> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => BorrowConfirmationSheet(book: widget.book),
+    );
+  }
+
+  Future<void> _shareBook() async {
+    await SharePlus.instance.share(
+      ShareParams(
+        text: BookShareLink.buildShareText(widget.book),
+        subject: 'Book Recommendation: ${widget.book.title}',
+      ),
     );
   }
 }

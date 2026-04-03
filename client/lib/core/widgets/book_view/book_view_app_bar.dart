@@ -7,6 +7,7 @@ class BookViewAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isFavorite;
   final bool isLoadingFavorite;
   final VoidCallback? onFavoritePressed;
+  final VoidCallback? onSharePressed;
 
   const BookViewAppBar({
     super.key,
@@ -14,6 +15,7 @@ class BookViewAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.isFavorite = false,
     this.isLoadingFavorite = false,
     this.onFavoritePressed,
+    this.onSharePressed,
   });
 
   @override
@@ -46,10 +48,10 @@ class BookViewAppBar extends StatelessWidget implements PreferredSizeWidget {
               color: isFavorite ? Pallete.primaryLight : Pallete.iconColor,
             ),
             onPressed: onFavoritePressed,
-          ),
+        ),
         IconButton(
           icon: const Icon(Icons.ios_share, color: Pallete.iconColor),
-          onPressed: () {},
+          onPressed: onSharePressed,
         ),
       ],
     );
