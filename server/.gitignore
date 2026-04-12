@@ -38,6 +38,9 @@ pip-delete-this-directory.txt
 htmlcov/
 .tox/
 .nox/
+.mypy_cache/
+.ruff_cache/
+.pyre/
 .coverage
 .coverage.*
 .cache
@@ -85,6 +88,7 @@ ipython_config.py
 # Environments
 .env
 .venv
+.envrc
 env/
 venv/
 ENV/

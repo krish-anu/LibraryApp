@@ -18,4 +18,16 @@ Thumbs.db
 
 # Misc
 *.log
+*.pid
+*.seed
 .codex
+node_modules
+
+# Workspace-level cache/build artifacts
+coverage/
+dist/
+tmp/
+.cache/
+
+# Local environment helpers
+.envrc
