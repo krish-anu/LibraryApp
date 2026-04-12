@@ -73,8 +73,7 @@ class HomeViewModel extends _$HomeViewModel {
           hasLoadedBooks: true,
           error: failure.message,
         ),
-        (books) =>
-            state = state.copyWith(books: books, hasLoadedBooks: true),
+        (books) => state = state.copyWith(books: books, hasLoadedBooks: true),
       );
     } catch (e) {
       if (!ref.mounted) return;
@@ -87,16 +86,10 @@ class HomeViewModel extends _$HomeViewModel {
     try {
       final categories = await ref.read(fetchCategoriesProvider.future);
       if (!ref.mounted) return;
-      state = state.copyWith(
-        categories: categories,
-        hasLoadedCategories: true,
-      );
+      state = state.copyWith(categories: categories, hasLoadedCategories: true);
     } catch (e) {
       if (!ref.mounted) return;
-      state = state.copyWith(
-        hasLoadedCategories: true,
-        error: e.toString(),
-      );
+      state = state.copyWith(hasLoadedCategories: true, error: e.toString());
     }
   }
 
