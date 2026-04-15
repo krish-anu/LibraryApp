@@ -1,0 +1,56 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: library-backend
+    url: http://api:8000
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+    routes:
+      - name: library-backend-route
+        paths:
+          - /backend
+        strip_path: true
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+    plugins:
+      - name: request-size-limiting
+        config:
+          allowed_payload_size: 10
+          size_unit: megabytes
+          require_content_length: false
+      - name: rate-limiting
+        config:
+          minute: 300
+          policy: local
+      - name: cors
+        config:
+          origins:
+            - http://localhost:3000
+            - http://127.0.0.1:3000
+            - http://localhost:8081
+            - http://127.0.0.1:8081
+          methods:
+            - GET
+            - POST
+            - PUT
+            - PATCH
+            - DELETE
+            - OPTIONS
+          headers:
+            - Authorization
+            - Content-Type
+            - Accept
+            - Origin
+            - X-Requested-With
+          exposed_headers:
+            - X-RateLimit-Limit-Minute
+            - X-RateLimit-Remaining-Minute
+          credentials: true
+          max_age: 3600

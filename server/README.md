@@ -70,6 +70,37 @@ To stop and remove the database volume:
 docker compose down -v
 ```
 
+## 2.1 Run with Kong Gateway
+
+Use the Kong overlay file to keep gateway support optional and non-breaking.
+
+From the `server` directory:
+
+```bash
+docker compose -f compose.yaml -f compose.kong.yaml up --build
+```
+
+This starts:
+
+- API on `http://localhost:8000`
+- Kong proxy on `http://localhost:8080`
+- Kong admin API on `http://localhost:8001`
+
+Request flow through Kong uses `/backend` as the public prefix and strips it before proxying to FastAPI.
+
+Examples:
+
+```text
+GET http://localhost:8080/backend/
+GET http://localhost:8080/backend/books
+GET http://localhost:8080/backend/users
+```
+
+Kong configuration files live in `gateway/`:
+
+- `gateway/kong.yml`
+- `gateway/README.md`
+
 ## 3. Run only the backend container
 
 Use this if you already have a PostgreSQL database.

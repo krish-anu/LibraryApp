@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from typing import cast
+from typing import Sequence, cast
 
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -97,8 +97,25 @@ def _parse_asset_extensions(default_serve_assets: bool) -> set[str] | None:
     return normalized
 
 
-def create_app() -> FastAPI:
-    app = FastAPI(title="Library App API", lifespan=lifespan)
+DEFAULT_ROUTERS: tuple[APIRouter, ...] = (
+    general.router,
+    auth.router,
+    books.router,
+    loans.router,
+    category.router,
+    favorites.router,
+    users.router,
+    reservations.router,
+    settings.router,
+)
+
+
+def create_app(
+    title: str = "Library App API",
+    routers: Sequence[APIRouter] | None = None,
+    serve_assets: bool | None = None,
+) -> FastAPI:
+    app = FastAPI(title=title, lifespan=lifespan)
 
     default_limit = os.getenv("DEFAULT_RATE_LIMIT", "60/minute")
     limiter = create_limiter(default_limits=[default_limit])
@@ -149,7 +166,11 @@ def create_app() -> FastAPI:
     client_assets = project_root / "client" / "assets"
     environment = os.getenv("ENVIRONMENT", "development").strip().lower()
     default_serve_assets = environment != "production"
-    serve_local_assets = env_bool("SERVE_LOCAL_ASSETS", default_serve_assets)
+    serve_local_assets = (
+        env_bool("SERVE_LOCAL_ASSETS", default_serve_assets)
+        if serve_assets is None
+        else serve_assets
+    )
     allowed_asset_extensions = _parse_asset_extensions(default_serve_assets)
     if serve_local_assets and client_assets.exists():
         app.mount(
@@ -161,14 +182,8 @@ def create_app() -> FastAPI:
             name="assets",
         )
 
-    app.include_router(general.router)
-    app.include_router(auth.router)
-    app.include_router(books.router)
-    app.include_router(loans.router)
-    app.include_router(category.router)
-    app.include_router(favorites.router)
-    app.include_router(users.router)
-    app.include_router(reservations.router)
-    app.include_router(settings.router)
+    selected_routers = tuple(routers) if routers is not None else DEFAULT_ROUTERS
+    for router in selected_routers:
+        app.include_router(router)
 
     return app
