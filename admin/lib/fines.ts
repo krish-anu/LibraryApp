@@ -305,7 +305,7 @@ export async function syncOverdueLoanFines(): Promise<void> {
       if (!Number.isFinite(amount) || amount <= 0) continue;
 
       const key = `${loan.loan_id}_${loan.due_date}`;
-      let totalPaid = cyclePaidMap.get(key) || 0;
+      const totalPaid = cyclePaidMap.get(key) || 0;
 
       const remainingAmount = Math.max(
         0,
