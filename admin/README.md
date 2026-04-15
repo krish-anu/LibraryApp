@@ -20,6 +20,12 @@ A full-stack Next.js admin portal for library management with Supabase database 
 - **Icons**: Lucide React
 - **State Management**: Zustand
 
+## Architecture
+
+- **Gateway Layer**: `app/api/*` route handlers now act as a stable API gateway surface.
+- **Service Layer**: Domain logic lives in `services/*` modules organized by bounded context.
+- **Data Access**: Existing DB/auth/storage integrations remain unchanged and are now encapsulated per service domain.
+
 ## Getting Started
 
 ### 1. Set up Supabase
@@ -94,6 +100,15 @@ admin/
 │   ├── globals.css
 │   ├── layout.tsx
 │   └── page.tsx
+├── services/                  # Domain service modules (microservices-oriented)
+│   ├── identity/              # Auth and session service
+│   ├── catalog/               # Books and categories service
+│   ├── members/               # User/member service
+│   ├── fines/                 # Fine and payment service
+│   ├── loans/                 # Loan renewal service
+│   ├── config/                # Settings/config service
+│   ├── analytics/             # Dashboard aggregation service
+│   └── storage/               # Object storage service
 ├── components/
 │   ├── layout/                # Layout components (Sidebar, Header)
 │   └── ui/                    # Reusable UI components
