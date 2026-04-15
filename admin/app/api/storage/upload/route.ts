@@ -1,1 +1,2 @@
-export { POST, runtime } from "@/services/storage/upload-service";
+export const runtime = "nodejs";
+export { POST } from "@/services/storage/upload-service";
