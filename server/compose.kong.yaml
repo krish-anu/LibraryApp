@@ -16,7 +16,7 @@ services:
       KONG_NGINX_HTTP_KEEPALIVE_REQUESTS: "100000"
       KONG_PROXY_ACCESS_LOG: "off"
       KONG_DNS_STALE_TTL: "3600"
-      KONG_DNS_RESOLVER: "8.8.8.8, 8.8.4.4"
+      KONG_DNS_RESOLVER: "127.0.0.11, 8.8.8.8"
       KONG_CLUSTER_CONTROL_PLANE: "bffefca93c.in.cp.konghq.com:443"
       KONG_CLUSTER_SERVER_NAME: "bffefca93c.in.cp.konghq.com"
       KONG_CLUSTER_TELEMETRY_ENDPOINT: "bffefca93c.in.tp.konghq.com:443"
