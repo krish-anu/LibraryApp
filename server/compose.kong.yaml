@@ -1,6 +1,6 @@
 services:
   kong:
-    image: kong:3.7
+    image: kong/kong-gateway:3.7
     container_name: libraryapp-kong
     environment:
       KONG_ROLE: "data_plane"
@@ -12,10 +12,11 @@ services:
       KONG_KONNECT_MODE: "on"
       KONG_VITALS: "off"
       KONG_NGINX_WORKER_PROCESSES: "auto"
-      KONG_UPSTREAM_KEEPALIVE_MAX_REQUESTS: 100000
-      KONG_NGINX_HTTP_KEEPALIVE_REQUESTS: 100000
+      KONG_UPSTREAM_KEEPALIVE_MAX_REQUESTS: "100000"
+      KONG_NGINX_HTTP_KEEPALIVE_REQUESTS: "100000"
       KONG_PROXY_ACCESS_LOG: "off"
-      KONG_DNS_STALE_TTL: 3600
+      KONG_DNS_STALE_TTL: "3600"
+      KONG_DNS_RESOLVER: "8.8.8.8, 8.8.4.4"
       KONG_CLUSTER_CONTROL_PLANE: "bffefca93c.in.cp.konghq.com:443"
       KONG_CLUSTER_SERVER_NAME: "bffefca93c.in.cp.konghq.com"
       KONG_CLUSTER_TELEMETRY_ENDPOINT: "bffefca93c.in.tp.konghq.com:443"
