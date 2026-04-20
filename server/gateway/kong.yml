@@ -10,6 +10,17 @@ plugins:
 _transform: true
 
 services:
+  - name: library-backend-service
+    url: http://libraryapp-server:8000
+    routes:
+      - name: library-api-route
+        paths:
+          - /backend
+        protocols:
+          - http
+          - https
+        strip_path: true
+
   - name: library-backend
     url: http://libraryapp-server:8000
     connect_timeout: 60000
