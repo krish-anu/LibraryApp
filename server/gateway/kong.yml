@@ -1,4 +1,12 @@
 _format_version: "3.0"
+
+plugins:    
+- name: rate-limiting
+  config:
+    minute: 10
+    limit_by: consumer
+    policy: local
+
 _transform: true
 
 services:
