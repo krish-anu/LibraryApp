@@ -101,6 +101,47 @@ Kong configuration files live in `gateway/`:
 - `gateway/kong.yml`
 - `gateway/README.md`
 
+## 2.2 Run in Microservices Mode (with Kong)
+
+This mode runs split backend services and routes traffic through Kong.
+
+From the `server` directory:
+
+```bash
+docker compose -f compose.microservices.yaml up --build
+```
+
+This starts:
+
+- `auth-api` (internal)
+- `catalog-api` (internal)
+- `users-api` (internal)
+- `circulation-api` (internal)
+- `settings-api` (internal)
+- `db` on `localhost:5432`
+- Kong proxy on `http://localhost:8080`
+- Kong admin API on `http://localhost:8001`
+
+Kong microservices config:
+
+- `gateway/kong.microservices.yml`
+
+Example requests through Kong:
+
+```text
+GET http://localhost:8080/auth/register
+GET http://localhost:8080/books
+GET http://localhost:8080/users/by-member/{member_id}
+GET http://localhost:8080/loans
+GET http://localhost:8080/settings
+```
+
+To stop:
+
+```bash
+docker compose -f compose.microservices.yaml down
+```
+
 ## 3. Run only the backend container
 
 Use this if you already have a PostgreSQL database.

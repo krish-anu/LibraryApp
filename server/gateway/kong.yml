@@ -3,7 +3,7 @@ _transform: true
 
 services:
   - name: library-backend
-    url: http://api:8000
+    url: http://libraryapp-server:8000
     connect_timeout: 60000
     write_timeout: 60000
     read_timeout: 60000
@@ -11,6 +11,7 @@ services:
       - name: library-backend-route
         paths:
           - /backend
+          - /api
         strip_path: true
         methods:
           - GET
@@ -32,10 +33,7 @@ services:
       - name: cors
         config:
           origins:
-            - http://localhost:3000
-            - http://127.0.0.1:3000
-            - http://localhost:8081
-            - http://127.0.0.1:8081
+            - "*"
           methods:
             - GET
             - POST
