@@ -37,6 +37,24 @@ function normalizeConnectionString(value: string): string {
   return value.replace(/^postgresql\+[^:]+:\/\//i, "postgresql://");
 }
 
+function stripSslParamsFromConnectionString(connectionString: string): string {
+  try {
+    const url = new URL(connectionString);
+    for (const key of [
+      "sslmode",
+      "sslcert",
+      "sslkey",
+      "sslrootcert",
+      "sslpassword",
+    ]) {
+      url.searchParams.delete(key);
+    }
+    return url.toString();
+  } catch {
+    return connectionString;
+  }
+}
+
 function getConnectionStringHost(connectionString: string): string {
   try {
     return new URL(connectionString).hostname;
@@ -121,9 +139,12 @@ function resolvePoolConfig(): {
     const normalizedConnectionString =
       normalizeConnectionString(connectionString);
     const sslMode = resolveSslMode(normalizedConnectionString);
+    const pgConnectionString =
+      stripSslParamsFromConnectionString(normalizedConnectionString);
     return {
       config: {
-        connectionString: normalizedConnectionString,
+        // Let our resolved `ssl` object control TLS behavior consistently.
+        connectionString: pgConnectionString,
         ssl: resolveSslConfig(normalizedConnectionString),
       },
       diagnostics: {
