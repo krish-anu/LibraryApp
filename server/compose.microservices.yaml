@@ -33,6 +33,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "8101:8000"
     restart: unless-stopped
     healthcheck:
       test:
@@ -63,6 +65,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "8102:8000"
     restart: unless-stopped
     healthcheck:
       test:
@@ -93,6 +97,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "8103:8000"
     restart: unless-stopped
     healthcheck:
       test:
@@ -123,6 +129,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "8104:8000"
     restart: unless-stopped
     healthcheck:
       test:
@@ -153,6 +161,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "8105:8000"
     restart: unless-stopped
     healthcheck:
       test:
@@ -166,37 +176,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-
-  kong:
-    image: kong:3.7
-    container_name: libraryapp-kong
-    environment:
-      KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
-      KONG_PROXY_LISTEN: 0.0.0.0:8000
-      KONG_ADMIN_LISTEN: 0.0.0.0:8001
-      KONG_LOG_LEVEL: notice
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
-    volumes:
-      - ./gateway/kong.microservices.yml:/etc/kong/kong.yml:ro
-    depends_on:
-      auth-api:
-        condition: service_healthy
-      catalog-api:
-        condition: service_healthy
-      users-api:
-        condition: service_healthy
-      circulation-api:
-        condition: service_healthy
-      settings-api:
-        condition: service_healthy
-    ports:
-      - "8080:8000"
-      - "8001:8001"
-    restart: unless-stopped
 
 volumes:
   postgres_data:

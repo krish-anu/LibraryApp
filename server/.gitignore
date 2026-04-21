@@ -99,9 +99,4 @@ venv.bak/
 .vscode/
 .idea/
 
-# Gateway Secrets
-tls.crt
-tls.key
-gateway/tls.crt
-gateway/tls.key
 .DS_Store

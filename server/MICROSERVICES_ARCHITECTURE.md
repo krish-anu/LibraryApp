@@ -40,18 +40,16 @@ All services use shared modules from app/:
 
 The shared app factory now supports selecting router sets per service.
 
-## Gateway
+## Direct Access
 
-Kong routes traffic to each service using gateway/kong.microservices.yml.
+Services are exposed directly with host ports in compose.microservices.yaml:
 
-Public gateway examples:
-
-- /auth/* -> auth-api
-- /books/* and /categories/* -> catalog-api
-- /users/* -> users-api
-- /loans/*, /reservations/*, /favorites/* -> circulation-api
-- /settings/* -> settings-api
+- auth-api: http://localhost:8101/auth/*
+- catalog-api: http://localhost:8102/books/* and /categories/*
+- users-api: http://localhost:8103/users/*
+- circulation-api: http://localhost:8104/loans/*, /reservations/*, /favorites/*
+- settings-api: http://localhost:8105/settings/*
 
 ## Runtime
 
-Use compose.microservices.yaml to run db + all services + Kong.
+Use compose.microservices.yaml to run db + all services.

@@ -20,12 +20,16 @@ Each service uses the shared app layer (models, dependencies, security middlewar
 - services.circulation_service.main:app
 - services.settings_service.main:app
 
-## Local Run with Kong
+## Local Run
 
 Use the dedicated stack from the server directory:
 
 docker compose -f compose.microservices.yaml up --build
 
-Kong proxy endpoint:
+Service endpoints:
 
-http://localhost:8080
+- auth-api: http://localhost:8101
+- catalog-api: http://localhost:8102
+- users-api: http://localhost:8103
+- circulation-api: http://localhost:8104
+- settings-api: http://localhost:8105
