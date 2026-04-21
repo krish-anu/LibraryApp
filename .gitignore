@@ -2,8 +2,11 @@
 # Environment files with secrets
 .env
 .env.local
+.env.*
 .env.*.local
 *.env
+!**/.env.example
+!**/.env.*.example
 
 # IDE
 .idea/
@@ -31,3 +34,6 @@ tmp/
 
 # Local environment helpers
 .envrc
+
+# Client local run config
+client/Makefile
