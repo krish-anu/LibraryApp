@@ -3,18 +3,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:libraryapp/auth/config/asgardeo_runtime_config.dart';
 
 part 'asgardeo_auth_provider.g.dart';
 
 /// Asgardeo OAuth Configuration
-/// Replace these with your actual Asgardeo application credentials
 class AsgardeoConfig {
-  static const String clientId = '1O70sZaVwlin70uGYeJlfKhvv2sa';
-  static const String redirectUrl = 'com.example.libraryapp://callback';
-  static const String discoveryUrl =
-      'https://api.eu.asgardeo.io/t/orgd2ib6/oauth2/token/.well-known/openid-configuration';
-  static const String userInfoEndpoint =
-      'https://api.eu.asgardeo.io/t/orgd2ib6/oauth2/userinfo';
+  static String get clientId => AsgardeoRuntimeConfig.clientId;
+  static String get redirectUrl => AsgardeoRuntimeConfig.redirectUrl;
+  static String get discoveryUrl => AsgardeoRuntimeConfig.discoveryUrl;
+  static String get userInfoEndpoint => AsgardeoRuntimeConfig.userInfoEndpoint;
   static const List<String> scopes = ['openid', 'profile', 'email'];
 }
 
@@ -113,10 +111,8 @@ class AsgardeoAuth extends _$AsgardeoAuth {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
+      AsgardeoRuntimeConfig.ensureConfigured();
       debugPrint('Starting Asgardeo login...');
-      debugPrint('Client ID: ${AsgardeoConfig.clientId}');
-      debugPrint('Redirect URL: ${AsgardeoConfig.redirectUrl}');
-      debugPrint('Discovery URL: ${AsgardeoConfig.discoveryUrl}');
 
       final AuthorizationTokenResponse result = await _appAuth
           .authorizeAndExchangeCode(
@@ -158,6 +154,7 @@ class AsgardeoAuth extends _$AsgardeoAuth {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
+      AsgardeoRuntimeConfig.ensureConfigured();
       final response = await http.get(
         Uri.parse(AsgardeoConfig.userInfoEndpoint),
         headers: {'Authorization': 'Bearer ${state.accessToken}'},
@@ -191,6 +188,7 @@ class AsgardeoAuth extends _$AsgardeoAuth {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
+      AsgardeoRuntimeConfig.ensureConfigured();
       await _appAuth.endSession(
         EndSessionRequest(
           idTokenHint: state.idToken,

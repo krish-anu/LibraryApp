@@ -5,6 +5,9 @@ import { verifyAdmin } from "@/lib/auth/verify-admin";
 
 // GET all users with pagination and filtering
 export async function GET(request: NextRequest) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     const { searchParams } = new URL(request.url);
 

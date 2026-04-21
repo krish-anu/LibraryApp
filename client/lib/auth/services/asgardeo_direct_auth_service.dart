@@ -2,42 +2,38 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:libraryapp/auth/config/asgardeo_runtime_config.dart';
 import 'package:libraryapp/core/constants/server_constant.dart';
 
 /// Asgardeo Direct Authentication Configuration
 /// Uses Resource Owner Password Credentials (ROPC) grant for in-app authentication
 class AsgardeoDirectConfig {
-  static const String clientId = String.fromEnvironment(
-    'ASGARDEO_CLIENT_ID',
-    defaultValue: '1O70sZaVwlin70uGYeJlfKhvv2sa',
-  );
+  static String get clientId => AsgardeoRuntimeConfig.clientId;
   // Public client - no client secret needed for mobile apps
   static const String clientSecret = '';
-  static const String baseUrl = String.fromEnvironment(
-    'ASGARDEO_BASE_URL',
-    defaultValue: 'https://api.eu.asgardeo.io/t/orgd2ib6',
-  );
-  static const String tokenEndpoint = '$baseUrl/oauth2/token';
-  static const String userInfoEndpoint = '$baseUrl/oauth2/userinfo';
-  static const String scim2Endpoint = '$baseUrl/scim2';
-  static const String scim2MeEndpoint = '$baseUrl/scim2/Me';
-  static const String scim2UsersEndpoint = '$baseUrl/scim2/Users';
+  static String get baseUrl => AsgardeoRuntimeConfig.baseUrl;
+  static String get tokenEndpoint => AsgardeoRuntimeConfig.tokenEndpoint;
+  static String get userInfoEndpoint => AsgardeoRuntimeConfig.userInfoEndpoint;
+  static String get scim2Endpoint => AsgardeoRuntimeConfig.scim2Endpoint;
+  static String get scim2MeEndpoint => AsgardeoRuntimeConfig.scim2MeEndpoint;
+  static String get scim2UsersEndpoint =>
+      AsgardeoRuntimeConfig.scim2UsersEndpoint;
   // Self-registration endpoint
-  static const String selfRegisterEndpoint =
-      '$baseUrl/api/identity/user/v1.0/me';
+  static String get selfRegisterEndpoint =>
+      AsgardeoRuntimeConfig.selfRegisterEndpoint;
   // Alternative registration endpoint
-  static const String publicRegisterEndpoint =
-      '$baseUrl/api/asgardeo/selfservice/v1/self-register';
-  static const String introspectEndpoint = '$baseUrl/oauth2/introspect';
+  static String get publicRegisterEndpoint =>
+      AsgardeoRuntimeConfig.publicRegisterEndpoint;
+  static String get introspectEndpoint =>
+      AsgardeoRuntimeConfig.introspectEndpoint;
 
   // Browser-based registration URL (Asgardeo hosted page)
   // This is the officially supported way for Asgardeo cloud
-  static const String registrationUrl =
-      '$baseUrl/accountrecoveryendpoint/register.do?client_id=$clientId';
+  static String get registrationUrl => AsgardeoRuntimeConfig.registrationUrl;
 
   // Alternative: Asgardeo's self-service portal
-  static const String selfServicePortalUrl =
-      'https://myaccount.eu.asgardeo.io/t/orgd2ib6';
+  static String get selfServicePortalUrl =>
+      AsgardeoRuntimeConfig.selfServicePortalUrl;
 
   static const List<String> scopes = [
     'openid',
@@ -154,12 +150,78 @@ class AuthResult<T> {
 
 /// Service for direct Asgardeo authentication (no browser redirect)
 class AsgardeoDirectAuthService {
+  Map<String, dynamic>? _tryDecodeJsonObject(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _snippet(String body, {int maxLength = 160}) {
+    final compact = body.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (compact.isEmpty) {
+      return '';
+    }
+    if (compact.length <= maxLength) {
+      return compact;
+    }
+    return '${compact.substring(0, maxLength)}...';
+  }
+
+  String _errorMessageFromResponse({
+    required http.Response response,
+    required Uri endpoint,
+    required String action,
+    required String fallback,
+  }) {
+    final json = _tryDecodeJsonObject(response.body);
+    if (json != null) {
+      return (json['error_description'] ??
+              json['detail'] ??
+              json['description'] ??
+              json['scimType'] ??
+              json['error'] ??
+              fallback)
+          .toString();
+    }
+
+    final contentType = (response.headers['content-type'] ?? '').toLowerCase();
+    final responseLooksHtml =
+        contentType.contains('text/html') ||
+        response.body.trimLeft().startsWith('<');
+    if (response.statusCode == 404 && responseLooksHtml) {
+      return 'Asgardeo $action returned 404 HTML from $endpoint. '
+          'Check ASGARDEO_BASE_URL. It should be the tenant base URL only, '
+          'for example https://api.<region>.asgardeo.io/t/<org>, without '
+          '/oauth2/token or any other endpoint path.';
+    }
+
+    final snippet = _snippet(response.body);
+    if (snippet.isEmpty) {
+      return '$fallback (${response.statusCode})';
+    }
+
+    return '$fallback (${response.statusCode}): $snippet';
+  }
+
+  String _messageFromException(Object error) {
+    final message = error.toString();
+    const badStatePrefix = 'Bad state: ';
+    if (message.startsWith(badStatePrefix)) {
+      return message.substring(badStatePrefix.length);
+    }
+    return message;
+  }
+
   /// Login using username/password with Resource Owner Password Grant
   Future<AuthResult<AsgardeoTokenResponse>> login({
     required String username,
     required String password,
   }) async {
     try {
+      AsgardeoRuntimeConfig.ensureConfigured();
       debugPrint('Attempting direct login to Asgardeo...');
 
       final body = {
@@ -175,8 +237,13 @@ class AsgardeoDirectAuthService {
         body['client_secret'] = AsgardeoDirectConfig.clientSecret;
       }
 
+      final tokenUri = Uri.parse(AsgardeoDirectConfig.tokenEndpoint);
+      if (kDebugMode) {
+        debugPrint('Asgardeo token endpoint: $tokenUri');
+      }
+
       final response = await http.post(
-        Uri.parse(AsgardeoDirectConfig.tokenEndpoint),
+        tokenUri,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: body,
       );
@@ -184,29 +251,37 @@ class AsgardeoDirectAuthService {
       debugPrint('Login response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final json = _tryDecodeJsonObject(response.body);
+        if (json == null) {
+          return AuthResult.failure(
+            'Asgardeo login succeeded with a non-JSON response. '
+            'Check ASGARDEO_BASE_URL and tenant configuration.',
+          );
+        }
         final tokenResponse = AsgardeoTokenResponse.fromJson(json);
         debugPrint('Login successful!');
 
         return AuthResult.success(tokenResponse);
       } else {
-        final errorJson = jsonDecode(response.body) as Map<String, dynamic>;
-        final errorDescription =
-            errorJson['error_description'] ??
-            errorJson['error'] ??
-            'Login failed';
+        final errorDescription = _errorMessageFromResponse(
+          response: response,
+          endpoint: tokenUri,
+          action: 'login',
+          fallback: 'Login failed',
+        );
         debugPrint('Login failed: $errorDescription');
         return AuthResult.failure(errorDescription.toString());
       }
     } catch (e, s) {
       debugPrint('Login error: $e\n$s');
-      return AuthResult.failure('Connection error: ${e.toString()}');
+      return AuthResult.failure(_messageFromException(e));
     }
   }
 
   /// Get user info using access token
   Future<AuthResult<AsgardeoUser>> getUserInfo(String accessToken) async {
     try {
+      AsgardeoRuntimeConfig.ensureConfigured();
       final response = await http.get(
         Uri.parse(AsgardeoDirectConfig.userInfoEndpoint),
         headers: {'Authorization': 'Bearer $accessToken'},
@@ -299,6 +374,7 @@ class AsgardeoDirectAuthService {
     String? country,
   }) async {
     try {
+      AsgardeoRuntimeConfig.ensureConfigured();
       debugPrint('Opening Asgardeo registration page in browser...');
 
       // Open Asgardeo's self-service portal for registration
@@ -351,6 +427,7 @@ class AsgardeoDirectAuthService {
     String? picture,
   }) async {
     try {
+      AsgardeoRuntimeConfig.ensureConfigured();
       debugPrint('Attempting to update user info in Asgardeo...');
 
       // Build SCIM2 patch operations
@@ -439,22 +516,27 @@ class AsgardeoDirectAuthService {
       debugPrint('Update response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final json = _tryDecodeJsonObject(response.body);
+        if (json == null) {
+          return AuthResult.failure(
+            'Update failed: Asgardeo returned a non-JSON response.',
+          );
+        }
         debugPrint('Update successful!');
         return AuthResult.success(json);
       } else {
-        final errorJson = jsonDecode(response.body) as Map<String, dynamic>;
-        final errorDetail =
-            errorJson['detail'] ??
-            errorJson['scimType'] ??
-            errorJson['description'] ??
-            'Update failed';
+        final errorDetail = _errorMessageFromResponse(
+          response: response,
+          endpoint: Uri.parse(AsgardeoDirectConfig.scim2MeEndpoint),
+          action: 'profile update',
+          fallback: 'Update failed',
+        );
         debugPrint('Update failed: $errorDetail');
         return AuthResult.failure(errorDetail.toString());
       }
     } catch (e, s) {
       debugPrint('Update error: $e\n$s');
-      return AuthResult.failure('Connection error: ${e.toString()}');
+      return AuthResult.failure(_messageFromException(e));
     }
   }
 
@@ -463,6 +545,7 @@ class AsgardeoDirectAuthService {
     String refreshToken,
   ) async {
     try {
+      AsgardeoRuntimeConfig.ensureConfigured();
       final body = {
         'grant_type': 'refresh_token',
         'client_id': AsgardeoDirectConfig.clientId,
@@ -473,31 +556,42 @@ class AsgardeoDirectAuthService {
         body['client_secret'] = AsgardeoDirectConfig.clientSecret;
       }
 
+      final tokenUri = Uri.parse(AsgardeoDirectConfig.tokenEndpoint);
       final response = await http.post(
-        Uri.parse(AsgardeoDirectConfig.tokenEndpoint),
+        tokenUri,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: body,
       );
 
       if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final json = _tryDecodeJsonObject(response.body);
+        if (json == null) {
+          return AuthResult.failure(
+            'Token refresh failed: Asgardeo returned a non-JSON response.',
+          );
+        }
         return AuthResult.success(AsgardeoTokenResponse.fromJson(json));
       } else {
-        final errorJson = jsonDecode(response.body) as Map<String, dynamic>;
         return AuthResult.failure(
-          errorJson['error_description'] ?? 'Token refresh failed',
+          _errorMessageFromResponse(
+            response: response,
+            endpoint: tokenUri,
+            action: 'token refresh',
+            fallback: 'Token refresh failed',
+          ),
         );
       }
     } catch (e) {
-      return AuthResult.failure('Error refreshing token: ${e.toString()}');
+      return AuthResult.failure(_messageFromException(e));
     }
   }
 
   /// Revoke access token (logout)
   Future<bool> revokeToken(String token) async {
     try {
+      AsgardeoRuntimeConfig.ensureConfigured();
       final response = await http.post(
-        Uri.parse('${AsgardeoDirectConfig.baseUrl}/oauth2/revoke'),
+        Uri.parse(AsgardeoRuntimeConfig.revokeEndpoint),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {'token': token, 'client_id': AsgardeoDirectConfig.clientId},
       );

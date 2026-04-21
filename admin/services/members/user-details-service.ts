@@ -8,6 +8,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     const { id } = await params;
 
