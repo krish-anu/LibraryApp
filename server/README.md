@@ -20,11 +20,15 @@ cp .env.example .env
 ```
 
 Update the values in `.env` as needed.
+Keep real credentials only in `.env`; that file is gitignored and should not be committed. Commit only placeholder values in `.env.example`.
 
 Notes:
 
 - `DATABASE_URL` is optional. If set, it overrides the split `DB_*` variables.
 - For the included `compose.yaml`, the API is forced to use the local `db` service with `sslmode=disable`.
+- Local Compose uses `COMPOSE_DB_*` values for the containerized PostgreSQL instance, so your `.env` can still keep external/Supabase `DB_*` credentials.
+- `ASGARDEO_PUBLIC_CLIENT_ID` is used by `/auth/login/credentials`.
+- `ASGARDEO_M2M_CLIENT_ID` and `ASGARDEO_M2M_CLIENT_SECRET` are used by backend-managed flows such as `/auth/register`.
 - For external PostgreSQL or Supabase, keep `DB_SSLMODE=require` or provide a full `DATABASE_URL`.
 
 ## 1.1 Run schema migration script
@@ -46,11 +50,14 @@ make migrate
 This starts:
 
 - `api` on `http://localhost:8000`
-- `db` on `localhost:5432`
+- `db` on `localhost:5433` by default
 
 ```bash
 docker compose up --build
 ```
+
+If you want the containerized database on a different host port, set `DB_PUBLISHED_PORT` in `.env`.
+If you want to change the local Compose database credentials or DB name, set `COMPOSE_DB_USER`, `COMPOSE_DB_PASSWORD`, and `COMPOSE_DB_NAME`.
 
 To run in the background:
 
@@ -87,7 +94,7 @@ This starts:
 - `users-api` on `http://localhost:8103`
 - `circulation-api` on `http://localhost:8104`
 - `settings-api` on `http://localhost:8105`
-- `db` on `localhost:5432`
+- `db` on `localhost:5433` by default
 
 Example requests:
 
