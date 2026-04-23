@@ -21,7 +21,32 @@ Future<List<Book>> fetchAllBooks(Ref ref) async {
 }
 
 class BookRepository {
-  Future<Either<Failure, List<Book>>> getAllBooks() async {
+  static List<Book>? _cachedBooks;
+  static Future<Either<Failure, List<Book>>>? _inFlightBooksRequest;
+
+  Future<Either<Failure, List<Book>>> getAllBooks({bool forceRefresh = false}) {
+    if (!forceRefresh) {
+      final cachedBooks = _cachedBooks;
+      if (cachedBooks != null) {
+        return Future.value(right(cachedBooks));
+      }
+
+      final inFlightRequest = _inFlightBooksRequest;
+      if (inFlightRequest != null) {
+        return inFlightRequest;
+      }
+    }
+
+    final request = _fetchAllBooks();
+    _inFlightBooksRequest = request;
+    return request.whenComplete(() {
+      if (identical(_inFlightBooksRequest, request)) {
+        _inFlightBooksRequest = null;
+      }
+    });
+  }
+
+  Future<Either<Failure, List<Book>>> _fetchAllBooks() async {
     try {
       final res = await AuthenticatedHttpClient.get(
         Uri.parse('${ServerConstant.serverURL}/books'),
@@ -46,6 +71,7 @@ class BookRepository {
             ratingCount: e['rating_count'] as int? ?? 0,
           );
         }).toList();
+        _cachedBooks = books;
         return right(books);
       } else {
         return left(Failure(res.body));

@@ -135,11 +135,11 @@ class SearchViewModel extends _$SearchViewModel {
     );
   }
 
-  Future<void> _loadBooks() async {
+  Future<void> _loadBooks({bool forceRefresh = false}) async {
     if (!ref.mounted) return;
     try {
       final repository = ref.read(bookRepositoryProvider);
-      final result = await repository.getAllBooks();
+      final result = await repository.getAllBooks(forceRefresh: forceRefresh);
       if (!ref.mounted) return;
       result.fold(
         (failure) =>
@@ -191,6 +191,6 @@ class SearchViewModel extends _$SearchViewModel {
 
   Future<void> refresh() async {
     state = state.copyWith(isLoading: true, error: null);
-    await _loadBooks();
+    await _loadBooks(forceRefresh: true);
   }
 }

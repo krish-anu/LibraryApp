@@ -166,11 +166,11 @@ class BorrowedViewModel extends _$BorrowedViewModel {
     );
   }
 
-  Future<void> _loadBooks() async {
+  Future<void> _loadBooks({bool forceRefresh = false}) async {
     if (!ref.mounted) return;
     try {
       final repository = ref.read(bookRepositoryProvider);
-      final result = await repository.getAllBooks();
+      final result = await repository.getAllBooks(forceRefresh: forceRefresh);
       if (!ref.mounted) return;
       result.fold(
         (failure) => state = state.copyWith(error: failure.message),
@@ -185,7 +185,7 @@ class BorrowedViewModel extends _$BorrowedViewModel {
   Future<void> refresh() async {
     state = state.copyWith(isLoading: true, error: null);
     await Future.wait(<Future<void>>[
-      _loadBooks(),
+      _loadBooks(forceRefresh: true),
       ref.read(loansProvider.notifier).loadLoansAndReservations(),
     ]);
   }

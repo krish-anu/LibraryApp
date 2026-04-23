@@ -62,11 +62,11 @@ class HomeViewModel extends _$HomeViewModel {
     await Future.wait([_loadBooks(), _loadCategories()]);
   }
 
-  Future<void> _loadBooks() async {
+  Future<void> _loadBooks({bool forceRefresh = false}) async {
     if (!ref.mounted) return;
     try {
       final repository = ref.read(bookRepositoryProvider);
-      final result = await repository.getAllBooks();
+      final result = await repository.getAllBooks(forceRefresh: forceRefresh);
       if (!ref.mounted) return;
       result.fold(
         (failure) => state = state.copyWith(
@@ -100,6 +100,6 @@ class HomeViewModel extends _$HomeViewModel {
       hasLoadedCategories: false,
       clearError: true,
     );
-    await _loadInitialData();
+    await Future.wait([_loadBooks(forceRefresh: true), _loadCategories()]);
   }
 }

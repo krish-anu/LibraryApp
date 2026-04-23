@@ -12,7 +12,7 @@ import 'package:libraryapp/features/borrowed/views/borrowed_view.dart';
 import 'package:libraryapp/features/wishlist/views/wishlist_view.dart';
 import 'package:libraryapp/features/profile/views/profile_view.dart';
 
-class BottomNav extends ConsumerWidget {
+class BottomNav extends ConsumerStatefulWidget {
   const BottomNav({super.key});
 
   static final _tabNavigatorKeys = List.generate(
@@ -21,7 +21,14 @@ class BottomNav extends ConsumerWidget {
   );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BottomNav> createState() => _BottomNavState();
+}
+
+class _BottomNavState extends ConsumerState<BottomNav> {
+  final Set<int> _visitedTabs = {0};
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(asgardeoDirectAuthProvider);
     final currentUser = ref.watch(currentUserProvider);
     final memberId = (authState.user?.sub ?? currentUser?.id ?? '').trim();
@@ -31,29 +38,35 @@ class BottomNav extends ConsumerWidget {
     });
 
     final index = ref.watch(bottomNavIndexProvider);
+    _visitedTabs.add(index);
     return PopScope(
       child: Scaffold(
         body: IndexedStack(
           index: index,
           children: [
-            _TabNavigator(
-              navigatorKey: _tabNavigatorKeys[0],
+            _LazyTabNavigator(
+              isLoaded: _visitedTabs.contains(0),
+              navigatorKey: BottomNav._tabNavigatorKeys[0],
               child: const HomeView(),
             ),
-            _TabNavigator(
-              navigatorKey: _tabNavigatorKeys[1],
+            _LazyTabNavigator(
+              isLoaded: _visitedTabs.contains(1),
+              navigatorKey: BottomNav._tabNavigatorKeys[1],
               child: const SearchView(),
             ),
-            _TabNavigator(
-              navigatorKey: _tabNavigatorKeys[2],
+            _LazyTabNavigator(
+              isLoaded: _visitedTabs.contains(2),
+              navigatorKey: BottomNav._tabNavigatorKeys[2],
               child: const BorrowedView(),
             ),
-            _TabNavigator(
-              navigatorKey: _tabNavigatorKeys[3],
+            _LazyTabNavigator(
+              isLoaded: _visitedTabs.contains(3),
+              navigatorKey: BottomNav._tabNavigatorKeys[3],
               child: const WishlistView(),
             ),
-            _TabNavigator(
-              navigatorKey: _tabNavigatorKeys[4],
+            _LazyTabNavigator(
+              isLoaded: _visitedTabs.contains(4),
+              navigatorKey: BottomNav._tabNavigatorKeys[4],
               child: const ProfileView(),
             ),
           ],
@@ -66,6 +79,9 @@ class BottomNav extends ConsumerWidget {
           showUnselectedLabels: true,
           currentIndex: index,
           onTap: (idx) {
+            setState(() {
+              _visitedTabs.add(idx);
+            });
             ref.read(bottomNavIndexProvider.notifier).state = idx;
           },
           items: <BottomNavigationBarItem>[
@@ -93,6 +109,27 @@ class BottomNav extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _LazyTabNavigator extends StatelessWidget {
+  final bool isLoaded;
+  final GlobalKey<NavigatorState> navigatorKey;
+  final Widget child;
+
+  const _LazyTabNavigator({
+    required this.isLoaded,
+    required this.navigatorKey,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isLoaded) {
+      return const SizedBox.shrink();
+    }
+
+    return _TabNavigator(navigatorKey: navigatorKey, child: child);
   }
 }
 

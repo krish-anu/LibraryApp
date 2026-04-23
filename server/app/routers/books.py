@@ -3,7 +3,7 @@ from typing import List, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from ..dependencies import get_db, verify_access_token
 from ..models import book as book_model
@@ -47,9 +47,16 @@ def _book_to_response(book_obj: book_model.Book) -> book_schema.Book:
     )
 
 
+def _book_query(db: Session):
+    return db.query(book_model.Book).options(
+        selectinload(book_model.Book.author_rel),
+        selectinload(book_model.Book.category_rel),
+    )
+
+
 @router.get("", response_model=List[book_schema.Book])
 def get_books(db: Session = Depends(get_db)):
-    books = db.query(book_model.Book).all()
+    books = _book_query(db).all()
     return [_book_to_response(book) for book in books]
 
 
@@ -90,9 +97,60 @@ def create_book(book_data: book_schema.BookCreate, db: Session = Depends(get_db)
     return _book_to_response(new_book)
 
 
+@router.get("/trending", response_model=List[book_schema.Book])
+def get_trending_books(db: Session = Depends(get_db)):
+    time_threshold = datetime.now(timezone.utc) - timedelta(days=7)
+
+    trending_books = (
+        db.query(book_model.Book, func.count(Interaction.id).label("interaction_count"))
+        .options(
+            selectinload(book_model.Book.author_rel),
+            selectinload(book_model.Book.category_rel),
+        )
+        .join(Interaction, Interaction.book_id == book_model.Book.id)
+        .filter(Interaction.created_at >= time_threshold)
+        .group_by(book_model.Book.id)
+        .order_by(text("interaction_count DESC"))
+        .limit(10)
+        .all()
+    )
+    return [_book_to_response(book[0]) for book in trending_books]
+
+
+@router.get("/recommended/{user_id}", response_model=List[book_schema.Book])
+def get_recommended_books(user_id: str, db: Session = Depends(get_db)):
+    user_categories = (
+        db.query(category_model.Category.id)
+        .join(
+            book_model.Book, category_model.Category.id == book_model.Book.category_id
+        )
+        .join(Interaction, Interaction.book_id == book_model.Book.id)
+        .filter(Interaction.user_id == user_id)
+        .all()
+    )
+
+    if not user_categories:
+        return get_trending_books(db)
+
+    categories = [category[0] for category in user_categories]
+
+    recommendations = (
+        _book_query(db)
+        .filter(book_model.Book.category_id.in_(categories))
+        .filter(
+            ~book_model.Book.id.in_(
+                db.query(Interaction.book_id).filter(Interaction.user_id == user_id)
+            )
+        )
+        .limit(10)
+        .all()
+    )
+    return [_book_to_response(book) for book in recommendations]
+
+
 @router.get("/{book_id}", response_model=book_schema.Book)
 def get_book(book_id: str, db: Session = Depends(get_db)):
-    book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
+    book_obj = _book_query(db).filter(book_model.Book.id == book_id).first()
     if not book_obj:
         raise HTTPException(status_code=404, detail="Book not found")
     return _book_to_response(book_obj)
@@ -145,50 +203,3 @@ def delete_book(book_id: str, db: Session = Depends(get_db)):
     db.delete(book_obj)
     db.commit()
     return None
-
-
-@router.get("/trending", response_model=List[book_schema.Book])
-def get_trending_books(db: Session = Depends(get_db)):
-    time_threshold = datetime.now(timezone.utc) - timedelta(days=7)
-
-    trending_books = (
-        db.query(book_model.Book, func.count(Interaction.id).label("interaction_count"))
-        .join(Interaction, Interaction.book_id == book_model.Book.id)
-        .filter(Interaction.created_at >= time_threshold)
-        .group_by(book_model.Book.id)
-        .order_by(text("interaction_count DESC"))
-        .limit(10)
-        .all()
-    )
-    return [_book_to_response(book[0]) for book in trending_books]
-
-
-@router.get("/recommended/{user_id}", response_model=List[book_schema.Book])
-def get_recommended_books(user_id: str, db: Session = Depends(get_db)):
-    user_categories = (
-        db.query(category_model.Category.id)
-        .join(
-            book_model.Book, category_model.Category.id == book_model.Book.category_id
-        )
-        .join(Interaction, Interaction.book_id == book_model.Book.id)
-        .filter(Interaction.user_id == user_id)
-        .all()
-    )
-
-    if not user_categories:
-        return get_trending_books(db)
-
-    categories = [category[0] for category in user_categories]
-
-    recommendations = (
-        db.query(book_model.Book)
-        .filter(book_model.Book.category_id.in_(categories))
-        .filter(
-            ~book_model.Book.id.in_(
-                db.query(Interaction.book_id).filter(Interaction.user_id == user_id)
-            )
-        )
-        .limit(10)
-        .all()
-    )
-    return [_book_to_response(book) for book in recommendations]
