@@ -147,7 +147,7 @@ docker run --env-file .env.local -p 8000:8000 libraryapp-server
 ```
 
 Or with Docker Compose:
-
+ 
 ```bash
 ENV_FILE=.env.local docker compose up --build
 ```
