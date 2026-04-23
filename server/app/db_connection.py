@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import atexit
+import json
+import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -10,6 +12,30 @@ from .db_config import build_host_database_url, get_database_config
 
 config = get_database_config()
 _connector = None
+
+
+def _google_credentials():
+    raw_service_account = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
+    if raw_service_account:
+        from google.oauth2 import service_account
+
+        return service_account.Credentials.from_service_account_info(
+            json.loads(raw_service_account)
+        )
+
+    service_account_file = (
+        os.getenv("FIREBASE_SERVICE_ACCOUNT_FILE")
+        or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        or ""
+    ).strip()
+    if service_account_file:
+        from google.oauth2 import service_account
+
+        return service_account.Credentials.from_service_account_file(
+            service_account_file
+        )
+
+    return None
 
 if config.database_url:
     engine = create_engine(
@@ -21,7 +47,10 @@ if config.database_url:
 elif config.instance_connection_name:
     from google.cloud.sql.connector import Connector, IPTypes
 
-    _connector = Connector(refresh_strategy="LAZY")
+    _connector = Connector(
+        credentials=_google_credentials(),
+        refresh_strategy="LAZY",
+    )
     atexit.register(_connector.close)
     ip_type = IPTypes.PRIVATE if config.private_ip else IPTypes.PUBLIC
 
@@ -52,4 +81,3 @@ else:
 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
