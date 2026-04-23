@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from urllib.parse import quote_plus
 
-from dotenv import load_dotenv
+from .env import load_app_env
 
 
-env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(env_path)
+load_app_env()
 
 
 @dataclass(frozen=True)
@@ -109,4 +107,3 @@ def build_host_database_url(config: DatabaseConfig) -> str:
     if config.db_sslmode:
         url = f"{url}?sslmode={config.db_sslmode}"
     return url
-

@@ -45,22 +45,36 @@
 
 ### 3. Configure Environment Variables
 
-Copy `.env.local.example` to `.env.local` and fill in your credentials:
+For local development, copy `.env.local.example` to `.env.local` and fill in your credentials:
+
+```bash
+cp .env.local.example .env.local
+```
+
+For production builds, copy `.env.production.example` to `.env.production`:
+
+```bash
+cp .env.production.example .env.production
+```
+
+Real env files are ignored by Git. Keep secrets in `.env.local`,
+`.env.production`, or your deployment secret manager.
 
 ```env
 # Firebase Admin
-FIREBASE_PROJECT_ID=your-firebase-project-id
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxx@your-project-id.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-FIREBASE_STORAGE_BUCKET=your-project-id.firebasestorage.app
+FIREBASE_PROJECT_ID=
+FIREBASE_STORAGE_BUCKET=
+FIREBASE_SERVICE_ACCOUNT_JSON=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
 
 # Asgardeo Authentication
-NEXT_PUBLIC_ASGARDEO_CLIENT_ID=your-asgardeo-client-id
-ASGARDEO_CLIENT_SECRET=your-asgardeo-client-secret
-NEXT_PUBLIC_ASGARDEO_BASE_URL=https://api.asgardeo.io/t/your-org
-
-# Optional alternative to the three values above:
-# FIREBASE_SERVICE_ACCOUNT_JSON={"project_id":"...","client_email":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"}
+ASGARDEO_CLIENT_ID=
+ASGARDEO_CLIENT_SECRET=
+ASGARDEO_AUTHORIZE_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oauth2/authorize
+ASGARDEO_TOKEN_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oauth2/token
+ASGARDEO_USERINFO_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oauth2/userinfo
+ASGARDEO_LOGOUT_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oidc/logout
 ```
 
 ### 4. Install Dependencies

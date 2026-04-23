@@ -8,8 +8,17 @@ If you're using Firebase SQL Connect, that means the backend should connect to t
 From the `server` directory:
 
 ```bash
-cp .env.example .env
+cp .env.local.example .env.local
 ```
+
+For production-like runs, use the production template instead:
+
+```bash
+cp .env.production.example .env.production
+```
+
+Real env files are ignored by Git. Keep secrets in `.env.local`,
+`.env.production`, or your deployment secret manager.
 
 You can connect in any of these ways:
 
@@ -17,14 +26,15 @@ You can connect in any of these ways:
 2. `INSTANCE_CONNECTION_NAME` + `DB_USER` + `DB_PASSWORD` + `DB_NAME`
 3. `DB_HOST` + `DB_PORT` + `DB_USER` + `DB_PASSWORD` + `DB_NAME`
 
-For your current Firebase SQL setup, the inferred instance connection name is:
+For Firebase SQL / Cloud SQL, the app can infer the instance connection name from:
 
 ```env
-INSTANCE_CONNECTION_NAME=libraryapp-eecd8:us-east4:libraryapp-eecd8-instance
-DB_NAME=libraryapp-eecd8-database
+FIREBASE_PROJECT_ID=<project-id>
+FIREBASE_SQL_LOCATION=<region>
+FIREBASE_SQL_INSTANCE_ID=<instance-id>
 ```
 
-You still need to fill in the actual database user and password before starting the API or running `seed_db.py`.
+You still need to fill in the actual database name, user, and password before starting the API or running `seed_db.py`.
 
 ## 2. Seed the database
 
@@ -35,13 +45,13 @@ python seed_db.py
 ## 3. Run locally
 
 ```bash
-make dev
+make dev ENV_FILE=.env.local
 ```
 
 Or:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+ENV_FILE=.env.local uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## 4. Build or run in Docker
@@ -55,7 +65,13 @@ docker build -t libraryapp-server .
 Run:
 
 ```bash
-docker run --env-file .env -p 8000:8000 libraryapp-server
+docker run --env-file .env.local -p 8000:8000 libraryapp-server
+```
+
+Docker Compose:
+
+```bash
+ENV_FILE=.env.local docker compose up --build
 ```
 
 ## 5. Health check

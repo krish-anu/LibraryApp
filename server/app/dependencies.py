@@ -1,15 +1,13 @@
 import os
-from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
 from fastapi import Header, HTTPException
 
 from .database import SessionLocal
+from .env import load_app_env
 
 
-env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(env_path)
+load_app_env()
 
 ASGARDEO_BASE_URL = os.getenv("ASGARDEO_BASE_URL", "")
 
@@ -67,4 +65,3 @@ async def verify_access_token(
             status_code=503,
             detail="Unable to verify token with identity provider",
         ) from exc
-

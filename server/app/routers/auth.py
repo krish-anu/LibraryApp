@@ -9,22 +9,19 @@ that has the necessary credentials to create users.
 import os
 import httpx
 import traceback
-from pathlib import Path
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from datetime import date
 
 from app.dependencies import get_db
+from app.env import load_app_env
 from app.models.users import User as UserModel
 from app.pydantic_schemas import user as user_schema
 from app.security import create_limiter
 
-# Load environment variables from .env file
-env_path = Path(__file__).resolve().parent.parent.parent / ".env"
-load_dotenv(env_path)
+load_app_env()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

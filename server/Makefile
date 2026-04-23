@@ -36,7 +36,7 @@ remove-all-containers:
 	fi
 
 dev:
-	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+	ENV_FILE=$(ENV_FILE) uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 migrate:
-	python scripts/migrations/migrate_startup_schema.py
+	ENV_FILE=$(ENV_FILE) python scripts/migrations/migrate_startup_schema.py
