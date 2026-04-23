@@ -150,7 +150,7 @@ Or with Docker Compose:
  
 ```bash
 ENV_FILE=.env.local docker compose up --build
-```
+``` 
 
 ## Useful Commands
 
