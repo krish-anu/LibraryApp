@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
-import { listCategoriesData } from "@/lib/firebase/library-data";
-import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
+import { NextRequest, NextResponse } from "next/server";
+import { handleLibraryApiError, libraryApi } from "@/lib/server-api";
+import type { Category } from "@/lib/types";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const data = await listCategoriesData();
+    const data = await libraryApi<Category[]>(request, "/categories");
 
     return NextResponse.json({ data });
   } catch (error) {
-    return handleFirebaseServiceError("Error fetching categories:", error);
+    return handleLibraryApiError("Error fetching categories:", error);
   }
 }

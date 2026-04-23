@@ -62,6 +62,7 @@ Real env files are ignored by Git. Keep secrets in `.env.local`,
 
 ```env
 # Firebase Admin
+LIBRARY_API_BASE_URL=http://127.0.0.1:8000
 FIREBASE_PROJECT_ID=
 FIREBASE_STORAGE_BUCKET=
 FIREBASE_SERVICE_ACCOUNT_JSON=
