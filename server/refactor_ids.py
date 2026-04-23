@@ -1,23 +1,6 @@
 import os
 import re
 
-def process_sql(file_path):
-    try:
-        with open(file_path, "r") as f:
-            content = f.read()
-
-        content = re.sub(r'UUID DEFAULT uuid_generate_v4\(\)', 'VARCHAR(7)', content)
-        content = re.sub(r'UUID REFERENCES', 'VARCHAR(7) REFERENCES', content)
-        content = re.sub(r'UUID\s', 'VARCHAR(7) ', content)
-        
-        with open(file_path, "w") as f:
-            f.write(content)
-        print(f"Updated {file_path}")
-    except Exception as e:
-        pass
-
-process_sql("admin/supabase/schema.sql")
-
 def process_ts_api(directory):
     for root, _, files in os.walk(directory):
         for file in files:

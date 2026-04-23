@@ -1,49 +1,31 @@
-import uuid
-
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, verify_access_token
-from ..models import settings as settings_model
+from ..dependencies import get_store, verify_access_token
+from ..firestore_store import LibraryStore
 from ..pydantic_schemas import settings as settings_schema
+from ..router_utils import raise_store_http_error
+
 
 router = APIRouter(
     prefix="/settings", tags=["settings"], dependencies=[Depends(verify_access_token)]
 )
 
 
-def _get_or_create_settings_row(db: Session) -> settings_model.Settings:
-    row = (
-        db.query(settings_model.Settings)
-        .order_by(settings_model.Settings.created_at.asc())
-        .first()
-    )
-    if row:
-        return row
-
-    row = settings_model.Settings(id=f'x{__import__("random").randint(100000, 999999)}')
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row
-
-
 @router.get("", response_model=settings_schema.Settings)
-def get_settings(db: Session = Depends(get_db)):
-    return _get_or_create_settings_row(db)
+def get_settings(store: LibraryStore = Depends(get_store)):
+    try:
+        return store.get_settings()
+    except Exception as error:
+        raise_store_http_error(error)
 
 
 @router.put("", response_model=settings_schema.Settings)
+@router.patch("", response_model=settings_schema.Settings)
 def update_settings(
     payload: settings_schema.SettingsUpdate,
-    db: Session = Depends(get_db),
+    store: LibraryStore = Depends(get_store),
 ):
-    row = _get_or_create_settings_row(db)
-    updates = payload.model_dump(exclude_unset=True)
-
-    for key, value in updates.items():
-        setattr(row, key, value)
-
-    db.commit()
-    db.refresh(row)
-    return row
+    try:
+        return store.update_settings(payload.model_dump(exclude_unset=True))
+    except Exception as error:
+        raise_store_http_error(error)

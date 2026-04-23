@@ -1,15 +1,7 @@
-# Server Docker Setup
+# Server Setup
 
-This backend can run either:
-
-- against your existing external PostgreSQL database
-- or with a local PostgreSQL container via Docker Compose
-
-## Files
-
-- `Dockerfile`: production-style image for the FastAPI backend
-- `compose.yaml`: local backend + PostgreSQL stack
-- `.env.example`: environment variables used by the backend
+This FastAPI backend now uses Firebase Admin + Cloud Firestore.
+It no longer needs `DATABASE_URL`, `DB_*`, or a local PostgreSQL container for normal development.
 
 ## 1. Prepare environment variables
 
@@ -19,102 +11,35 @@ From the `server` directory:
 cp .env.example .env
 ```
 
-Update the values in `.env` as needed.
-Keep real credentials only in `.env`; that file is gitignored and should not be committed. Commit only placeholder values in `.env.example`.
+Set these Firebase variables in `.env`:
 
-Notes:
+```env
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxx@your-project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
 
-- `DATABASE_URL` is optional. If set, it overrides the split `DB_*` variables.
-- For the included `compose.yaml`, the API is forced to use the local `db` service with `sslmode=disable`.
-- Local Compose uses `COMPOSE_DB_*` values for the containerized PostgreSQL instance, so your `.env` can still keep external/Supabase `DB_*` credentials.
-- `ASGARDEO_PUBLIC_CLIENT_ID` is used by `/auth/login/credentials`.
-- `ASGARDEO_M2M_CLIENT_ID` and `ASGARDEO_M2M_CLIENT_SECRET` are used by backend-managed flows such as `/auth/register`.
-- For external PostgreSQL or Supabase, keep `DB_SSLMODE=require` or provide a full `DATABASE_URL`.
+You can also provide `FIREBASE_SERVICE_ACCOUNT_JSON` instead of the three values above.
 
-## 1.1 Run schema migration script
+Important:
 
-Before starting the API, run the idempotent migration script once:
+- Enable the Cloud Firestore API for your Firebase project before starting the app.
+- Keep real secrets only in `.env`. That file is gitignored.
+- `ASGARDEO_*` values are still required for authentication routes.
+
+## 2. Run locally
 
 ```bash
-python scripts/migrations/migrate_startup_schema.py
+make dev
 ```
 
-Or via Make:
+Or:
 
 ```bash
-make migrate
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## 2. Run with Docker Compose
-
-This starts:
-
-- `api` on `http://localhost:8000`
-- `db` on `localhost:5433` by default
-
-```bash
-docker compose up --build
-```
-
-If you want the containerized database on a different host port, set `DB_PUBLISHED_PORT` in `.env`.
-If you want to change the local Compose database credentials or DB name, set `COMPOSE_DB_USER`, `COMPOSE_DB_PASSWORD`, and `COMPOSE_DB_NAME`.
-
-To run in the background:
-
-```bash
-docker compose up --build -d
-```
-
-To stop:
-
-```bash
-docker compose down
-```
-
-To stop and remove the database volume:
-
-```bash
-docker compose down -v
-```
-
-## 2.1 Run in Microservices Mode
-
-This mode runs split backend services directly, without an API gateway.
-
-From the `server` directory:
-
-```bash
-docker compose -f compose.microservices.yaml up --build
-```
-
-This starts:
-
-- `auth-api` on `http://localhost:8101`
-- `catalog-api` on `http://localhost:8102`
-- `users-api` on `http://localhost:8103`
-- `circulation-api` on `http://localhost:8104`
-- `settings-api` on `http://localhost:8105`
-- `db` on `localhost:5433` by default
-
-Example requests:
-
-```text
-GET http://localhost:8101/auth/register
-GET http://localhost:8102/books
-GET http://localhost:8103/users/by-member/{member_id}
-GET http://localhost:8104/loans
-GET http://localhost:8105/settings
-```
-
-To stop:
-
-```bash
-docker compose -f compose.microservices.yaml down
-```
-
-## 3. Run only the backend container
-
-Use this if you already have a PostgreSQL database.
+## 3. Build or run in Docker
 
 Build:
 
@@ -130,10 +55,18 @@ docker run --env-file .env -p 8000:8000 libraryapp-server
 
 ## 4. Health check
 
-The container health check calls:
+The root endpoint:
 
 ```text
 GET /
 ```
 
-The API root should respond with a small JSON message when the app is healthy.
+should return a small JSON message.
+
+The Firebase connectivity check:
+
+```text
+GET /test-db
+```
+
+returns backend status when Firebase Admin is configured correctly.

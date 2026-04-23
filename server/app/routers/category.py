@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
-from ..dependencies import get_db, verify_access_token
-from ..models import category
+
+from ..dependencies import get_store, verify_access_token
+from ..firestore_store import LibraryStore
+from ..router_utils import raise_store_http_error
+
 
 router = APIRouter(
     prefix="/categories",
@@ -17,83 +19,48 @@ class CategoryCreate(BaseModel):
 
 
 @router.get("")
-def getCategories(db: Session = Depends(get_db)):
-    categories = db.query(category.Category).all()
-    return categories
+def get_categories(store: LibraryStore = Depends(get_store)):
+    try:
+        return store.list_categories()
+    except Exception as error:
+        raise_store_http_error(error)
 
 
-@router.post("")
-def createCategory(data: CategoryCreate, db: Session = Depends(get_db)):
-    existing = (
-        db.query(category.Category).filter(category.Category.name == data.name).first()
-    )
-    if existing:
-        raise HTTPException(status_code=400, detail="Category already exists")
-
-    new_category = category.Category(
-        id=f"cat_{data.name.lower().replace(' ', '_')}",
-        name=data.name,
-        image_url=data.image_url or None,
-    )
-    db.add(new_category)
-    db.commit()
-    db.refresh(new_category)
-    return new_category
+@router.post("", status_code=201)
+def create_category(
+    data: CategoryCreate,
+    store: LibraryStore = Depends(get_store),
+):
+    try:
+        return store.create_category(data.model_dump())
+    except Exception as error:
+        raise_store_http_error(error)
 
 
 @router.get("/{category_id}")
-def getCategory(category_id: str, db: Session = Depends(get_db)):
-    cat = (
-        db.query(category.Category).filter(category.Category.id == category_id).first()
-    )
-    if not cat:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return cat
+def get_category(category_id: str, store: LibraryStore = Depends(get_store)):
+    try:
+        return store.get_category(category_id)
+    except Exception as error:
+        raise_store_http_error(error)
 
 
 @router.put("/{category_id}")
-def updateCategory( # type: ignore
-    category_id: str, data: CategoryCreate, db: Session = Depends(get_db)
+def update_category(
+    category_id: str,
+    data: CategoryCreate,
+    store: LibraryStore = Depends(get_store),
 ):
-    cat = (
-        db.query(category.Category).filter(category.Category.id == category_id).first()
-    )
-    if not cat:
-        raise HTTPException(status_code=404, detail="Category not found")
-
-    cat.name = data.name # type: ignore
-    cat.image_url = data.image_url or None # type: ignore
-
-    db.commit()
-    db.refresh(cat)
-    return cat
-
-
-@router.put("/{category_id}")
-def updateCategory(
-    category_id: str, data: CategoryCreate, db: Session = Depends(get_db)
-):
-    cat = (
-        db.query(category.Category).filter(category.Category.id == category_id).first()
-    )
-    if not cat:
-        raise HTTPException(status_code=404, detail="Category not found")
-
-    cat.name = data.name # type: ignore
-    cat.description = data.description # type: ignore
-
-    db.commit()
-    db.refresh(cat)
-    return cat
+    try:
+        return store.update_category(category_id, data.model_dump(exclude_unset=True))
+    except Exception as error:
+        raise_store_http_error(error)
 
 
 @router.delete("/{category_id}", status_code=204)
-def deleteCategory(category_id: str, db: Session = Depends(get_db)):
-    cat = (
-        db.query(category.Category).filter(category.Category.id == category_id).first()
-    )
-    if not cat:
-        raise HTTPException(status_code=404, detail="Category not found")
-    db.delete(cat)
-    db.commit()
-    return None
+def delete_category(category_id: str, store: LibraryStore = Depends(get_store)):
+    try:
+        store.delete_category(category_id)
+        return None
+    except Exception as error:
+        raise_store_http_error(error)

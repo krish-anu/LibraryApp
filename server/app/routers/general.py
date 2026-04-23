@@ -1,18 +1,21 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import text
 
-from ..dependencies import get_db
+from ..dependencies import get_store
+from ..firestore_store import LibraryStore
+from ..router_utils import raise_store_http_error
+
 
 router = APIRouter(tags=["general"])
 
 
 @router.get("/")
 def root():
-    return {"message": "Hello, FastAPI + Supabase is working!"}
+    return {"message": "Hello, FastAPI service is working with Firebase!"}
 
 
 @router.get("/test-db")
-def test_db(db: Session = Depends(get_db)):
-    result = db.execute(text("SELECT 1")).scalar()
-    return {"result": result}
+def test_db(store: LibraryStore = Depends(get_store)):
+    try:
+        return store.ping()
+    except Exception as error:
+        raise_store_http_error(error)

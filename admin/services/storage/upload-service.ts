@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import { createStorageClient } from "@/lib/storage/client";
-import {
-  buildPublicObjectUrl,
-  getStorageConfigErrors,
-  resolveStorageConfig,
-} from "@/lib/storage/config";
-import { PutObjectCommand, ListBucketsCommand } from "@aws-sdk/client-s3";
+import { uploadBufferToFirebaseStorage } from "@/lib/firebase/storage";
 
 export const runtime = "nodejs";
 
@@ -85,15 +79,6 @@ export async function POST(req: NextRequest) {
     const safeName = filename.replace(/[^a-zA-Z0-9.-_]/g, "_");
     const key = `books/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
 
-    const storageConfig = resolveStorageConfig();
-    const storageErrors = getStorageConfigErrors(storageConfig);
-    if (storageErrors.length > 0) {
-      console.error(storageErrors[0]);
-      return NextResponse.json({ error: storageErrors[0] }, { status: 500 });
-    }
-
-    const client = createStorageClient(storageConfig);
-
     // Basic env checks for clearer diagnostics
     console.log(`/api/storage/upload starting upload`, {
       key,
@@ -103,86 +88,11 @@ export async function POST(req: NextRequest) {
     });
     const arrayBuffer = await file.arrayBuffer();
     const body = Buffer.from(arrayBuffer);
-
-    const putCmd = new PutObjectCommand({
-      Bucket: storageConfig.bucket,
-      Key: key,
-      Body: body,
-      ContentType: file.type || "application/octet-stream",
+    const { publicUrl } = await uploadBufferToFirebaseStorage({
+      key,
+      body,
+      contentType: file.type || "application/octet-stream",
     });
-
-    // Helper to read raw response body from AWS SDK errors (if present)
-    async function streamToString(stream: unknown) {
-      if (!stream) return "";
-      if (typeof stream !== "object") return String(stream);
-      if ("arrayBuffer" in stream && typeof stream.arrayBuffer === "function") {
-        const ab = await stream.arrayBuffer();
-        return Buffer.from(ab).toString("utf8");
-      }
-      if (Symbol.asyncIterator in stream) {
-        const chunks: string[] = [];
-        const asyncIterable = stream as AsyncIterable<Uint8Array | string>;
-        for await (const chunk of asyncIterable) {
-          chunks.push(
-            typeof chunk === "string"
-              ? chunk
-              : Buffer.from(chunk).toString("utf8"),
-          );
-        }
-        return chunks.join("");
-      }
-      try {
-        return String(stream);
-      } catch {
-        return "";
-      }
-    }
-
-    let resp;
-    try {
-      resp = await client.send(putCmd);
-      console.log("PutObject response metadata:", resp?.$metadata || resp);
-    } catch (error: unknown) {
-      const err = error as {
-        name?: string;
-        message?: string;
-        $response?: { body?: unknown };
-      };
-      console.error("PutObject failed:", err.name || err.message || err);
-      let raw = "";
-      try {
-        raw = await streamToString(err.$response?.body);
-      } catch (readErr) {
-        console.error("Failed to read error body:", readErr);
-      }
-      console.error("Raw error body:", raw);
-
-      if (err.name === "NoSuchBucket" || err.message === "Bucket not found") {
-        try {
-          const listed = await client.send(new ListBucketsCommand({}));
-          const bucketNames = (listed?.Buckets || [])
-            .map((b) => b.Name)
-            .filter((name): name is string => Boolean(name));
-          console.error("Available buckets:", bucketNames);
-        } catch (listErr: unknown) {
-          const listErrMessage =
-            listErr instanceof Error ? listErr.message : String(listErr);
-          console.error(
-            "Failed to list buckets for diagnostics:",
-            listErrMessage,
-          );
-        }
-      }
-
-      return NextResponse.json(
-        {
-          error: "Failed to upload file to storage. Please try again.",
-        },
-        { status: 500 },
-      );
-    }
-
-    const publicUrl = buildPublicObjectUrl(storageConfig, key);
 
     return NextResponse.json({ publicUrl, key }, { status: 201 });
   } catch (err: unknown) {

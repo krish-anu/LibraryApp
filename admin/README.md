@@ -1,6 +1,6 @@
 # Library Admin Portal
 
-A full-stack Next.js admin portal for library management with Supabase database and Asgardeo authentication.
+ A full-stack Next.js admin portal for library management with Firestore data, Firebase Storage for media, and Asgardeo authentication.
 
 ## Features
 
@@ -13,7 +13,8 @@ A full-stack Next.js admin portal for library management with Supabase database 
 ## Tech Stack
 
 - **Framework**: Next.js 16+ with App Router
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Firebase Firestore
+- **Cloud Storage**: Firebase Storage
 - **Authentication**: Asgardeo OAuth 2.0
 - **Styling**: Tailwind CSS v4
 - **Charts**: Recharts
@@ -24,15 +25,16 @@ A full-stack Next.js admin portal for library management with Supabase database 
 
 - **Gateway Layer**: `app/api/*` route handlers now act as a stable API gateway surface.
 - **Service Layer**: Domain logic lives in `services/*` modules organized by bounded context.
-- **Data Access**: Existing DB/auth/storage integrations remain unchanged and are now encapsulated per service domain.
+- **Data Access**: DB/auth/storage integrations are encapsulated per service domain.
 
 ## Getting Started
 
-### 1. Set up Supabase
+### 1. Set up Firebase
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to the SQL Editor and run the schema in `supabase/schema.sql`
-3. Copy your project URL and keys from Settings > API
+1. Create a Firebase project.
+2. Enable Cloud Storage for the project.
+3. Create a service account with Storage access and download the credentials.
+4. Copy the project ID, client email, private key, and default storage bucket name.
 
 ### 2. Set up Asgardeo
 
@@ -46,21 +48,19 @@ A full-stack Next.js admin portal for library management with Supabase database 
 Copy `.env.local.example` to `.env.local` and fill in your credentials:
 
 ```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+# Firebase Admin
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxx@your-project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_STORAGE_BUCKET=your-project-id.firebasestorage.app
 
 # Asgardeo Authentication
 NEXT_PUBLIC_ASGARDEO_CLIENT_ID=your-asgardeo-client-id
 ASGARDEO_CLIENT_SECRET=your-asgardeo-client-secret
 NEXT_PUBLIC_ASGARDEO_BASE_URL=https://api.asgardeo.io/t/your-org
 
-# Database
-DATABASE_URL=postgres://...
-# If local or hosted cert verification fails (SELF_SIGNED_CERT_IN_CHAIN), use:
-DB_SSL_MODE=no-verify
-# If you add DB_SSL_CA_CERT, switch to DB_SSL_MODE=verify or remove DB_SSL_MODE
+# Optional alternative to the three values above:
+# FIREBASE_SERVICE_ACCOUNT_JSON={"project_id":"...","client_email":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"}
 ```
 
 ### 4. Install Dependencies
@@ -108,19 +108,22 @@ admin/
 │   ├── loans/                 # Loan renewal service
 │   ├── config/                # Settings/config service
 │   ├── analytics/             # Dashboard aggregation service
-│   └── storage/               # Object storage service
+│   └── storage/               # Firebase Storage service
 ├── components/
 │   ├── layout/                # Layout components (Sidebar, Header)
 │   └── ui/                    # Reusable UI components
 ├── lib/
-│   ├── supabase/              # Supabase client configuration
+│   ├── firebase/              # Firebase Admin helpers
 │   ├── auth/                  # Auth context
 │   ├── types.ts               # TypeScript interfaces
 │   └── utils.ts               # Utility functions
-├── supabase/
-│   └── schema.sql             # Database schema
 └── proxy.ts                   # Auth proxy
 ```
+
+## Data Model
+
+The admin app now stores data in Firestore collections such as `books`, `categories`, `users`, `loans`, `fines`, `finePayments`, and `settings`.
+Default settings and categories are created automatically when the app first reads them.
 
 ## API Endpoints
 

@@ -13,13 +13,10 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from dotenv import load_dotenv
-from sqlalchemy.orm import Session
-from datetime import date
-import traceback
 
-from app.dependencies import get_db
+from app.dependencies import get_store
+from app.firestore_store import LibraryStore
 from app.pydantic_schemas import user as user_schema
-from app.models.users import User as UserModel
 from app.security import create_limiter
 
 # Load environment variables from .env file
@@ -297,8 +294,8 @@ async def register_user(payload: RegisterRequest, request: Request = None):
 
 
 async def _ensure_user_from_access_token(
-    access_token: str, db: Session
-) -> tuple[UserModel, bool]:
+    access_token: str, store: LibraryStore
+) -> tuple[dict, bool]:
     if not ASGARDEO_BASE_URL:
         raise HTTPException(
             status_code=503,
@@ -341,71 +338,57 @@ async def _ensure_user_from_access_token(
     if isinstance(raw_address, dict):
         address = raw_address.get("formatted") or raw_address.get("street_address")
 
-    user = None
-    created = False
     try:
-        user = db.query(UserModel).filter(UserModel.id == sub).first()
-        if not user:
-            user = UserModel(
-                id=sub,
-                member_id=sub,
-                name=name,
-                email=email,
-                phone=phone,
-                address=address,
-                profile_image=picture,
-                joined_date=date.today(),
-                password=None,
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-            created = True
-    except Exception as e:
-        # Rollback on DB errors and raise a clear HTTP exception
-        try:
-            db.rollback()
-        except Exception:
-            pass
-        print("Exception while ensuring/creating local user:")
-        traceback.print_exc()
+        return store.ensure_user_from_identity(
+            {
+                "sub": sub,
+                "email": email,
+                "given_name": given_name,
+                "family_name": family_name,
+                "username": username,
+                "preferred_username": username,
+                "phone_number": phone,
+                "picture": picture,
+                "address": raw_address,
+                "name": name,
+            }
+        )
+    except Exception as exc:
         raise HTTPException(
             status_code=500,
             detail="An internal error occurred. Please try again later.",
-        )
-
-    return user, created
+        ) from exc
 
 
 @router.post("/login", response_model=AsgardeoLoginResponse)
 async def login_user_via_asgardeo(
-    request: AsgardeoLoginRequest, db: Session = Depends(get_db)
+    request: AsgardeoLoginRequest, store: LibraryStore = Depends(get_store)
 ):
     """
     Verify Asgardeo access token, then ensure the user exists in the local DB.
     If the user doesn't exist, create one using Asgardeo user info.
     """
 
-    user, created = await _ensure_user_from_access_token(request.access_token, db)
+    user, created = await _ensure_user_from_access_token(request.access_token, store)
     return AsgardeoLoginResponse(
         success=True,
         created=created,
-        user_id=str(user.id),
+        user_id=str(user["id"]),
         user=user_schema.User.model_validate(user),
     )
 
 
 @router.post("/asgardeo/login", response_model=AsgardeoLoginResponse)
 async def asgardeo_login_sync(
-    request: AsgardeoLoginRequest, db: Session = Depends(get_db)
+    request: AsgardeoLoginRequest, store: LibraryStore = Depends(get_store)
 ):
     """Backward-compatible alias for /auth/login."""
 
-    user, created = await _ensure_user_from_access_token(request.access_token, db)
+    user, created = await _ensure_user_from_access_token(request.access_token, store)
     return AsgardeoLoginResponse(
         success=True,
         created=created,
-        user_id=str(user.id),
+        user_id=str(user["id"]),
         user=user_schema.User.model_validate(user),
     )
 
@@ -413,7 +396,9 @@ async def asgardeo_login_sync(
 @router.post("/login/credentials", response_model=CredentialLoginResponse)
 @limiter.limit(AUTH_CREDENTIAL_LOGIN_RATE_LIMIT)
 async def login_with_credentials(
-    payload: CredentialLoginRequest, request: Request = None, db: Session = Depends(get_db)
+    payload: CredentialLoginRequest,
+    request: Request = None,
+    store: LibraryStore = Depends(get_store),
 ):
     """Validate email/password with Asgardeo, then ensure local user exists.
 
@@ -460,12 +445,12 @@ async def login_with_credentials(
             status_code=401, detail="Authentication failed: no access token returned"
         )
 
-    user, created = await _ensure_user_from_access_token(access_token, db)
+    user, created = await _ensure_user_from_access_token(access_token, store)
 
     return CredentialLoginResponse(
         success=True,
         created=created,
-        user_id=str(user.id),
+        user_id=str(user["id"]),
         user=user_schema.User.model_validate(user),
         access_token=access_token,
         refresh_token=refresh_token,

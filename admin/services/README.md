@@ -17,7 +17,7 @@ This folder contains the business logic for the admin backend, organized by doma
 - `loans/` - loan renewal actions
 - `config/` - platform settings
 - `analytics/` - dashboard statistics
-- `storage/` - object storage uploads and presigned URLs
+- `storage/` - Firebase Storage uploads and signed URLs
 
 ## Why This Structure
 
@@ -25,3 +25,4 @@ This folder contains the business logic for the admin backend, organized by doma
 - Makes each service easier to evolve independently.
 - Keeps the HTTP gateway (`app/api`) stable while internal service logic can grow.
 - Provides a clean migration path to fully externalized microservices later.
+- Uses Firestore and Firebase Storage behind the service boundary instead of a direct SQL client.

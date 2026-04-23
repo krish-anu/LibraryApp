@@ -1,4 +1,4 @@
-// Based on server/app/models - matches existing PostgreSQL tables
+// Shared admin types for Firestore-backed library data
 
 export interface Book {
   id: string;

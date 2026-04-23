@@ -1,43 +1,11 @@
 services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${COMPOSE_DB_NAME:-libraryapp}
-      POSTGRES_USER: ${COMPOSE_DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${COMPOSE_DB_PASSWORD:-postgres}
-    ports:
-      - "${DB_PUBLISHED_PORT:-5433}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${COMPOSE_DB_USER:-postgres} -d ${COMPOSE_DB_NAME:-libraryapp}",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   auth-api:
     build:
       context: .
       dockerfile: Dockerfile
     env_file:
       - .env
-    environment:
-      DATABASE_URL: ""
-      DB_USER: ${COMPOSE_DB_USER:-postgres}
-      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-postgres}
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${COMPOSE_DB_NAME:-libraryapp}
-      DB_SSLMODE: disable
     command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
-    depends_on:
-      db:
-        condition: service_healthy
     ports:
       - "8101:8000"
     restart: unless-stopped
@@ -60,18 +28,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    environment:
-      DATABASE_URL: ""
-      DB_USER: ${COMPOSE_DB_USER:-postgres}
-      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-postgres}
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${COMPOSE_DB_NAME:-libraryapp}
-      DB_SSLMODE: disable
     command: uvicorn services.catalog_service.main:app --host 0.0.0.0 --port 8000
-    depends_on:
-      db:
-        condition: service_healthy
     ports:
       - "8102:8000"
     restart: unless-stopped
@@ -94,18 +51,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    environment:
-      DATABASE_URL: ""
-      DB_USER: ${COMPOSE_DB_USER:-postgres}
-      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-postgres}
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${COMPOSE_DB_NAME:-libraryapp}
-      DB_SSLMODE: disable
     command: uvicorn services.users_service.main:app --host 0.0.0.0 --port 8000
-    depends_on:
-      db:
-        condition: service_healthy
     ports:
       - "8103:8000"
     restart: unless-stopped
@@ -128,18 +74,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    environment:
-      DATABASE_URL: ""
-      DB_USER: ${COMPOSE_DB_USER:-postgres}
-      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-postgres}
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${COMPOSE_DB_NAME:-libraryapp}
-      DB_SSLMODE: disable
     command: uvicorn services.circulation_service.main:app --host 0.0.0.0 --port 8000
-    depends_on:
-      db:
-        condition: service_healthy
     ports:
       - "8104:8000"
     restart: unless-stopped
@@ -162,18 +97,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    environment:
-      DATABASE_URL: ""
-      DB_USER: ${COMPOSE_DB_USER:-postgres}
-      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-postgres}
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${COMPOSE_DB_NAME:-libraryapp}
-      DB_SSLMODE: disable
     command: uvicorn services.settings_service.main:app --host 0.0.0.0 --port 8000
-    depends_on:
-      db:
-        condition: service_healthy
     ports:
       - "8105:8000"
     restart: unless-stopped
@@ -189,6 +113,3 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-
-volumes:
-  postgres_data:

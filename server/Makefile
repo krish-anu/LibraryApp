@@ -39,4 +39,4 @@ dev:
 	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 migrate:
-	python scripts/migrations/migrate_startup_schema.py
+	@echo "No SQL migration is required for the Firebase-backed server."

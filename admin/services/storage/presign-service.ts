@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import { createStorageClient } from "@/lib/storage/client";
-import {
-  buildPublicObjectUrl,
-  getStorageConfigErrors,
-  resolveStorageConfig,
-} from "@/lib/storage/config";
-import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { createFirebaseSignedUploadUrls } from "@/lib/firebase/storage";
 
 const ALLOWED_CONTENT_TYPES = new Set([
   "image/jpeg",
@@ -53,31 +46,13 @@ export async function POST(req: NextRequest) {
     if (key.includes("..") || key.includes("//")) {
       return NextResponse.json({ error: "Invalid key path" }, { status: 400 });
     }
-    const storageConfig = resolveStorageConfig();
-    const storageErrors = getStorageConfigErrors(storageConfig);
-    if (storageErrors.length > 0) {
-      return NextResponse.json({ error: storageErrors[0] }, { status: 500 });
-    }
-
-    const client = createStorageClient(storageConfig);
-
-    const putCmd = new PutObjectCommand({
-      Bucket: storageConfig.bucket,
-      Key: key,
-      ContentType: contentType,
+    const signedUrls = await createFirebaseSignedUploadUrls({
+      key,
+      contentType,
+      expiresInSeconds: 3600,
     });
-    const putUrl = await getSignedUrl(client, putCmd, { expiresIn: 3600 });
 
-    // Signed GET URL (optional) so client can fetch after upload
-    const getCmd = new GetObjectCommand({
-      Bucket: storageConfig.bucket,
-      Key: key,
-    });
-    const getUrl = await getSignedUrl(client, getCmd, { expiresIn: 3600 });
-
-    const publicUrl = buildPublicObjectUrl(storageConfig, key);
-
-    return NextResponse.json({ putUrl, getUrl, publicUrl });
+    return NextResponse.json(signedUrls);
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("/api/storage/presign error:", errorMessage);

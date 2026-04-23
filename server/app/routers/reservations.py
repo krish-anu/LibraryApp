@@ -1,128 +1,97 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 from typing import List
-from datetime import datetime, date
-import uuid
 
-from ..dependencies import get_db, verify_access_token
-from ..models import reservation as reservation_model
-from ..models import loan as loan_model
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict, Field
+
+from ..dependencies import get_store, verify_access_token
+from ..firestore_store import LibraryStore
 from ..pydantic_schemas import reservation as reservation_schema
+from ..router_utils import raise_store_http_error
+
 
 router = APIRouter(
     prefix="", tags=["reservations"], dependencies=[Depends(verify_access_token)]
-)  # mount multiple paths manually
+)
+
+
+class ReservationCreateCompat(BaseModel):
+    book_id: str | None = Field(default=None, alias="bookId")
+    member_id: str | None = Field(default=None, alias="memberId")
+    reservation_date: str | None = Field(default=None, alias="reservationDate")
+    status: str | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 @router.get("/reservations", response_model=List[reservation_schema.Reservation])
-def list_reservations(db: Session = Depends(get_db)):
-    return db.query(reservation_model.Reservation).all()
+def list_reservations(store: LibraryStore = Depends(get_store)):
+    try:
+        return store.list_reservations()
+    except Exception as error:
+        raise_store_http_error(error)
 
 
 @router.get(
-    "/reservations/{reservation_id}", response_model=reservation_schema.Reservation
+    "/reservations/{reservation_id}",
+    response_model=reservation_schema.Reservation,
 )
-def get_reservation(reservation_id: str, db: Session = Depends(get_db)):
-    r = (
-        db.query(reservation_model.Reservation)
-        .filter(reservation_model.Reservation.id == reservation_id)
-        .first()
-    )
-    if not r:
-        raise HTTPException(status_code=404, detail="Reservation not found")
-    return r
+def get_reservation(
+    reservation_id: str,
+    store: LibraryStore = Depends(get_store),
+):
+    try:
+        return store.get_reservation(reservation_id)
+    except Exception as error:
+        raise_store_http_error(error)
 
 
 @router.get(
     "/reservations/member/{member_id}",
     response_model=List[reservation_schema.Reservation],
 )
-def get_reservations_for_member(member_id: str, db: Session = Depends(get_db)):
-    return (
-        db.query(reservation_model.Reservation)
-        .filter(reservation_model.Reservation.member_id == member_id)
-        .all()
-    )
+def get_reservations_for_member(
+    member_id: str,
+    store: LibraryStore = Depends(get_store),
+):
+    try:
+        return store.get_reservations_for_member(member_id)
+    except Exception as error:
+        raise_store_http_error(error)
 
 
 @router.post(
-    "/reservations", response_model=reservation_schema.Reservation, status_code=201
+    "/reservations",
+    response_model=reservation_schema.Reservation,
+    status_code=201,
 )
 def create_reservation(
-    res_in: reservation_schema.ReservationCreate, db: Session = Depends(get_db)
+    payload: ReservationCreateCompat,
+    store: LibraryStore = Depends(get_store),
+    current_user: dict = Depends(verify_access_token),
 ):
-    # A member cannot reserve a book they already borrowed and not yet returned.
-    existing_loan = (
-        db.query(loan_model.Loan)
-        .filter(
-            loan_model.Loan.book_id == res_in.book_id,
-            loan_model.Loan.member_id == res_in.member_id,
-        )
-        .first()
-    )
-    if existing_loan:
-        raise HTTPException(
-            status_code=409,
-            detail="You already borrowed this book. Return it before reserving.",
-        )
+    resolved_member_id = payload.member_id or current_user.get("sub")
+    if not payload.book_id or not resolved_member_id:
+        raise HTTPException(status_code=400, detail="book_id and member_id are required")
 
-    # A member cannot reserve the same book more than once while reservation is active.
-    inactive_reservation_statuses = (
-        "cancelled",
-        "canceled",
-        "expired",
-        "completed",
-        "fulfilled",
-    )
-    existing_reservation = (
-        db.query(reservation_model.Reservation)
-        .filter(
-            reservation_model.Reservation.book_id == res_in.book_id,
-            reservation_model.Reservation.member_id == res_in.member_id,
+    try:
+        return store.create_reservation(
+            {
+                "book_id": payload.book_id,
+                "member_id": resolved_member_id,
+                "reservation_date": payload.reservation_date,
+                "status": payload.status,
+            }
         )
-        .filter(
-            (reservation_model.Reservation.status.is_(None))
-            | (
-                ~func.lower(reservation_model.Reservation.status).in_(
-                    inactive_reservation_statuses
-                )
-            )
-        )
-        .first()
-    )
-    if existing_reservation:
-        raise HTTPException(
-            status_code=409,
-            detail="You already reserved this book.",
-        )
+    except Exception as error:
+        raise_store_http_error(error)
 
-    # prepare fields
-    rid = f'r{__import__("random").randint(100000, 999999)}'
-    reservation_date = None
-    if res_in.reservation_date:
-        try:
-            # accept ISO date string
-            reservation_date = datetime.fromisoformat(res_in.reservation_date).date()
-        except Exception:
-            try:
-                reservation_date = datetime.strptime(
-                    res_in.reservation_date, "%Y-%m-%d"
-                ).date()
-            except Exception:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid reservation_date format; expected ISO YYYY-MM-DD",
-                )
 
-    r = reservation_model.Reservation(
-        id=rid,
-        book_id=res_in.book_id,
-        member_id=res_in.member_id,
-        reservation_date=reservation_date,
-        status=res_in.status,
-    )
-    db.add(r)
-    db.commit()
-    db.refresh(r)
-    return r
+@router.delete("/reservations/{reservation_id}")
+def cancel_reservation(
+    reservation_id: str,
+    store: LibraryStore = Depends(get_store),
+):
+    try:
+        return store.cancel_reservation(reservation_id)
+    except Exception as error:
+        raise_store_http_error(error)

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, queryOne } from "@/lib/db";
-import { User } from "@/lib/types";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
+import {
+  deleteUserData,
+  getUserWithStatsData,
+  updateUserData,
+} from "@/lib/firebase/library-data";
+import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
 
 // GET single user with stats
 export async function GET(
@@ -13,43 +17,9 @@ export async function GET(
 
   try {
     const { id } = await params;
-
-    const user = await queryOne<User>("SELECT * FROM users WHERE id = $1", [
-      id,
-    ]);
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Get user's active loans count
-    const loansResult = await queryOne<{ count: string }>(
-      "SELECT COUNT(*) as count FROM loans WHERE member_id = $1 AND returned_date IS NULL",
-      [id],
-    );
-
-    // Get user's total unpaid fines
-    const finesResult = await queryOne<{ total: string }>(
-      `SELECT COALESCE(SUM(fine_amount), 0) as total
-       FROM fines
-       WHERE member_id = $1
-         AND LOWER(COALESCE(status, 'unpaid')) = 'unpaid'`,
-      [id],
-    );
-
-    return NextResponse.json({
-      data: {
-        ...user,
-        active_loans: parseInt(loansResult?.count || "0"),
-        total_fines: parseFloat(finesResult?.total || "0"),
-      },
-    });
+    return NextResponse.json({ data: await getUserWithStatsData(id) });
   } catch (error) {
-    console.error("Error fetching user:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleFirebaseServiceError("Error fetching user:", error);
   }
 }
 
@@ -63,31 +33,11 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const body = await request.json();
-
-    const data = await query<User>(
-      `UPDATE users SET 
-        name = COALESCE($1, name),
-        email = COALESCE($2, email),
-        phone = COALESCE($3, phone),
-        address = COALESCE($4, address),
-        updated_at = NOW()
-      WHERE id = $5
-      RETURNING *`,
-      [body.name, body.email, body.phone, body.address, id],
-    );
-
-    if (!data.length) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ data: data[0] });
+    return NextResponse.json({
+      data: await updateUserData(id, (await request.json()) as Record<string, unknown>),
+    });
   } catch (error) {
-    console.error("Error updating user:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleFirebaseServiceError("Error updating user:", error);
   }
 }
 
@@ -101,15 +51,8 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-
-    await query("DELETE FROM users WHERE id = $1", [id]);
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(await deleteUserData(id));
   } catch (error) {
-    console.error("Error deleting user:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleFirebaseServiceError("Error deleting user:", error);
   }
 }
