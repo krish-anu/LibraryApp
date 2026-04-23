@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from ..dependencies import get_store, verify_access_token
-from ..firestore_store import LibraryStore
-from ..router_utils import raise_store_http_error
-
+from ..dependencies import get_db, verify_access_token
+from ..models import category
 
 router = APIRouter(
     prefix="/categories",
@@ -19,48 +18,63 @@ class CategoryCreate(BaseModel):
 
 
 @router.get("")
-def get_categories(store: LibraryStore = Depends(get_store)):
-    try:
-        return store.list_categories()
-    except Exception as error:
-        raise_store_http_error(error)
+def get_categories(db: Session = Depends(get_db)):
+    return db.query(category.Category).all()
 
 
 @router.post("", status_code=201)
-def create_category(
-    data: CategoryCreate,
-    store: LibraryStore = Depends(get_store),
-):
-    try:
-        return store.create_category(data.model_dump())
-    except Exception as error:
-        raise_store_http_error(error)
+def create_category(data: CategoryCreate, db: Session = Depends(get_db)):
+    existing = (
+        db.query(category.Category).filter(category.Category.name == data.name).first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="Category already exists")
+
+    new_category = category.Category(
+        id=f"cat_{data.name.lower().replace(' ', '_')}",
+        name=data.name,
+        image_url=data.image_url or None,
+    )
+    db.add(new_category)
+    db.commit()
+    db.refresh(new_category)
+    return new_category
 
 
 @router.get("/{category_id}")
-def get_category(category_id: str, store: LibraryStore = Depends(get_store)):
-    try:
-        return store.get_category(category_id)
-    except Exception as error:
-        raise_store_http_error(error)
+def get_category(category_id: str, db: Session = Depends(get_db)):
+    cat = (
+        db.query(category.Category).filter(category.Category.id == category_id).first()
+    )
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return cat
 
 
 @router.put("/{category_id}")
 def update_category(
-    category_id: str,
-    data: CategoryCreate,
-    store: LibraryStore = Depends(get_store),
+    category_id: str, data: CategoryCreate, db: Session = Depends(get_db)
 ):
-    try:
-        return store.update_category(category_id, data.model_dump(exclude_unset=True))
-    except Exception as error:
-        raise_store_http_error(error)
+    cat = (
+        db.query(category.Category).filter(category.Category.id == category_id).first()
+    )
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    cat.name = data.name
+    cat.image_url = data.image_url or None
+    db.commit()
+    db.refresh(cat)
+    return cat
 
 
 @router.delete("/{category_id}", status_code=204)
-def delete_category(category_id: str, store: LibraryStore = Depends(get_store)):
-    try:
-        store.delete_category(category_id)
-        return None
-    except Exception as error:
-        raise_store_http_error(error)
+def delete_category(category_id: str, db: Session = Depends(get_db)):
+    cat = (
+        db.query(category.Category).filter(category.Category.id == category_id).first()
+    )
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    db.delete(cat)
+    db.commit()
+    return None

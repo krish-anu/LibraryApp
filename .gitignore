@@ -1,5 +1,35 @@
 # Root-level .gitignore for LibraryApp
-# Environment files with secrets
+
+# ===========================
+# SECRETS & CREDENTIALS
+# ===========================
+# Firebase service account keys (NEVER commit these)
+*firebase-adminsdk*.json
+*service-account*.json
+*serviceaccount*.json
+
+# ===========================
+# FIREBASE CLI
+# ===========================
+.firebase/
+.firebaserc
+firebase.json
+
+# Firebase Data Connect generated/local files
+dataconnect/
+server/dataconnect/
+dataconnect/.dataconnect/
+
+# ===========================
+# AGENT / AI TOOLS
+# ===========================
+.agents/
+.claude/
+skills-lock.json
+
+# ===========================
+# ENVIRONMENT FILES & SECRETS
+# ===========================
 .env
 .env.local
 .env.*
@@ -23,17 +53,50 @@ Thumbs.db
 *.log
 *.pid
 *.seed
+*.sqlite
+*.sqlite3
+*.db
 .codex
-node_modules
+
+# Node / frontend
+node_modules/
+.pnpm-store/
+.npm/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+venv/
+env/
 
 # Workspace-level cache/build artifacts
+build/
 coverage/
 dist/
 tmp/
 .cache/
+.turbo/
 
 # Local environment helpers
 .envrc
+
+# Cloud SDK & binaries
+server/google-cloud-sdk/
+server/google-cloud-cli-linux-x86_64.tar.gz
+server/cloud-sql-proxy
 
 # Client local run config
 client/Makefile

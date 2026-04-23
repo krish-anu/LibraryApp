@@ -1,9 +1,31 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app.dependencies import get_db, get_store, verify_access_token
-from app.firestore_store import InMemoryLibraryStore
+from app.dependencies import get_db, verify_access_token
 from app.main import app as main_app
+from app.models.base import Base
+
+
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+
+
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 @pytest.fixture
@@ -13,22 +35,27 @@ def app():
 
 @pytest.fixture(scope="function")
 def db_session():
-    return InMemoryLibraryStore()
+    Base.metadata.create_all(bind=engine)
+    session = TestingSessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="function")
 def client(db_session):
-    def override_get_store():
-        return db_session
-
     def override_get_db():
-        yield db_session
+        try:
+            yield db_session
+        finally:
+            pass
 
-    main_app.dependency_overrides[get_store] = override_get_store
     main_app.dependency_overrides[get_db] = override_get_db
 
-    with TestClient(main_app) as c:
-        yield c
+    with TestClient(main_app) as client_instance:
+        yield client_instance
 
     main_app.dependency_overrides.clear()
 

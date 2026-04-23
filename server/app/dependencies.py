@@ -1,12 +1,11 @@
 import os
-from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import Header, HTTPException
 
-from .firestore_store import FirestoreLibraryStore, LibraryStore
+from .database import SessionLocal
 
 
 env_path = Path(__file__).resolve().parent.parent / ".env"
@@ -15,17 +14,12 @@ load_dotenv(env_path)
 ASGARDEO_BASE_URL = os.getenv("ASGARDEO_BASE_URL", "")
 
 
-@lru_cache(maxsize=1)
-def _get_cached_store() -> FirestoreLibraryStore:
-    return FirestoreLibraryStore()
-
-
-def get_store() -> LibraryStore:
-    return _get_cached_store()
-
-
 def get_db():
-    yield get_store()
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 async def verify_access_token(
@@ -73,3 +67,4 @@ async def verify_access_token(
             status_code=503,
             detail="Unable to verify token with identity provider",
         ) from exc
+

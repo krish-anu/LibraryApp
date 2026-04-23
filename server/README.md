@@ -1,7 +1,7 @@
 # Server Setup
 
-This FastAPI backend now uses Firebase Admin + Cloud Firestore.
-It no longer needs `DATABASE_URL`, `DB_*`, or a local PostgreSQL container for normal development.
+This FastAPI backend uses PostgreSQL.
+If you're using Firebase SQL Connect, that means the backend should connect to the underlying Cloud SQL PostgreSQL instance, not to Firestore.
 
 ## 1. Prepare environment variables
 
@@ -11,23 +11,28 @@ From the `server` directory:
 cp .env.example .env
 ```
 
-Set these Firebase variables in `.env`:
+You can connect in any of these ways:
+
+1. `DATABASE_URL`
+2. `INSTANCE_CONNECTION_NAME` + `DB_USER` + `DB_PASSWORD` + `DB_NAME`
+3. `DB_HOST` + `DB_PORT` + `DB_USER` + `DB_PASSWORD` + `DB_NAME`
+
+For your current Firebase SQL setup, the inferred instance connection name is:
 
 ```env
-FIREBASE_PROJECT_ID=your-firebase-project-id
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxx@your-project-id.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+INSTANCE_CONNECTION_NAME=libraryapp-eecd8:us-east4:libraryapp-eecd8-instance
+DB_NAME=libraryapp-eecd8-database
 ```
 
-You can also provide `FIREBASE_SERVICE_ACCOUNT_JSON` instead of the three values above.
+You still need to fill in the actual database user and password before starting the API or running `seed_db.py`.
 
-Important:
+## 2. Seed the database
 
-- Enable the Cloud Firestore API for your Firebase project before starting the app.
-- Keep real secrets only in `.env`. That file is gitignored.
-- `ASGARDEO_*` values are still required for authentication routes.
+```bash
+python seed_db.py
+```
 
-## 2. Run locally
+## 3. Run locally
 
 ```bash
 make dev
@@ -39,7 +44,7 @@ Or:
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## 3. Build or run in Docker
+## 4. Build or run in Docker
 
 Build:
 
@@ -53,7 +58,7 @@ Run:
 docker run --env-file .env -p 8000:8000 libraryapp-server
 ```
 
-## 4. Health check
+## 5. Health check
 
 The root endpoint:
 
@@ -63,10 +68,10 @@ GET /
 
 should return a small JSON message.
 
-The Firebase connectivity check:
+The database connectivity check:
 
 ```text
 GET /test-db
 ```
 
-returns backend status when Firebase Admin is configured correctly.
+should return `{"result": 1}` when PostgreSQL is reachable.

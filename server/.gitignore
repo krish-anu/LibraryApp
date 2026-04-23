@@ -87,6 +87,10 @@ ipython_config.py
 
 # Environments
 .env
+.env.*
+*.env
+!.env.example
+!.env.*.example
 .venv
 .envrc
 env/
@@ -100,3 +104,40 @@ venv.bak/
 .idea/
 
 .DS_Store
+
+# ===========================
+# SECRETS & CREDENTIALS
+# ===========================
+# Firebase service account key (NEVER commit this)
+*firebase-adminsdk*.json
+*service-account*.json
+*serviceaccount*.json
+
+# ===========================
+# FIREBASE CLI
+# ===========================
+.firebase/
+.firebaserc
+firebase.json
+
+# Firebase Data Connect local state
+dataconnect/.dataconnect/
+dataconnect/
+
+# ===========================
+# GOOGLE CLOUD SDK & TOOLS
+# ===========================
+google-cloud-sdk/
+google-cloud-cli-linux-x86_64.tar.gz
+google-cloud-cli*.tar.gz
+
+# Cloud SQL Auth Proxy binary
+cloud-sql-proxy
+cloud-sql-proxy.exe
+
+# ===========================
+# DOCKER
+# ===========================
+# Keep compose.yaml but ignore any local override files
+compose.override.yaml
+docker-compose.override.yml

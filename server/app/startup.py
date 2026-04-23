@@ -2,7 +2,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from .database import engine
+from .models.base import Base
+from . import models  # noqa: F401
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
     yield

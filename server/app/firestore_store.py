@@ -93,9 +93,32 @@ def parse_service_account_json(raw_value: str) -> dict[str, Any] | None:
         ) from exc
 
 
+def load_service_account_file(path_value: str) -> dict[str, Any] | None:
+    path = sanitize_env_value(path_value)
+    if not path:
+        return None
+
+    try:
+        with open(path, encoding="utf-8") as service_account_file:
+            return json.load(service_account_file)
+    except FileNotFoundError as exc:
+        raise ConfigurationError(
+            f"Firebase service-account file not found: {path}"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ConfigurationError(
+            f"Invalid Firebase service-account JSON file at {path}: {exc}"
+        ) from exc
+
+
 def resolve_firebase_config() -> dict[str, str]:
     service_account = parse_service_account_json(
         sanitize_env_value(os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON"))
+    )
+    service_account = service_account or load_service_account_file(
+        os.getenv("FIREBASE_SERVICE_ACCOUNT_FILE")
+        or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        or ""
     )
     service_account = service_account or {}
 
