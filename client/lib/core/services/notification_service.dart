@@ -39,8 +39,9 @@ class NotificationService {
   StreamSubscription<RemoteMessage>? _openedAppSubscription;
 
   Stream<void> get messageEvents => _messageEvents.stream;
-  Stream<String> get tokenRefreshStream =>
-      _firebaseAvailable ? FirebaseMessaging.instance.onTokenRefresh : const Stream<String>.empty();
+  Stream<String> get tokenRefreshStream => _firebaseAvailable
+      ? FirebaseMessaging.instance.onTokenRefresh
+      : const Stream<String>.empty();
 
   String get platformName {
     if (kIsWeb) return 'web';

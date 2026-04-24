@@ -48,9 +48,7 @@ class LoanRepository {
 
   Future<Either<Failure, List<Loan>>> getActiveLoans({String? memberId}) async {
     try {
-      final uri = Uri.parse(
-        '${ServerConstant.serverURL}/loans/active',
-      ).replace(
+      final uri = Uri.parse('${ServerConstant.serverURL}/loans/active').replace(
         queryParameters: memberId != null && memberId.isNotEmpty
             ? {'member_id': memberId}
             : null,
@@ -77,9 +75,7 @@ class LoanRepository {
       final uri = Uri.parse(
         '${ServerConstant.serverURL}/loans/borrow',
       ).replace(queryParameters: {'book_id': bookId, 'member_id': memberId});
-      final res = await AuthenticatedHttpClient.post(
-        uri,
-      );
+      final res = await AuthenticatedHttpClient.post(uri);
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);

@@ -109,7 +109,9 @@ class NotificationsController extends Notifier<NotificationsState> {
   }
 
   Future<void> markAsRead(String notificationId) async {
-    final existing = state.notifications.where((item) => item.id == notificationId);
+    final existing = state.notifications.where(
+      (item) => item.id == notificationId,
+    );
     if (existing.isNotEmpty && existing.first.read) {
       return;
     }
@@ -148,16 +150,15 @@ class NotificationsController extends Notifier<NotificationsState> {
     }
 
     await _tokenRefreshSubscription?.cancel();
-    _tokenRefreshSubscription = NotificationService.instance.tokenRefreshStream.listen(
-      (refreshedToken) {
-        if (_registeredMemberId.isEmpty) return;
-        unawaited(
-          _repository.registerDeviceToken(
-            token: refreshedToken,
-            platform: platform,
-          ),
-        );
-      },
-    );
+    _tokenRefreshSubscription = NotificationService.instance.tokenRefreshStream
+        .listen((refreshedToken) {
+          if (_registeredMemberId.isEmpty) return;
+          unawaited(
+            _repository.registerDeviceToken(
+              token: refreshedToken,
+              platform: platform,
+            ),
+          );
+        });
   }
 }
