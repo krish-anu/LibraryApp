@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, Search, User } from "lucide-react";
+import { Search, User } from "lucide-react";
+import { NotificationsMenu } from "./notifications-menu";
 
 interface HeaderProps {
   title: string;
@@ -29,10 +30,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           </div>
 
           <div className="hidden items-center justify-end gap-2 lg:flex lg:gap-3">
-            <button className="relative rounded-lg p-2 transition-colors hover:bg-gray-100">
-              <Bell className="h-5 w-5 text-gray-600" />
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-            </button>
+            <NotificationsMenu />
 
             <button className="flex items-center gap-2 rounded-lg p-2 transition-colors hover:bg-gray-100">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1E3A5F]">

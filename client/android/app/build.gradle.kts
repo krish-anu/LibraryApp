@@ -56,11 +56,12 @@ if (!hasReleaseSigning) {
 }
 
 android {
-    namespace = androidNamespace
+    namespace = "com.krishnaanu.libraryapp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -70,27 +71,19 @@ android {
     }
 
     defaultConfig {
-        applicationId = applicationIdValue
+        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        applicationId = "com.krishnaanu.libraryapp"
+        // You can update the following values to match your application needs.
+        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders.putAll(
             mapOf(
-                "appAuthRedirectScheme" to appAuthRedirectScheme,
-            ),
+                "appAuthRedirectScheme" to "com.krishnaanu.libraryapp"
+            )
         )
-    }
-
-    signingConfigs {
-        if (hasReleaseSigning) {
-            create("release") {
-                storeFile = file(requireNotNull(releaseStoreFile))
-                storePassword = releaseStorePassword
-                keyAlias = releaseKeyAlias
-                keyPassword = releaseKeyPassword
-            }
-        }
     }
 
     buildTypes {
@@ -109,4 +102,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

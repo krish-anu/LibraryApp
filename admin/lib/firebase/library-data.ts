@@ -1,5 +1,9 @@
 import type { Book, Category, Fine, Settings, User } from "@/lib/types";
 import { getFirebaseFirestore } from "./admin";
+import {
+  createAdminNotification,
+  createUserNotification,
+} from "./notifications";
 
 const COLLECTIONS = {
   books: "books",
@@ -508,11 +512,12 @@ async function loadFineContext() {
 }
 
 export async function syncOverdueLoanFines() {
-  const [settings, loans, fines, finePayments] = await Promise.all([
+  const [settings, loans, fines, finePayments, books] = await Promise.all([
     ensureSettingsDocument(),
     getAllDocuments<StoredLoan>(COLLECTIONS.loans),
     getAllDocuments<StoredFine>(COLLECTIONS.fines),
     getAllDocuments<StoredFinePayment>(COLLECTIONS.finePayments),
+    getAllDocuments<StoredBook>(COLLECTIONS.books),
   ]);
 
   if (loans.length === 0) {
@@ -540,6 +545,21 @@ export async function syncOverdueLoanFines() {
   let pendingWrites = 0;
   const dailyFineRate = Math.max(0.01, settings.daily_fine_rate);
   const maxFineCap = Math.max(settings.max_fine_cap, dailyFineRate);
+  const bookTitleById = new Map(
+    books.map((book) => [
+      book.id,
+      nonEmptyString(book.title) || "Borrowed book",
+    ]),
+  );
+  const queuedNotifications: Array<{
+    fineId: string;
+    memberId: string;
+    loanId: string;
+    bookId?: string;
+    bookTitle: string;
+    dueDate: string;
+    amount: number;
+  }> = [];
 
   for (const loan of loans) {
     const memberId = getLoanMemberId(loan);
@@ -609,10 +629,55 @@ export async function syncOverdueLoanFines() {
       updated_at: nowIso(),
     });
     pendingWrites += 1;
+    queuedNotifications.push({
+      fineId,
+      memberId,
+      loanId: loan.id,
+      bookId: nonEmptyString(loan.book_id) || undefined,
+      bookTitle:
+        bookTitleById.get(nonEmptyString(loan.book_id) || "") || "Borrowed book",
+      dueDate,
+      amount: remainingAmount,
+    });
   }
 
   if (pendingWrites > 0) {
     await batch.commit();
+  }
+
+  for (const notification of queuedNotifications) {
+    await createUserNotification(notification.memberId, {
+      title: "Overdue fine added",
+      body: `A fine of LKR ${notification.amount.toFixed(2)} was added for "${notification.bookTitle}".`,
+      category: "fine_created",
+      entityType: "fine",
+      entityId: notification.fineId,
+      metadata: {
+        loan_id: notification.loanId,
+        book_id: notification.bookId,
+        book_title: notification.bookTitle,
+        due_date: notification.dueDate,
+        fine_amount: notification.amount,
+      },
+      dedupeKey: `fine-created:${notification.loanId}:${notification.dueDate}`,
+      sendPush: true,
+    });
+    await createAdminNotification({
+      title: "Overdue fine created",
+      body: `An overdue fine was created for "${notification.bookTitle}".`,
+      category: "fine_created",
+      entityType: "fine",
+      entityId: notification.fineId,
+      metadata: {
+        member_id: notification.memberId,
+        loan_id: notification.loanId,
+        book_id: notification.bookId,
+        book_title: notification.bookTitle,
+        due_date: notification.dueDate,
+        fine_amount: notification.amount,
+      },
+      dedupeKey: `admin-fine-created:${notification.loanId}:${notification.dueDate}`,
+    });
   }
 }
 
@@ -738,7 +803,21 @@ export async function createBookData(payload: Record<string, unknown>) {
     false,
   );
 
-  return getBookData(id);
+  const book = await getBookData(id);
+  await createAdminNotification({
+    title: "Book added",
+    body: `"${book.title}" was added to the catalog.`,
+    category: "book_created",
+    entityType: "book",
+    entityId: book.id,
+    metadata: {
+      book_id: book.id,
+      book_title: book.title,
+      copies_owned: book.copies_owned,
+    },
+    dedupeKey: `admin-book-created:${book.id}`,
+  });
+  return book;
 }
 
 export async function updateBookData(
@@ -813,7 +892,20 @@ export async function updateBookData(
   }
 
   await setDocument(COLLECTIONS.books, id, updates, true);
-  return getBookData(id);
+  const book = await getBookData(id);
+  await createAdminNotification({
+    title: "Book updated",
+    body: `"${book.title}" was updated in the catalog.`,
+    category: "book_updated",
+    entityType: "book",
+    entityId: book.id,
+    metadata: {
+      book_id: book.id,
+      book_title: book.title,
+    },
+    dedupeKey: `admin-book-updated:${book.id}:${String(updates.updated_at || "")}`,
+  });
+  return book;
 }
 
 export async function deleteBookData(id: string) {
@@ -822,6 +914,18 @@ export async function deleteBookData(id: string) {
     throw new NotFoundError("Book not found");
   }
   await deleteDocument(COLLECTIONS.books, id);
+  await createAdminNotification({
+    title: "Book deleted",
+    body: `"${nonEmptyString(existing.title) || "Unknown book"}" was removed from the catalog.`,
+    category: "book_deleted",
+    entityType: "book",
+    entityId: id,
+    metadata: {
+      book_id: id,
+      book_title: nonEmptyString(existing.title) || "Unknown book",
+    },
+    dedupeKey: `admin-book-deleted:${id}`,
+  });
   return { success: true };
 }
 
@@ -911,7 +1015,21 @@ export async function createUserData(payload: Record<string, unknown>) {
   if (!created) {
     throw new NotFoundError("User not found");
   }
-  return normalizeUser(created);
+  const user = normalizeUser(created);
+  await createAdminNotification({
+    title: "Member created",
+    body: `${user.name} was added to the library members list.`,
+    category: "user_created",
+    entityType: "user",
+    entityId: user.id,
+    metadata: {
+      user_id: user.id,
+      user_name: user.name,
+      user_email: user.email,
+    },
+    dedupeKey: `admin-user-created:${user.id}`,
+  });
+  return user;
 }
 
 export async function getUserWithStatsData(id: string) {
@@ -1005,7 +1123,21 @@ export async function updateUserData(
     throw new NotFoundError("User not found");
   }
 
-  return normalizeUser(updated);
+  const user = normalizeUser(updated);
+  await createAdminNotification({
+    title: "Member updated",
+    body: `${user.name}'s member details were updated.`,
+    category: "user_updated",
+    entityType: "user",
+    entityId: user.id,
+    metadata: {
+      user_id: user.id,
+      user_name: user.name,
+      user_email: user.email,
+    },
+    dedupeKey: `admin-user-updated:${user.id}:${String(updates.updated_at || "")}`,
+  });
+  return user;
 }
 
 export async function deleteUserData(id: string) {
@@ -1015,6 +1147,19 @@ export async function deleteUserData(id: string) {
   }
 
   await deleteDocument(COLLECTIONS.users, id);
+  await createAdminNotification({
+    title: "Member deleted",
+    body: `${nonEmptyString(existing.name) || "A member"} was removed from the library members list.`,
+    category: "user_deleted",
+    entityType: "user",
+    entityId: id,
+    metadata: {
+      user_id: id,
+      user_name: nonEmptyString(existing.name) || "Unknown member",
+      user_email: nonEmptyString(existing.email) || "",
+    },
+    dedupeKey: `admin-user-deleted:${id}`,
+  });
   return { success: true };
 }
 
@@ -1103,6 +1248,20 @@ export async function updateSettingsData(payload: Record<string, unknown>) {
     true,
   );
 
+  await createAdminNotification({
+    title: "Settings updated",
+    body: "Library rules and notification settings were updated.",
+    category: "settings_updated",
+    entityType: "settings",
+    entityId: SETTINGS_DOC_ID,
+    metadata: {
+      send_notifications: merged.send_notifications,
+      notification_days_before_due: merged.notification_days_before_due,
+      max_books_per_user: merged.max_books_per_user,
+      fine_threshold: merged.fine_threshold,
+    },
+    dedupeKey: `admin-settings-updated:${merged.notification_days_before_due}:${merged.max_books_per_user}:${merged.fine_threshold}:${merged.send_notifications}`,
+  });
   return merged;
 }
 
@@ -1195,7 +1354,41 @@ export async function createFineData(payload: Record<string, unknown>) {
     false,
   );
 
-  return getFineData(id);
+  const fine = await getFineData(id);
+  await createUserNotification(memberId, {
+    title: "Fine added",
+    body: `A fine of LKR ${fine.fine_amount.toFixed(2)} was added${fine.book_title ? ` for "${fine.book_title}"` : ""}.`,
+    category: "fine_created",
+    entityType: "fine",
+    entityId: fine.id,
+    metadata: {
+      fine_id: fine.id,
+      fine_amount: fine.fine_amount,
+      reason: fine.reason || "",
+      book_id: fine.book_id,
+      book_title: fine.book_title,
+    },
+    dedupeKey: `fine-created:${fine.id}`,
+    sendPush: true,
+  });
+  await createAdminNotification({
+    title: "Fine created",
+    body: `A fine was created${fine.user_name ? ` for ${fine.user_name}` : ""}.`,
+    category: "fine_created",
+    entityType: "fine",
+    entityId: fine.id,
+    metadata: {
+      fine_id: fine.id,
+      member_id: memberId,
+      fine_amount: fine.fine_amount,
+      user_name: fine.user_name,
+      book_id: fine.book_id,
+      book_title: fine.book_title,
+    },
+    dedupeKey: `admin-fine-created:${fine.id}`,
+  });
+
+  return fine;
 }
 
 export async function getFineData(id: string) {
@@ -1254,6 +1447,8 @@ export async function updateFineData(
   }
 
   const db = firestore();
+  let statusChangedToPaid = false;
+  let statusChangedToWaived = false;
 
   if (paymentAmount !== null) {
     const result = await db.runTransaction(async (transaction) => {
@@ -1285,6 +1480,7 @@ export async function updateFineData(
         Math.max(0, outstanding - appliedAmount).toFixed(2),
       );
       const nextStatus = remainingAmount <= 0 ? "paid" : "unpaid";
+      statusChangedToPaid = nextStatus === "paid" && currentFine.status !== "paid";
       const paymentRecordedAt = requestedPaidAt
         ? normalizeTimestamp(requestedPaidAt)
         : nowIso();
@@ -1331,8 +1527,56 @@ export async function updateFineData(
       };
     });
 
+    const fine = await getFineData(id);
+    await createUserNotification(fine.member_id, {
+      title: fine.status === "paid" ? "Fine paid" : "Fine payment recorded",
+      body:
+        fine.status === "paid"
+          ? `Your fine${fine.book_title ? ` for "${fine.book_title}"` : ""} is now fully paid.`
+          : `A payment of LKR ${result.appliedAmount.toFixed(2)} was recorded for your fine${fine.book_title ? ` for "${fine.book_title}"` : ""}.`,
+      category: fine.status === "paid" ? "fine_paid" : "fine_payment_recorded",
+      entityType: "fine",
+      entityId: fine.id,
+      metadata: {
+        fine_id: fine.id,
+        fine_amount: fine.fine_amount,
+        paid_amount: result.appliedAmount,
+        remaining_amount: result.remainingAmount,
+        book_id: fine.book_id,
+        book_title: fine.book_title,
+      },
+      dedupeKey:
+        fine.status === "paid"
+          ? `fine-paid:${fine.id}`
+          : `fine-payment:${fine.id}:${result.appliedAmount}:${result.remainingAmount}`,
+      sendPush: true,
+    });
+    await createAdminNotification({
+      title: fine.status === "paid" ? "Fine paid" : "Fine payment recorded",
+      body:
+        fine.status === "paid"
+          ? `A fine${fine.user_name ? ` for ${fine.user_name}` : ""} is now fully paid.`
+          : `A fine payment of LKR ${result.appliedAmount.toFixed(2)} was recorded${fine.user_name ? ` for ${fine.user_name}` : ""}.`,
+      category: fine.status === "paid" ? "fine_paid" : "fine_payment_recorded",
+      entityType: "fine",
+      entityId: fine.id,
+      metadata: {
+        fine_id: fine.id,
+        member_id: fine.member_id,
+        paid_amount: result.appliedAmount,
+        remaining_amount: result.remainingAmount,
+        user_name: fine.user_name,
+        book_id: fine.book_id,
+        book_title: fine.book_title,
+      },
+      dedupeKey:
+        fine.status === "paid"
+          ? `admin-fine-paid:${fine.id}`
+          : `admin-fine-payment:${fine.id}:${result.appliedAmount}:${result.remainingAmount}`,
+    });
+
     return {
-      data: await getFineData(id),
+      data: fine,
       payment: result,
     };
   }
@@ -1378,6 +1622,7 @@ export async function updateFineData(
     );
 
     if (nextStatus === "paid" && currentFine.status !== "paid") {
+      statusChangedToPaid = true;
       const paymentId = makeId("fp");
       transaction.set(
         db.collection(COLLECTIONS.finePayments).doc(paymentId),
@@ -1395,9 +1640,91 @@ export async function updateFineData(
         { merge: false },
       );
     }
+    if (nextStatus === "waived" && currentFine.status !== "waived") {
+      statusChangedToWaived = true;
+    }
   });
 
-  return { data: await getFineData(id) };
+  const fine = await getFineData(id);
+  if (statusChangedToWaived) {
+    await createUserNotification(fine.member_id, {
+      title: "Fine waived",
+      body: `Your fine${fine.book_title ? ` for "${fine.book_title}"` : ""} was waived by the library.`,
+      category: "fine_waived",
+      entityType: "fine",
+      entityId: fine.id,
+      metadata: {
+        fine_id: fine.id,
+        book_id: fine.book_id,
+        book_title: fine.book_title,
+      },
+      dedupeKey: `fine-waived:${fine.id}`,
+      sendPush: true,
+    });
+    await createAdminNotification({
+      title: "Fine waived",
+      body: `A fine${fine.user_name ? ` for ${fine.user_name}` : ""} was waived.`,
+      category: "fine_waived",
+      entityType: "fine",
+      entityId: fine.id,
+      metadata: {
+        fine_id: fine.id,
+        member_id: fine.member_id,
+        user_name: fine.user_name,
+        book_id: fine.book_id,
+        book_title: fine.book_title,
+      },
+      dedupeKey: `admin-fine-waived:${fine.id}`,
+    });
+  } else if (statusChangedToPaid) {
+    await createUserNotification(fine.member_id, {
+      title: "Fine paid",
+      body: `Your fine${fine.book_title ? ` for "${fine.book_title}"` : ""} is now fully paid.`,
+      category: "fine_paid",
+      entityType: "fine",
+      entityId: fine.id,
+      metadata: {
+        fine_id: fine.id,
+        book_id: fine.book_id,
+        book_title: fine.book_title,
+      },
+      dedupeKey: `fine-paid:${fine.id}`,
+      sendPush: true,
+    });
+    await createAdminNotification({
+      title: "Fine paid",
+      body: `A fine${fine.user_name ? ` for ${fine.user_name}` : ""} was marked as paid.`,
+      category: "fine_paid",
+      entityType: "fine",
+      entityId: fine.id,
+      metadata: {
+        fine_id: fine.id,
+        member_id: fine.member_id,
+        user_name: fine.user_name,
+        book_id: fine.book_id,
+        book_title: fine.book_title,
+      },
+      dedupeKey: `admin-fine-paid:${fine.id}`,
+    });
+  } else {
+    await createAdminNotification({
+      title: "Fine updated",
+      body: `A fine${fine.user_name ? ` for ${fine.user_name}` : ""} was updated.`,
+      category: "fine_updated",
+      entityType: "fine",
+      entityId: fine.id,
+      metadata: {
+        fine_id: fine.id,
+        member_id: fine.member_id,
+        user_name: fine.user_name,
+        book_id: fine.book_id,
+        book_title: fine.book_title,
+      },
+      dedupeKey: `admin-fine-updated:${fine.id}:${fine.updated_at || nowIso()}`,
+    });
+  }
+
+  return { data: fine };
 }
 
 export async function deleteFineData(id: string) {
@@ -1415,6 +1742,35 @@ export async function deleteFineData(id: string) {
   }
   batch.delete(firestore().collection(COLLECTIONS.fines).doc(id));
   await batch.commit();
+
+  if (existing.member_id) {
+    await createUserNotification(existing.member_id, {
+      title: "Fine removed",
+      body: "A fine on your account was removed by the library.",
+      category: "fine_deleted",
+      entityType: "fine",
+      entityId: id,
+      metadata: {
+        fine_id: id,
+        loan_id: existing.loan_id,
+      },
+      dedupeKey: `fine-deleted:${id}`,
+      sendPush: true,
+    });
+  }
+  await createAdminNotification({
+    title: "Fine deleted",
+    body: "A fine record was removed.",
+    category: "fine_deleted",
+    entityType: "fine",
+    entityId: id,
+    metadata: {
+      fine_id: id,
+      member_id: existing.member_id,
+      loan_id: existing.loan_id,
+    },
+    dedupeKey: `admin-fine-deleted:${id}`,
+  });
 
   return { success: true, data: normalizeFineBase(existing) };
 }
@@ -1448,6 +1804,48 @@ export async function renewLoanData(id: string) {
     },
     true,
   );
+
+  const memberId = getLoanMemberId(loan);
+  const book = nonEmptyString(loan.book_id)
+    ? await getDocumentById<StoredBook>(
+        COLLECTIONS.books,
+        nonEmptyString(loan.book_id) || "",
+      )
+    : null;
+  const bookTitle = nonEmptyString(book?.title) || "your borrowed book";
+
+  if (memberId) {
+    await createUserNotification(memberId, {
+      title: "Loan renewed by admin",
+      body: `Your loan for "${bookTitle}" was renewed until ${renewedDueDate}.`,
+      category: "renewed",
+      entityType: "loan",
+      entityId: id,
+      metadata: {
+        loan_id: id,
+        book_id: nonEmptyString(loan.book_id) || undefined,
+        book_title: bookTitle,
+        due_date: renewedDueDate,
+      },
+      dedupeKey: `renewed:${id}:${renewedDueDate}`,
+      sendPush: true,
+    });
+  }
+  await createAdminNotification({
+    title: "Loan renewed",
+    body: `"${bookTitle}" was renewed until ${renewedDueDate}.`,
+    category: "renewed",
+    entityType: "loan",
+    entityId: id,
+    metadata: {
+      member_id: memberId,
+      loan_id: id,
+      book_id: nonEmptyString(loan.book_id) || undefined,
+      book_title: bookTitle,
+      due_date: renewedDueDate,
+    },
+    dedupeKey: `admin-renewed:${id}:${renewedDueDate}`,
+  });
 
   return {
     data: {

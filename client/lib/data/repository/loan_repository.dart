@@ -48,11 +48,12 @@ class LoanRepository {
 
   Future<Either<Failure, List<Loan>>> getActiveLoans({String? memberId}) async {
     try {
-      var url = '${ServerConstant.serverURL}/loans/active';
-      if (memberId != null) {
-        url += '?member_id=$memberId';
-      }
-      final res = await AuthenticatedHttpClient.get(Uri.parse(url));
+      final uri = Uri.parse('${ServerConstant.serverURL}/loans/active').replace(
+        queryParameters: memberId != null && memberId.isNotEmpty
+            ? {'member_id': memberId}
+            : null,
+      );
+      final res = await AuthenticatedHttpClient.get(uri);
 
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(res.body);
@@ -71,11 +72,10 @@ class LoanRepository {
     String memberId,
   ) async {
     try {
-      final res = await AuthenticatedHttpClient.post(
-        Uri.parse(
-          '${ServerConstant.serverURL}/loans/borrow?book_id=$bookId&member_id=$memberId',
-        ),
-      );
+      final uri = Uri.parse(
+        '${ServerConstant.serverURL}/loans/borrow',
+      ).replace(queryParameters: {'book_id': bookId, 'member_id': memberId});
+      final res = await AuthenticatedHttpClient.post(uri);
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -91,7 +91,7 @@ class LoanRepository {
         );
       }
     } catch (e) {
-      return left(Failure('Unable to borrow this book right now.'));
+      return left(Failure(_formatClientError(e)));
     }
   }
 
@@ -199,5 +199,19 @@ class LoanRepository {
     }
 
     return fallback;
+  }
+
+  String _formatClientError(Object error) {
+    final message = error.toString().trim();
+    if (message.isEmpty) {
+      return 'Unable to borrow this book right now.';
+    }
+
+    const exceptionPrefix = 'Exception: ';
+    if (message.startsWith(exceptionPrefix)) {
+      return message.substring(exceptionPrefix.length).trim();
+    }
+
+    return message;
   }
 }

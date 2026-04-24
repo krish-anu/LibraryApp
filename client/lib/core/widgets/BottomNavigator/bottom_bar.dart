@@ -6,6 +6,7 @@ import 'package:libraryapp/core/providers/favorites_notifier.dart';
 import 'package:libraryapp/core/providers/loans_notifier.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
+import 'package:libraryapp/features/notifications/viewmodels/notifications_controller.dart';
 import 'package:libraryapp/features/home/views/home_view.dart';
 import 'package:libraryapp/features/search/views/search_view.dart';
 import 'package:libraryapp/features/borrowed/views/borrowed_view.dart';
@@ -35,6 +36,7 @@ class _BottomNavState extends ConsumerState<BottomNav> {
     Future.microtask(() {
       ref.read(loansProvider.notifier).setMemberId(memberId);
       ref.read(favoritesProvider.notifier).setMemberId(memberId);
+      ref.read(notificationsControllerProvider.notifier).setMemberId(memberId);
     });
 
     final index = ref.watch(bottomNavIndexProvider);
