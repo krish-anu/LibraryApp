@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,8 +7,55 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val androidNamespace = "com.krishnaanu.libraryapp"
+val applicationIdValue = (
+    providers.gradleProperty("LIBRARYAPP_APPLICATION_ID").orNull
+        ?: System.getenv("LIBRARYAPP_APPLICATION_ID")
+        ?: androidNamespace
+    ).trim()
+val appAuthRedirectScheme = (
+    providers.gradleProperty("LIBRARYAPP_APP_AUTH_SCHEME").orNull
+        ?: System.getenv("LIBRARYAPP_APP_AUTH_SCHEME")
+        ?: applicationIdValue
+    ).trim()
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+}
+
+fun signingValue(propertyName: String, envName: String): String? {
+    val propertyValue = keystoreProperties.getProperty(propertyName)?.trim().orEmpty()
+    if (propertyValue.isNotEmpty()) {
+        return propertyValue
+    }
+
+    val envValue = System.getenv(envName)?.trim().orEmpty()
+    return envValue.ifEmpty { null }
+}
+
+val releaseStoreFile = signingValue("storeFile", "ANDROID_KEYSTORE_PATH")
+val releaseStorePassword = signingValue("storePassword", "ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias = signingValue("keyAlias", "ANDROID_KEY_ALIAS")
+val releaseKeyPassword = signingValue("keyPassword", "ANDROID_KEY_PASSWORD")
+val hasReleaseSigning =
+    listOf(
+        releaseStoreFile,
+        releaseStorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword,
+    ).all { !it.isNullOrBlank() }
+
+if (!hasReleaseSigning) {
+    logger.lifecycle(
+        "Release signing credentials were not found. Release builds will use the debug keystore. " +
+            "Add client/android/key.properties or ANDROID_KEYSTORE_* env vars for Play Store-ready builds.",
+    )
+}
+
 android {
-    namespace = "com.example.libraryapp"
+    namespace = androidNamespace
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,26 +69,39 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.libraryapp"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = applicationIdValue
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders.putAll(
             mapOf(
-                "appAuthRedirectScheme" to "com.example.libraryapp"
-            )
-        )    
+                "appAuthRedirectScheme" to appAuthRedirectScheme,
+            ),
+        )
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(requireNotNull(releaseStoreFile))
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig =
+                if (hasReleaseSigning) {
+                    signingConfigs.getByName("release")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
         }
     }
 }
