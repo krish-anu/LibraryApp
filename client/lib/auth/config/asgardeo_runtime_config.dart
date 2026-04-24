@@ -11,7 +11,7 @@ class AsgardeoRuntimeConfig {
   );
   static const String _redirectUrl = String.fromEnvironment(
     'ASGARDEO_REDIRECT_URL',
-    defaultValue: 'com.krishnaanu.libraryapp://callback',
+    defaultValue: 'com.focus.libraryapp://callback',
   );
   static const String _selfServicePortalUrl = String.fromEnvironment(
     'ASGARDEO_SELF_SERVICE_PORTAL_URL',
@@ -24,9 +24,9 @@ class AsgardeoRuntimeConfig {
       return configured;
     }
 
-    // Keep Android aligned with Firebase while preserving the current iOS URI.
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'com.krishnaanu.libraryapp://callback';
+    if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
+      return 'com.focus.libraryapp://callback';
     }
 
     return 'com.example.libraryapp://callback';

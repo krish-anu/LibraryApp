@@ -52,7 +52,7 @@
                 <string>Editor</string>
                 <key>CFBundleURLSchemes</key>
                 <array>
-                    <string>com.example.libraryapp</string>
+                    <string>com.focus.libraryapp</string>
                     <string>libraryapp</string>
                 </array>
             </dict>

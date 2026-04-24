@@ -8,16 +8,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val androidNamespace = "com.krishnaanu.libraryapp"
-val applicationIdValue = (
-    providers.gradleProperty("LIBRARYAPP_APPLICATION_ID").orNull
-        ?: System.getenv("LIBRARYAPP_APPLICATION_ID")
-        ?: androidNamespace
-    ).trim()
+val androidNamespace = "com.focus.libraryapp"
 val appAuthRedirectScheme = (
     providers.gradleProperty("LIBRARYAPP_APP_AUTH_SCHEME").orNull
         ?: System.getenv("LIBRARYAPP_APP_AUTH_SCHEME")
-        ?: applicationIdValue
+        ?: "com.focus.libraryapp"
     ).trim()
 
 val keystoreProperties = Properties()
@@ -56,7 +51,7 @@ if (!hasReleaseSigning) {
 }
 
 android {
-    namespace = "com.krishnaanu.libraryapp"
+    namespace = androidNamespace
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -72,7 +67,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.krishnaanu.libraryapp"
+        applicationId = "com.focus.libraryapp"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -81,9 +76,20 @@ android {
         versionName = flutter.versionName
         manifestPlaceholders.putAll(
             mapOf(
-                "appAuthRedirectScheme" to "com.krishnaanu.libraryapp"
+                "appAuthRedirectScheme" to appAuthRedirectScheme,
             )
         )
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {

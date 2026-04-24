@@ -43,5 +43,5 @@ flutter run \
 
 Optional overrides:
 
-- `ASGARDEO_REDIRECT_URL` if your app callback URI differs from the platform default (`com.krishnaanu.libraryapp://callback` on Android, `com.example.libraryapp://callback` on iOS)
+- `ASGARDEO_REDIRECT_URL` if your app callback URI differs from the platform default (`com.focus.libraryapp://callback` on Android and iOS)
 - `ASGARDEO_SELF_SERVICE_PORTAL_URL` if your tenant uses a custom self-service portal URL

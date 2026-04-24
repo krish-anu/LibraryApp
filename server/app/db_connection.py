@@ -3,6 +3,7 @@ from __future__ import annotations
 import atexit
 import json
 import os
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -29,6 +30,10 @@ def _google_credentials():
         or ""
     ).strip()
     if service_account_file:
+        service_account_path = Path(service_account_file)
+        if not service_account_path.is_file():
+            return None
+
         from google.oauth2 import service_account
 
         return service_account.Credentials.from_service_account_file(
@@ -47,8 +52,17 @@ if config.database_url:
 elif config.instance_connection_name:
     from google.cloud.sql.connector import Connector, IPTypes
 
+    credentials = _google_credentials()
+    if credentials is None:
+        raise RuntimeError(
+            "Cloud SQL connector credentials are missing. Set "
+            "FIREBASE_SERVICE_ACCOUNT_JSON to the libraryapp-c781e service "
+            "account JSON, or set FIREBASE_SERVICE_ACCOUNT_FILE / "
+            "GOOGLE_APPLICATION_CREDENTIALS to a real JSON file path."
+        )
+
     _connector = Connector(
-        credentials=_google_credentials(),
+        credentials=credentials,
         refresh_strategy="LAZY",
     )
     atexit.register(_connector.close)

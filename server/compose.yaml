@@ -5,11 +5,6 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ${ENV_FILE:-.env}
-    environment:
-      GOOGLE_APPLICATION_CREDENTIALS: /tmp/keys/service_account.json
-      FIREBASE_SERVICE_ACCOUNT_FILE: /tmp/keys/service_account.json
-    volumes:
-      - ${FIREBASE_SERVICE_ACCOUNT_PATH:-./app/firebase-service-account.json}:/tmp/keys/service_account.json:ro
     ports:
       - "8000:8000"
     restart: unless-stopped
