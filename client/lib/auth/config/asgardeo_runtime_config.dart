@@ -11,7 +11,7 @@ class AsgardeoRuntimeConfig {
   );
   static const String _redirectUrl = String.fromEnvironment(
     'ASGARDEO_REDIRECT_URL',
-    defaultValue: '',
+    defaultValue: 'com.krishnaanu.libraryapp://callback',
   );
   static const String _selfServicePortalUrl = String.fromEnvironment(
     'ASGARDEO_SELF_SERVICE_PORTAL_URL',
