@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Optional
 
 from fastapi import Header, HTTPException
@@ -10,6 +11,7 @@ from .env import load_app_env
 load_app_env()
 
 ASGARDEO_BASE_URL = os.getenv("ASGARDEO_BASE_URL", "")
+logger = logging.getLogger(__name__)
 
 
 def get_db():
@@ -61,6 +63,11 @@ async def verify_access_token(
 
         return response.json()
     except httpx.RequestError as exc:
+        logger.warning(
+            "Failed to verify token with Asgardeo userinfo endpoint %s/oauth2/userinfo: %s",
+            ASGARDEO_BASE_URL,
+            exc,
+        )
         raise HTTPException(
             status_code=503,
             detail="Unable to verify token with identity provider",
