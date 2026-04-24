@@ -28,7 +28,6 @@ class NotificationService {
     importance: Importance.high,
   );
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
   final StreamController<void> _messageEvents =
@@ -40,7 +39,8 @@ class NotificationService {
   StreamSubscription<RemoteMessage>? _openedAppSubscription;
 
   Stream<void> get messageEvents => _messageEvents.stream;
-  Stream<String> get tokenRefreshStream => _messaging.onTokenRefresh;
+  Stream<String> get tokenRefreshStream =>
+      _firebaseAvailable ? FirebaseMessaging.instance.onTokenRefresh : const Stream<String>.empty();
 
   String get platformName {
     if (kIsWeb) return 'web';
@@ -64,7 +64,9 @@ class NotificationService {
     if (_initialized) return;
 
     try {
-      await Firebase.initializeApp();
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp();
+      }
       _firebaseAvailable = true;
     } catch (error) {
       debugPrint('Firebase notifications unavailable: $error');
@@ -92,7 +94,9 @@ class NotificationService {
         >()
         ?.createNotificationChannel(_channel);
 
-    await _messaging.setForegroundNotificationPresentationOptions(
+    final messaging = FirebaseMessaging.instance;
+
+    await messaging.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
@@ -107,7 +111,7 @@ class NotificationService {
       _openNotificationsView();
     });
 
-    final initialMessage = await _messaging.getInitialMessage();
+    final initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
       _messageEvents.add(null);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -120,7 +124,11 @@ class NotificationService {
 
   Future<void> requestPermissions() async {
     if (!_firebaseAvailable) return;
-    await _messaging.requestPermission(alert: true, badge: true, sound: true);
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
     await _localNotifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -130,7 +138,7 @@ class NotificationService {
 
   Future<String?> getDeviceToken() async {
     if (!_firebaseAvailable) return null;
-    return _messaging.getToken();
+    return FirebaseMessaging.instance.getToken();
   }
 
   Future<void> unregisterDeviceTokenFromBackend({
