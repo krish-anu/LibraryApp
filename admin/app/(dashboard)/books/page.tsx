@@ -64,6 +64,10 @@ export default function BooksPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [categoryError, setCategoryError] = useState("");
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -132,6 +136,9 @@ export default function BooksPage() {
     setIsModalOpen(false);
     setEditingBook(null);
     setFormData(initialFormData);
+    setIsCategoryFormOpen(false);
+    setNewCategoryName("");
+    setCategoryError("");
     if (coverPreview && coverPreview.startsWith("blob:")) {
       URL.revokeObjectURL(coverPreview);
     }
@@ -195,6 +202,50 @@ export default function BooksPage() {
       alert("Failed to save book");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) {
+      setCategoryError("Category name is required");
+      return;
+    }
+
+    setIsCreatingCategory(true);
+    setCategoryError("");
+
+    try {
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        setCategoryError(json.error || "Failed to create category");
+        return;
+      }
+
+      const createdCategory = json.data as { id: string; name: string };
+      setCategories((current) =>
+        [
+          ...current.filter((category) => category.id !== createdCategory.id),
+          createdCategory,
+        ].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      setFormData((current) => ({
+        ...current,
+        category_id: createdCategory.id,
+      }));
+      setNewCategoryName("");
+      setIsCategoryFormOpen(false);
+    } catch (error) {
+      console.error("Error creating category:", error);
+      setCategoryError("Failed to create category");
+    } finally {
+      setIsCreatingCategory(false);
     }
   };
 
@@ -561,17 +612,76 @@ export default function BooksPage() {
             />
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Select
-              label="Category"
-              value={formData.category_id}
-              onChange={(e) =>
-                setFormData({ ...formData, category_id: e.target.value })
-              }
-              options={[
-                { value: "", label: "Select Category" },
-                ...categories.map((c) => ({ value: c.id, label: c.name })),
-              ]}
-            />
+            <div className="w-full">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Category
+                </label>
+                <button
+                  type="button"
+                  title="Add category"
+                  aria-label="Add category"
+                  onClick={() => {
+                    setIsCategoryFormOpen((open) => !open);
+                    setCategoryError("");
+                  }}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+              <Select
+                value={formData.category_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, category_id: e.target.value })
+                }
+                options={[
+                  { value: "", label: "Select Category" },
+                  ...categories.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+              />
+              {isCategoryFormOpen && (
+                <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <Input
+                    placeholder="Category name"
+                    value={newCategoryName}
+                    onChange={(e) => {
+                      setNewCategoryName(e.target.value);
+                      if (categoryError) setCategoryError("");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCreateCategory();
+                      }
+                    }}
+                    error={categoryError}
+                  />
+                  <div className="mt-3 flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsCategoryFormOpen(false);
+                        setNewCategoryName("");
+                        setCategoryError("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      isLoading={isCreatingCategory}
+                      onClick={handleCreateCategory}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
             <Input
               label="Publication Year"
               type="number"

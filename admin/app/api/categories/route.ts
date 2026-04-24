@@ -1,1 +1,1 @@
-export { GET } from "@/services/catalog/categories-service";
+export { GET, POST } from "@/services/catalog/categories-service";
