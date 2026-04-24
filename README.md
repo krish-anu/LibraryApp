@@ -73,6 +73,15 @@ cd client
 flutter pub get
 ```
 
+For Firebase push notifications, also add your platform config files before
+running the mobile app:
+
+- `client/android/app/google-services.json`
+- `client/ios/Runner/GoogleService-Info.plist`
+
+The backend and admin app also need Firebase Admin credentials configured if
+you want notification records and push delivery to work end to end.
+
 Run on Android emulator:
 
 ```bash
@@ -414,4 +423,3 @@ If the server cannot start:
 - Check the database values in `server/.env.local`.
 - Make sure PostgreSQL or Cloud SQL is running and reachable.
 - Run `python seed_db.py` after database setup.
-

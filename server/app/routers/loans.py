@@ -14,11 +14,20 @@ from ..models import (
     settings as settings_model,
     users as user_model,
 )
+from ..notification_center import create_admin_notification, create_user_notification
 from ..pydantic_schemas import loan as loan_schema
 
 router = APIRouter(
     prefix="/loans", tags=["loans"], dependencies=[Depends(verify_access_token)]
 )
+
+
+def _safe_notify(callback) -> None:
+    try:
+        callback()
+    except Exception:
+        # Notification delivery should never break the circulation flow.
+        return
 
 
 @router.get("", response_model=List[loan_schema.Loan])
@@ -164,6 +173,42 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
             detail="Failed to create loan due to duplicate or conflicting data",
         )
     db.refresh(new_loan)
+
+    book_title = str(cast(Any, db_book.title) or "your selected book")
+    due_date = cast(date, new_loan.returned_date)
+    _safe_notify(
+        lambda: create_user_notification(
+            member_id,
+            title="Borrow successful",
+            body=f'You borrowed "{book_title}". It is due on {due_date.isoformat()}.',
+            category="borrowed",
+            entity_type="loan",
+            entity_id=str(new_loan.id),
+            metadata={
+                "book_id": str(book_id),
+                "book_title": book_title,
+                "due_date": due_date.isoformat(),
+            },
+            dedupe_key=f"borrowed:{new_loan.id}",
+            send_push=True,
+        )
+    )
+    _safe_notify(
+        lambda: create_admin_notification(
+            title="Book borrowed",
+            body=f'A member borrowed "{book_title}".',
+            category="borrowed",
+            entity_type="loan",
+            entity_id=str(new_loan.id),
+            metadata={
+                "member_id": str(member_id),
+                "book_id": str(book_id),
+                "book_title": book_title,
+                "due_date": due_date.isoformat(),
+            },
+            dedupe_key=f"admin-borrowed:{new_loan.id}",
+        )
+    )
     return new_loan
 
 
@@ -180,8 +225,45 @@ def return_book(loan_id: str, db: Session = Depends(get_db)):
     if db_book:
         db_book.copies_owned = int(cast(Any, db_book.copies_owned) or 0) + 1
 
+    member_id = str(cast(Any, db_loan.member_id) or "")
+    book_id = str(cast(Any, db_loan.book_id) or "")
+    book_title = str(cast(Any, getattr(db_book, "title", None)) or "your borrowed book")
+
     db.delete(db_loan)
     db.commit()
+
+    if member_id:
+        _safe_notify(
+            lambda: create_user_notification(
+                member_id,
+                title="Return confirmed",
+                body=f'Your return for "{book_title}" was recorded successfully.',
+                category="returned",
+                entity_type="loan",
+                entity_id=str(loan_id),
+                metadata={
+                    "book_id": book_id,
+                    "book_title": book_title,
+                },
+                dedupe_key=f"returned:{loan_id}",
+                send_push=True,
+            )
+        )
+    _safe_notify(
+        lambda: create_admin_notification(
+            title="Book returned",
+            body=f'"{book_title}" was returned to the library.',
+            category="returned",
+            entity_type="loan",
+            entity_id=str(loan_id),
+            metadata={
+                "member_id": member_id,
+                "book_id": book_id,
+                "book_title": book_title,
+            },
+            dedupe_key=f"admin-returned:{loan_id}",
+        )
+    )
 
     return {"message": "Book returned successfully"}
 
@@ -199,5 +281,46 @@ def renew_loan(
     db_loan.returned_date = date.today() + timedelta(days=loan_period_days)
     db.commit()
     db.refresh(db_loan)
+
+    book = (
+        db.query(book_model.Book).filter(book_model.Book.id == db_loan.book_id).first()
+    )
+    book_title = str(cast(Any, getattr(book, "title", None)) or "your borrowed book")
+    due_date = cast(date, db_loan.returned_date)
+    member_id = str(cast(Any, db_loan.member_id) or "").strip()
+    if member_id:
+        _safe_notify(
+            lambda: create_user_notification(
+                member_id,
+                title="Loan renewed",
+                body=f'Your loan for "{book_title}" was renewed until {due_date.isoformat()}.',
+                category="renewed",
+                entity_type="loan",
+                entity_id=str(loan_id),
+                metadata={
+                    "book_id": str(cast(Any, db_loan.book_id) or ""),
+                    "book_title": book_title,
+                    "due_date": due_date.isoformat(),
+                },
+                dedupe_key=f"renewed:{loan_id}:{due_date.isoformat()}",
+                send_push=True,
+            )
+        )
+    _safe_notify(
+        lambda: create_admin_notification(
+            title="Loan renewed",
+            body=f'"{book_title}" was renewed until {due_date.isoformat()}.',
+            category="renewed",
+            entity_type="loan",
+            entity_id=str(loan_id),
+            metadata={
+                "member_id": member_id,
+                "book_id": str(cast(Any, db_loan.book_id) or ""),
+                "book_title": book_title,
+                "due_date": due_date.isoformat(),
+            },
+            dedupe_key=f"admin-renewed:{loan_id}:{due_date.isoformat()}",
+        )
+    )
 
     return db_loan

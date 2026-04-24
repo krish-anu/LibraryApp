@@ -8,11 +8,21 @@ from sqlalchemy.orm import Session
 from ..dependencies import get_db, verify_access_token
 from ..models import loan as loan_model
 from ..models import reservation as reservation_model
+from ..models import book as book_model
+from ..notification_center import create_admin_notification, create_user_notification
 from ..pydantic_schemas import reservation as reservation_schema
 
 router = APIRouter(
     prefix="", tags=["reservations"], dependencies=[Depends(verify_access_token)]
 )
+
+
+def _safe_notify(callback) -> None:
+    try:
+        callback()
+    except Exception:
+        # Notification delivery should never block reservation actions.
+        return
 
 
 @router.get("/reservations", response_model=List[reservation_schema.Reservation])
@@ -121,4 +131,110 @@ def create_reservation(
     db.add(reservation)
     db.commit()
     db.refresh(reservation)
+
+    book = (
+        db.query(book_model.Book).filter(book_model.Book.id == res_in.book_id).first()
+    )
+    book_title = str(getattr(book, "title", None) or "the selected book")
+    _safe_notify(
+        lambda: create_user_notification(
+            str(res_in.member_id),
+            title="Reservation placed",
+            body=f'Your reservation for "{book_title}" has been created.',
+            category="reservation_created",
+            entity_type="reservation",
+            entity_id=str(reservation.id),
+            metadata={
+                "book_id": str(res_in.book_id),
+                "book_title": book_title,
+                "reservation_date": (
+                    reservation.reservation_date.isoformat()
+                    if reservation.reservation_date
+                    else None
+                ),
+                "status": reservation.status,
+            },
+            dedupe_key=f"reservation-created:{reservation.id}",
+            send_push=True,
+        )
+    )
+    _safe_notify(
+        lambda: create_admin_notification(
+            title="New reservation",
+            body=f'A member reserved "{book_title}".',
+            category="reservation_created",
+            entity_type="reservation",
+            entity_id=str(reservation.id),
+            metadata={
+                "member_id": str(res_in.member_id),
+                "book_id": str(res_in.book_id),
+                "book_title": book_title,
+                "status": reservation.status,
+            },
+            dedupe_key=f"admin-reservation-created:{reservation.id}",
+        )
+    )
+    return reservation
+
+
+@router.delete(
+    "/reservations/{reservation_id}",
+    response_model=reservation_schema.Reservation,
+)
+def cancel_reservation(
+    reservation_id: str,
+    db: Session = Depends(get_db),
+):
+    reservation = (
+        db.query(reservation_model.Reservation)
+        .filter(reservation_model.Reservation.id == reservation_id)
+        .first()
+    )
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+
+    reservation.status = "Cancelled"
+    db.commit()
+    db.refresh(reservation)
+
+    book = (
+        db.query(book_model.Book)
+        .filter(book_model.Book.id == reservation.book_id)
+        .first()
+    )
+    book_title = str(getattr(book, "title", None) or "the selected book")
+    _safe_notify(
+        lambda: create_user_notification(
+            str(reservation.member_id),
+            title="Reservation cancelled",
+            body=f'Your reservation for "{book_title}" was cancelled.',
+            category="reservation_cancelled",
+            entity_type="reservation",
+            entity_id=str(reservation.id),
+            metadata={
+                "book_id": str(reservation.book_id),
+                "book_title": book_title,
+                "status": reservation.status,
+            },
+            dedupe_key=f"reservation-cancelled:{reservation.id}",
+            send_push=True,
+        )
+    )
+    _safe_notify(
+        lambda: create_admin_notification(
+            title="Reservation cancelled",
+            body=f'The reservation for "{book_title}" was cancelled.',
+            category="reservation_cancelled",
+            entity_type="reservation",
+            entity_id=str(reservation.id),
+            metadata={
+                "member_id": str(reservation.member_id),
+                "book_id": str(reservation.book_id),
+                "book_title": book_title,
+                "status": reservation.status,
+            },
+            dedupe_key=f"admin-reservation-cancelled:{reservation.id}",
+        )
+    )
+
     return reservation

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class AsgardeoRuntimeConfig {
   static const String _clientId = String.fromEnvironment(
     'ASGARDEO_CLIENT_ID',
@@ -7,14 +9,28 @@ class AsgardeoRuntimeConfig {
     'ASGARDEO_BASE_URL',
     defaultValue: '',
   );
-  static const String redirectUrl = String.fromEnvironment(
+  static const String _redirectUrl = String.fromEnvironment(
     'ASGARDEO_REDIRECT_URL',
-    defaultValue: 'com.example.libraryapp://callback',
+    defaultValue: '',
   );
   static const String _selfServicePortalUrl = String.fromEnvironment(
     'ASGARDEO_SELF_SERVICE_PORTAL_URL',
     defaultValue: '',
   );
+
+  static String get redirectUrl {
+    final configured = _redirectUrl.trim();
+    if (configured.isNotEmpty) {
+      return configured;
+    }
+
+    // Keep Android aligned with Firebase while preserving the current iOS URI.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'com.krishnaanu.libraryapp://callback';
+    }
+
+    return 'com.example.libraryapp://callback';
+  }
 
   static String get clientId =>
       _requiredValue(key: 'ASGARDEO_CLIENT_ID', value: _clientId);

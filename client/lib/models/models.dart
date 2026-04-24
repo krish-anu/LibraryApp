@@ -1,5 +1,6 @@
 // Models barrel file
 export 'author.dart';
+export 'app_notification.dart';
 export 'book.dart';
 export 'book_author.dart';
 export 'category.dart';

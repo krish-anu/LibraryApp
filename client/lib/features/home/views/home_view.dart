@@ -6,6 +6,8 @@ import 'package:libraryapp/features/home/viewmodels/home_viewmodel.dart';
 import 'package:libraryapp/features/home/widgets/home_header.dart';
 import 'package:libraryapp/features/home/widgets/home_search_bar.dart';
 import 'package:libraryapp/features/home/widgets/categories_section.dart';
+import 'package:libraryapp/features/notifications/viewmodels/notifications_controller.dart';
+import 'package:libraryapp/features/notifications/views/notifications_view.dart';
 import 'package:libraryapp/features/search/views/search_view.dart';
 
 /// Home page displaying book sections and categories.
@@ -29,6 +31,7 @@ class HomeView extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, WidgetRef ref, HomeState state) {
+    final notificationsState = ref.watch(notificationsControllerProvider);
     return RefreshIndicator(
       onRefresh: () => ref.read(homeViewModelProvider.notifier).refresh(),
       color: Pallete.primaryLight,
@@ -40,7 +43,10 @@ class HomeView extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              const HomeHeader(),
+              HomeHeader(
+                unreadCount: notificationsState.unreadCount,
+                onNotificationTap: () => _navigateToNotifications(context),
+              ),
               const SizedBox(height: 20),
               HomeSearchBar(onTap: () => _navigateToSearch(context)),
               const SizedBox(height: 24),
@@ -101,6 +107,13 @@ class HomeView extends ConsumerWidget {
       MaterialPageRoute(
         builder: (context) => SearchView(currentCategory: category),
       ),
+    );
+  }
+
+  void _navigateToNotifications(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const NotificationsView()),
     );
   }
 }

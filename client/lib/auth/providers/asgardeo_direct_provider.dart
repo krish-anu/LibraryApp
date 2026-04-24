@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:libraryapp/auth/services/asgardeo_direct_auth_service.dart';
+import 'package:libraryapp/core/services/notification_service.dart';
 
 part 'asgardeo_direct_provider.g.dart';
 
@@ -311,6 +312,9 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
 
     // Revoke token on server
     if (state.accessToken != null) {
+      await NotificationService.instance.unregisterDeviceTokenFromBackend(
+        accessToken: state.accessToken!,
+      );
       final result = await _authService.logoutWithBackend(
         accessToken: state.accessToken!,
       );

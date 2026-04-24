@@ -23,6 +23,7 @@ const navigation = [
   { name: "Book Inventory", href: "/books", icon: BookOpen },
   { name: "User Management", href: "/users", icon: Users },
   { name: "Fines & Penalties", href: "/fines", icon: AlertCircle },
+  { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -139,13 +140,14 @@ export function Sidebar() {
 
             <div className="mt-4 border-t border-white/10 pt-4">
               <div className="space-y-2">
-                <button
-                  type="button"
+                <Link
+                  href="/notifications"
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
                 >
                   <Bell className="h-4 w-4" />
                   Notifications
-                </button>
+                </Link>
                 <Link
                   href="/settings"
                   onClick={() => setIsMobileMenuOpen(false)}

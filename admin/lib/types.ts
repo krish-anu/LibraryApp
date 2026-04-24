@@ -116,3 +116,19 @@ export interface Settings {
   send_notifications: boolean;
   notification_days_before_due: number;
 }
+
+export interface LibraryNotification {
+  id: string;
+  title: string;
+  body: string;
+  category: string;
+  recipient_type: "user" | "admin" | string;
+  recipient_id?: string;
+  entity_type?: string;
+  entity_id?: string;
+  metadata?: Record<string, unknown>;
+  read: boolean;
+  read_at?: string;
+  created_at: string;
+  updated_at: string;
+}

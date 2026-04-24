@@ -1,12 +1,13 @@
 plugins {
     id("com.android.application")
+    id("com.google.gms.google-services")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "com.example.libraryapp"
+    namespace = "com.krishnaanu.libraryapp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +22,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.libraryapp"
+        applicationId = "com.krishnaanu.libraryapp"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -30,9 +31,9 @@ android {
         versionName = flutter.versionName
         manifestPlaceholders.putAll(
             mapOf(
-                "appAuthRedirectScheme" to "com.example.libraryapp"
+                "appAuthRedirectScheme" to "com.krishnaanu.libraryapp"
             )
-        )    
+        )
     }
 
     buildTypes {
