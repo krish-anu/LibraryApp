@@ -408,6 +408,7 @@ async function getCategoryMap(): Promise<Map<string, Category>> {
 }
 
 type FineWithDetails = Fine & {
+  book_id?: string;
   book_title?: string;
   payment_amount?: number;
   payment_count?: number;
@@ -467,6 +468,7 @@ function buildFineDetails(
 
     return {
       ...normalizedFine,
+      book_id: nonEmptyString(loan?.book_id) || undefined,
       user_name: user?.name,
       user_email: user?.email,
       book_title: nonEmptyString(book?.title) || undefined,
