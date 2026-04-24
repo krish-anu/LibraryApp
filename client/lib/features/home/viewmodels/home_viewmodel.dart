@@ -12,14 +12,16 @@ class HomeState {
   final List<Category> categories;
   final bool hasLoadedBooks;
   final bool hasLoadedCategories;
-  final String? error;
+  final String? booksError;
+  final String? categoriesError;
 
   const HomeState({
     this.books = const [],
     this.categories = const [],
     this.hasLoadedBooks = false,
     this.hasLoadedCategories = false,
-    this.error,
+    this.booksError,
+    this.categoriesError,
   });
 
   HomeState copyWith({
@@ -27,19 +29,25 @@ class HomeState {
     List<Category>? categories,
     bool? hasLoadedBooks,
     bool? hasLoadedCategories,
-    String? error,
-    bool clearError = false,
+    String? booksError,
+    String? categoriesError,
+    bool clearBooksError = false,
+    bool clearCategoriesError = false,
   }) {
     return HomeState(
       books: books ?? this.books,
       categories: categories ?? this.categories,
       hasLoadedBooks: hasLoadedBooks ?? this.hasLoadedBooks,
       hasLoadedCategories: hasLoadedCategories ?? this.hasLoadedCategories,
-      error: clearError ? null : (error ?? this.error),
+      booksError: clearBooksError ? null : (booksError ?? this.booksError),
+      categoriesError: clearCategoriesError
+          ? null
+          : (categoriesError ?? this.categoriesError),
     );
   }
 
-  bool get isLoading => !(hasLoadedBooks && hasLoadedCategories);
+  bool get isLoading => !hasLoadedBooks;
+  bool get isCategoriesLoading => !hasLoadedCategories;
 
   /// Get trending books (first 6)
   List<Book> get trendingBooks => books.take(6).toList();
@@ -71,13 +79,17 @@ class HomeViewModel extends _$HomeViewModel {
       result.fold(
         (failure) => state = state.copyWith(
           hasLoadedBooks: true,
-          error: failure.message,
+          booksError: failure.message,
         ),
-        (books) => state = state.copyWith(books: books, hasLoadedBooks: true),
+        (books) => state = state.copyWith(
+          books: books,
+          hasLoadedBooks: true,
+          clearBooksError: true,
+        ),
       );
     } catch (e) {
       if (!ref.mounted) return;
-      state = state.copyWith(hasLoadedBooks: true, error: e.toString());
+      state = state.copyWith(hasLoadedBooks: true, booksError: e.toString());
     }
   }
 
@@ -86,10 +98,17 @@ class HomeViewModel extends _$HomeViewModel {
     try {
       final categories = await ref.read(fetchCategoriesProvider.future);
       if (!ref.mounted) return;
-      state = state.copyWith(categories: categories, hasLoadedCategories: true);
+      state = state.copyWith(
+        categories: categories,
+        hasLoadedCategories: true,
+        clearCategoriesError: true,
+      );
     } catch (e) {
       if (!ref.mounted) return;
-      state = state.copyWith(hasLoadedCategories: true, error: e.toString());
+      state = state.copyWith(
+        hasLoadedCategories: true,
+        categoriesError: e.toString(),
+      );
     }
   }
 
@@ -98,8 +117,18 @@ class HomeViewModel extends _$HomeViewModel {
     state = state.copyWith(
       hasLoadedBooks: false,
       hasLoadedCategories: false,
-      clearError: true,
+      clearBooksError: true,
+      clearCategoriesError: true,
     );
     await Future.wait([_loadBooks(forceRefresh: true), _loadCategories()]);
+  }
+
+  Future<void> refreshCategories() async {
+    ref.invalidate(fetchCategoriesProvider);
+    state = state.copyWith(
+      hasLoadedCategories: false,
+      clearCategoriesError: true,
+    );
+    await _loadCategories();
   }
 }

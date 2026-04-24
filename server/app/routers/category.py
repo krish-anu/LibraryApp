@@ -1,9 +1,11 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..dependencies import get_db, verify_access_token
 from ..models import category
+from ..pydantic_schemas import category as category_schema
 
 router = APIRouter(
     prefix="/categories",
@@ -12,18 +14,15 @@ router = APIRouter(
 )
 
 
-class CategoryCreate(BaseModel):
-    name: str
-    image_url: str = ""
-
-
-@router.get("")
+@router.get("", response_model=List[category_schema.Category])
 def get_categories(db: Session = Depends(get_db)):
     return db.query(category.Category).all()
 
 
-@router.post("", status_code=201)
-def create_category(data: CategoryCreate, db: Session = Depends(get_db)):
+@router.post("", response_model=category_schema.Category, status_code=201)
+def create_category(
+    data: category_schema.CategoryCreate, db: Session = Depends(get_db)
+):
     existing = (
         db.query(category.Category).filter(category.Category.name == data.name).first()
     )
@@ -41,7 +40,7 @@ def create_category(data: CategoryCreate, db: Session = Depends(get_db)):
     return new_category
 
 
-@router.get("/{category_id}")
+@router.get("/{category_id}", response_model=category_schema.Category)
 def get_category(category_id: str, db: Session = Depends(get_db)):
     cat = (
         db.query(category.Category).filter(category.Category.id == category_id).first()
@@ -51,9 +50,9 @@ def get_category(category_id: str, db: Session = Depends(get_db)):
     return cat
 
 
-@router.put("/{category_id}")
+@router.put("/{category_id}", response_model=category_schema.Category)
 def update_category(
-    category_id: str, data: CategoryCreate, db: Session = Depends(get_db)
+    category_id: str, data: category_schema.CategoryCreate, db: Session = Depends(get_db)
 ):
     cat = (
         db.query(category.Category).filter(category.Category.id == category_id).first()

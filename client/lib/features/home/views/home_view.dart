@@ -23,8 +23,8 @@ class HomeView extends ConsumerWidget {
       body: SafeArea(
         child: homeState.isLoading
             ? _buildLoading()
-            : homeState.error != null
-            ? _buildError(homeState.error!, ref)
+            : homeState.booksError != null
+            ? _buildError(homeState.booksError!, ref)
             : _buildContent(context, ref, homeState),
       ),
     );
@@ -50,13 +50,12 @@ class HomeView extends ConsumerWidget {
               const SizedBox(height: 20),
               HomeSearchBar(onTap: () => _navigateToSearch(context)),
               const SizedBox(height: 24),
-              BookSection(booksDetail: state.books, heading: 'Trending Books'),
-              const SizedBox(height: 24),
-              CategoriesSection(
-                categories: state.categories,
-                onCategoryTap: (name) =>
-                    _navigateToSearch(context, category: name),
+              BookSection(
+                booksDetail: state.trendingBooks,
+                heading: 'Trending Books',
               ),
+              const SizedBox(height: 24),
+              _buildCategoriesContent(context, ref, state),
               const SizedBox(height: 24),
               BookSection(
                 booksDetail: state.recommendedBooks,
@@ -66,6 +65,83 @@ class HomeView extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCategoriesContent(
+    BuildContext context,
+    WidgetRef ref,
+    HomeState state,
+  ) {
+    if (state.isCategoriesLoading) {
+      return _buildCategoriesStatus(
+        child: const SizedBox(
+          height: 72,
+          child: Center(
+            child: CircularProgressIndicator(color: Pallete.primaryLight),
+          ),
+        ),
+      );
+    }
+
+    if (state.categoriesError != null) {
+      return _buildCategoriesStatus(
+        child: Column(
+          children: [
+            Text(
+              'Categories are taking longer than expected.',
+              style: TextStyle(color: Pallete.textSecondary, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () =>
+                  ref.read(homeViewModelProvider.notifier).refreshCategories(),
+              child: const Text('Retry Categories'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (state.categories.isEmpty) {
+      return _buildCategoriesStatus(
+        child: Text(
+          'No categories available right now.',
+          style: TextStyle(color: Pallete.textSecondary, fontSize: 14),
+        ),
+      );
+    }
+
+    return CategoriesSection(
+      categories: state.categories,
+      onCategoryTap: (name) => _navigateToSearch(context, category: name),
+    );
+  }
+
+  Widget _buildCategoriesStatus({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Pallete.cardBackground,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Explore Categories',
+            style: TextStyle(
+              color: Pallete.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(child: child),
+        ],
       ),
     );
   }
