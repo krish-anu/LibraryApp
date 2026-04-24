@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,20 @@ const initialFormData: BookFormData = {
   pages: 0,
 };
 
+function bookToFormData(book: Book): BookFormData {
+  return {
+    title: book.title,
+    author: book.author,
+    category_id: book.category_id || "",
+    description: book.description || "",
+    copies_owned: book.copies_owned,
+    publication_year: book.publication_year || new Date().getFullYear(),
+    image: book.image || "",
+    language: book.language || "English",
+    pages: book.pages || 0,
+  };
+}
+
 export default function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
@@ -62,12 +76,14 @@ export default function BooksPage() {
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [formData, setFormData] = useState<BookFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingBookDetails, setIsLoadingBookDetails] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryError, setCategoryError] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const bookDetailsRequestRef = useRef(0);
 
   useEffect(() => {
     fetchCategories();
@@ -109,33 +125,57 @@ export default function BooksPage() {
     fetchBooks();
   }, [fetchBooks]);
 
-  const handleOpenModal = (book?: Book) => {
+  const hydrateBookForm = (book: Book) => {
+    setEditingBook(book);
+    setFormData(bookToFormData(book));
+    setCoverFile(null);
+    setCoverPreview(book.image || null);
+  };
+
+  const handleOpenModal = async (book?: Book) => {
     if (book) {
-      setEditingBook(book);
-      setFormData({
-        title: book.title,
-        author: book.author,
-        category_id: book.category_id || "",
-        description: book.description || "",
-        copies_owned: book.copies_owned,
-        publication_year: book.publication_year || new Date().getFullYear(),
-        image: book.image || "",
-        language: book.language || "English",
-        pages: book.pages || 0,
-      });
-      setCoverFile(null);
-      setCoverPreview(book.image || null);
+      const requestId = bookDetailsRequestRef.current + 1;
+      bookDetailsRequestRef.current = requestId;
+      hydrateBookForm(book);
+      setIsModalOpen(true);
+      setIsLoadingBookDetails(true);
+
+      try {
+        const res = await fetch(`/api/books/${book.id}`);
+        const json = await res.json();
+
+        if (!res.ok) {
+          throw new Error(json.error || "Failed to fetch book details");
+        }
+
+        if (bookDetailsRequestRef.current !== requestId) return;
+        hydrateBookForm(json.data as Book);
+      } catch (error) {
+        if (bookDetailsRequestRef.current !== requestId) return;
+        console.error("Error fetching book details:", error);
+        alert("Failed to fetch the latest book details");
+      } finally {
+        if (bookDetailsRequestRef.current === requestId) {
+          setIsLoadingBookDetails(false);
+        }
+      }
     } else {
+      bookDetailsRequestRef.current += 1;
       setEditingBook(null);
       setFormData(initialFormData);
+      setCoverFile(null);
+      setCoverPreview(null);
+      setIsLoadingBookDetails(false);
+      setIsModalOpen(true);
     }
-    setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
+    bookDetailsRequestRef.current += 1;
     setIsModalOpen(false);
     setEditingBook(null);
     setFormData(initialFormData);
+    setIsLoadingBookDetails(false);
     setIsCategoryFormOpen(false);
     setNewCategoryName("");
     setCategoryError("");
@@ -593,6 +633,11 @@ export default function BooksPage() {
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isLoadingBookDetails && (
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+              Loading latest book details...
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
               label="Title"
@@ -804,7 +849,12 @@ export default function BooksPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" isLoading={isSubmitting} className="w-full sm:w-auto">
+            <Button
+              type="submit"
+              disabled={isLoadingBookDetails}
+              isLoading={isSubmitting}
+              className="w-full sm:w-auto"
+            >
               {editingBook ? "Update Book" : "Add Book"}
             </Button>
           </div>
