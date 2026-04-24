@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1012554723765",
+    "project_id": "libraryapp-eecd8",
+    "storage_bucket": "libraryapp-eecd8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012554723765:android:b7fab1bb7cbda67de7e9fc",
+        "android_client_info": {
+          "package_name": "com.krishnaanu.libraryapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMrkdbQTnIk2vciuRR7pThjTw1U212pAE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

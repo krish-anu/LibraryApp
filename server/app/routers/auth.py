@@ -8,6 +8,7 @@ that has the necessary credentials to create users.
 
 import os
 import httpx
+import logging
 import traceback
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, EmailStr
@@ -24,6 +25,7 @@ from app.security import create_limiter
 load_app_env()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 # Rate limiter for auth endpoints (stricter than general API)
 limiter = create_limiter()
@@ -309,6 +311,11 @@ async def _ensure_user_from_access_token(
                 headers={"Authorization": f"Bearer {access_token}"},
             )
     except httpx.RequestError as e:
+        logger.warning(
+            "Failed to reach Asgardeo userinfo endpoint %s/oauth2/userinfo: %s",
+            ASGARDEO_BASE_URL,
+            e,
+        )
         raise HTTPException(
             status_code=503,
             detail="Unable to reach identity provider",
