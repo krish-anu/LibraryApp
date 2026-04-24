@@ -393,9 +393,6 @@ class _BorrowConfirmationSheetState
     if (lower.contains('already reserved this book')) {
       return _alreadyReservedMessage;
     }
-    if (lower.contains('unable to borrow this book')) {
-      return _borrowConflictMessage;
-    }
     if (lower.contains('unable to reserve this book')) {
       return 'Unable to reserve this book right now. Please try again later.';
     }
