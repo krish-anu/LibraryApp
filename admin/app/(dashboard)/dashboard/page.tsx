@@ -40,6 +40,7 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,10 +50,20 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       const res = await fetch("/api/dashboard");
-      const json = await res.json();
+      const json = await res
+        .json()
+        .catch(() => ({ error: "Failed to fetch dashboard data" }));
+      if (!res.ok) {
+        setErrorMessage(json.error || "Failed to fetch dashboard data");
+        setData(null);
+        return;
+      }
+      setErrorMessage("");
       setData(json);
     } catch (error) {
-      console.error("Error fetching dashboard:", error);
+      setErrorMessage("Unable to load dashboard data. Check the server and retry.");
+      console.warn("Error fetching dashboard:", error);
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -81,6 +92,12 @@ export default function DashboardPage() {
       />
 
       <div className="px-4 py-6 sm:px-6 lg:px-8">
+        {errorMessage ? (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {errorMessage}
+          </div>
+        ) : null}
+
         {/* Stats Grid */}
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 sm:gap-6">
           <StatCard
@@ -126,25 +143,31 @@ export default function DashboardPage() {
               </h2>
               <TrendingUp className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="h-64 sm:h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical">
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    horizontal={true}
-                    vertical={false}
-                  />
-                  <XAxis type="number" />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    width={84}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <Tooltip />
-                  <Bar dataKey="views" fill="#1E3A5F" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="h-64 min-h-64 sm:h-72">
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} layout="vertical">
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      horizontal={true}
+                      vertical={false}
+                    />
+                    <XAxis type="number" />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={84}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip />
+                    <Bar dataKey="views" fill="#1E3A5F" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-lg bg-gray-50 text-sm text-gray-500">
+                  No borrowing data available
+                </div>
+              )}
             </div>
           </div>
 

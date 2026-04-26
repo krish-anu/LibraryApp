@@ -75,6 +75,7 @@ class AsgardeoTokenResponse {
 class AsgardeoUser {
   final String? sub;
   final String? email;
+  final String? name;
   final String? firstName;
   final String? lastName;
   final String? username;
@@ -93,6 +94,7 @@ class AsgardeoUser {
   AsgardeoUser({
     this.sub,
     this.email,
+    this.name,
     this.firstName,
     this.lastName,
     this.username,
@@ -115,6 +117,7 @@ class AsgardeoUser {
     return AsgardeoUser(
       sub: json['sub'] as String?,
       email: json['email'] as String?,
+      name: json['name'] as String?,
       firstName: json['given_name'] as String?,
       lastName: json['family_name'] as String?,
       username: json['username'] ?? json['preferred_username'] as String?,
@@ -132,8 +135,19 @@ class AsgardeoUser {
   }
 
   String get fullName {
-    final parts = [firstName, lastName].where((s) => s != null && s.isNotEmpty);
-    return parts.isNotEmpty ? parts.join(' ') : (username ?? email ?? '');
+    final parts = [
+      firstName,
+      lastName,
+    ].map((s) => s?.trim()).where((s) => s != null && s.isNotEmpty);
+    final firstAndLast = parts.join(' ');
+    if (firstAndLast.isNotEmpty) {
+      return firstAndLast;
+    }
+    return name?.trim().isNotEmpty == true
+        ? name!.trim()
+        : (username?.trim().isNotEmpty == true
+              ? username!.trim()
+              : (email ?? ''));
   }
 }
 

@@ -57,8 +57,10 @@ class AsgardeoAuthState {
 
 /// User info retrieved from Asgardeo
 class AsgardeoUserInfo {
+  final String? name;
   final String? firstName;
   final String? lastName;
+  final String? username;
   final String? email;
   final String? dateOfBirth;
   final String? country;
@@ -67,8 +69,10 @@ class AsgardeoUserInfo {
   final String? sub;
 
   const AsgardeoUserInfo({
+    this.name,
     this.firstName,
     this.lastName,
+    this.username,
     this.email,
     this.dateOfBirth,
     this.country,
@@ -79,8 +83,10 @@ class AsgardeoUserInfo {
 
   factory AsgardeoUserInfo.fromJson(Map<String, dynamic> json) {
     return AsgardeoUserInfo(
+      name: json['name'] as String?,
       firstName: json['given_name'] as String?,
       lastName: json['family_name'] as String?,
+      username: json['username'] ?? json['preferred_username'] as String?,
       email: json['email'] as String?,
       dateOfBirth: json['birthdate'] as String?,
       country: json['address'] != null
@@ -92,8 +98,20 @@ class AsgardeoUserInfo {
     );
   }
 
-  String get fullName =>
-      [firstName, lastName].where((s) => s != null && s.isNotEmpty).join(' ');
+  String get fullName {
+    final firstAndLast = [
+      firstName,
+      lastName,
+    ].map((s) => s?.trim()).where((s) => s != null && s.isNotEmpty).join(' ');
+    if (firstAndLast.isNotEmpty) {
+      return firstAndLast;
+    }
+    return name?.trim().isNotEmpty == true
+        ? name!.trim()
+        : (username?.trim().isNotEmpty == true
+              ? username!.trim()
+              : (email ?? ''));
+  }
 }
 
 /// Asgardeo Authentication Provider
