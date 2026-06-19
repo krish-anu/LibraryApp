@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import {
-  createFineData,
-  listFinesData,
-} from "@/lib/firebase/library-data";
-import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
+import { handleLibraryApiError } from "@/lib/server-api";
 
 // GET all fines with pagination and filtering
 export async function GET(request: NextRequest) {
@@ -12,20 +8,12 @@ export async function GET(request: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const { searchParams } = new URL(request.url);
     return NextResponse.json(
-      await listFinesData({
-        page: Math.max(1, parseInt(searchParams.get("page") || "1")),
-        limit: Math.min(
-          100,
-          Math.max(1, parseInt(searchParams.get("limit") || "10")),
-        ),
-        search: searchParams.get("search")?.trim(),
-        status: searchParams.get("status")?.trim().toLowerCase() || null,
-      }),
+      { error: "Fines are not migrated to PostgreSQL yet." },
+      { status: 501 },
     );
   } catch (error) {
-    return handleFirebaseServiceError("Error fetching fines:", error);
+    return handleLibraryApiError("Error fetching fines:", error);
   }
 }
 
@@ -36,10 +24,10 @@ export async function POST(request: NextRequest) {
 
   try {
     return NextResponse.json(
-      { data: await createFineData((await request.json()) as Record<string, unknown>) },
-      { status: 201 },
+      { error: "Creating fines is not migrated to PostgreSQL yet." },
+      { status: 501 },
     );
   } catch (error) {
-    return handleFirebaseServiceError("Error creating fine:", error);
+    return handleLibraryApiError("Error creating fine:", error);
   }
 }

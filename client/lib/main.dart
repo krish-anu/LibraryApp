@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-// import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/services/notification_service.dart';
@@ -14,12 +13,10 @@ import 'package:libraryapp/core/widgets/BottomNavigator/nav_keys.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_bar.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
 import 'package:libraryapp/models/book.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.instance.ensureInitialized();
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   runApp(ProviderScope(child: const MyApp()));
 }
 

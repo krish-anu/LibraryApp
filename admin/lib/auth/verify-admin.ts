@@ -22,7 +22,9 @@ function unauthorized(message: string): VerifyAdminResult {
   };
 }
 
-async function userFromUserInfo(accessToken: string): Promise<VerifiedUser | null> {
+async function userFromUserInfo(
+  accessToken: string,
+): Promise<VerifiedUser | null> {
   const userinfoEndpoint = (
     process.env.ASGARDEO_USERINFO_ENDPOINT || ""
   ).trim();
@@ -51,7 +53,9 @@ async function userFromUserInfo(accessToken: string): Promise<VerifiedUser | nul
       name:
         [info.given_name, info.family_name].filter(Boolean).join(" ") ||
         (typeof info.name === "string" ? info.name : "") ||
-        (typeof info.preferred_username === "string" ? info.preferred_username : "") ||
+        (typeof info.preferred_username === "string"
+          ? info.preferred_username
+          : "") ||
         (typeof info.username === "string" ? info.username : "") ||
         "",
     };
@@ -67,6 +71,10 @@ function csvEnv(name: string, fallback = "") {
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean),
   );
+}
+
+function hasAdminRestriction() {
+  return csvEnv("ADMIN_EMAILS").size > 0 || csvEnv("ADMIN_GROUPS").size > 0;
 }
 
 function claimValues(value: unknown): Set<string> {
@@ -98,7 +106,9 @@ function claimValues(value: unknown): Set<string> {
   return values;
 }
 
-async function adminFromUserInfo(accessToken: string): Promise<VerifiedUser | null> {
+async function adminFromUserInfo(
+  accessToken: string,
+): Promise<VerifiedUser | null> {
   const userinfoEndpoint = (
     process.env.ASGARDEO_USERINFO_ENDPOINT || ""
   ).trim();
@@ -119,6 +129,10 @@ async function adminFromUserInfo(accessToken: string): Promise<VerifiedUser | nu
     const user = await userFromUserInfo(accessToken);
     if (!user) {
       return null;
+    }
+
+    if (!hasAdminRestriction()) {
+      return user;
     }
 
     const allowedEmails = csvEnv("ADMIN_EMAILS");

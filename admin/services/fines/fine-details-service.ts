@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import {
-  deleteFineData,
-  getFineData,
-  updateFineData,
-} from "@/lib/firebase/library-data";
-import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
+import { handleLibraryApiError } from "@/lib/server-api";
 
 // GET single fine
 export async function GET(
@@ -17,9 +12,12 @@ export async function GET(
 
   try {
     const { id } = await params;
-    return NextResponse.json({ data: await getFineData(id) });
+    return NextResponse.json(
+      { error: `Fine ${id} is not migrated to PostgreSQL yet.` },
+      { status: 501 },
+    );
   } catch (error) {
-    return handleFirebaseServiceError("Error fetching fine:", error);
+    return handleLibraryApiError("Error fetching fine:", error);
   }
 }
 
@@ -34,10 +32,11 @@ export async function PUT(
   try {
     const { id } = await params;
     return NextResponse.json(
-      await updateFineData(id, (await request.json()) as Record<string, unknown>),
+      { error: `Fine ${id} is not migrated to PostgreSQL yet.` },
+      { status: 501 },
     );
   } catch (error) {
-    return handleFirebaseServiceError("Error updating fine:", error);
+    return handleLibraryApiError("Error updating fine:", error);
   }
 }
 
@@ -51,8 +50,11 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    return NextResponse.json(await deleteFineData(id));
+    return NextResponse.json(
+      { error: `Fine ${id} is not migrated to PostgreSQL yet.` },
+      { status: 501 },
+    );
   } catch (error) {
-    return handleFirebaseServiceError("Error deleting fine:", error);
+    return handleLibraryApiError("Error deleting fine:", error);
   }
 }

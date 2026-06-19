@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import {
-  deleteUserData,
-  getUserWithStatsData,
-  updateUserData,
-} from "@/lib/firebase/library-data";
-import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
+import { handleLibraryApiError, libraryApi } from "@/lib/server-api";
 
 // GET single user with stats
 export async function GET(
@@ -17,9 +12,11 @@ export async function GET(
 
   try {
     const { id } = await params;
-    return NextResponse.json({ data: await getUserWithStatsData(id) });
+    return NextResponse.json({
+      data: await libraryApi(request, `/users/${id}/stats`),
+    });
   } catch (error) {
-    return handleFirebaseServiceError("Error fetching user:", error);
+    return handleLibraryApiError("Error fetching user:", error);
   }
 }
 
@@ -33,11 +30,12 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    return NextResponse.json({
-      data: await updateUserData(id, (await request.json()) as Record<string, unknown>),
-    });
+    return NextResponse.json(
+      { error: "Updating users is not migrated to PostgreSQL yet." },
+      { status: 501 },
+    );
   } catch (error) {
-    return handleFirebaseServiceError("Error updating user:", error);
+    return handleLibraryApiError("Error updating user:", error);
   }
 }
 
@@ -51,8 +49,11 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    return NextResponse.json(await deleteUserData(id));
+    return NextResponse.json(
+      { error: "Deleting users is not migrated to PostgreSQL yet." },
+      { status: 501 },
+    );
   } catch (error) {
-    return handleFirebaseServiceError("Error deleting user:", error);
+    return handleLibraryApiError("Error deleting user:", error);
   }
 }

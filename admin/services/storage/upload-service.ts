@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import { uploadBufferToFirebaseStorage } from "@/lib/firebase/storage";
 
 export const runtime = "nodejs";
 
@@ -15,7 +14,12 @@ const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 
 function hasAllowedMagicBytes(body: Buffer, mimeType: string) {
   if (mimeType === "image/jpeg") {
-    return body.length >= 3 && body[0] === 0xff && body[1] === 0xd8 && body[2] === 0xff;
+    return (
+      body.length >= 3 &&
+      body[0] === 0xff &&
+      body[1] === 0xd8 &&
+      body[2] === 0xff
+    );
   }
   if (mimeType === "image/png") {
     return (
@@ -116,13 +120,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { publicUrl } = await uploadBufferToFirebaseStorage({
-      key,
-      body,
-      contentType: file.type || "application/octet-stream",
-    });
-
-    return NextResponse.json({ publicUrl, key }, { status: 201 });
+    return NextResponse.json(
+      { error: "Image uploads are not migrated to PostgreSQL yet." },
+      { status: 501 },
+    );
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     const errorStack = err instanceof Error ? err.stack : undefined;

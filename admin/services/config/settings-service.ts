@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import {
-  getSettingsData,
-  updateSettingsData,
-} from "@/lib/firebase/library-data";
-import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
+import { handleLibraryApiError, libraryApi } from "@/lib/server-api";
 
 // GET settings
 export async function GET(request: NextRequest) {
@@ -12,9 +8,9 @@ export async function GET(request: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    return NextResponse.json({ data: await getSettingsData() });
+    return NextResponse.json({ data: await libraryApi(request, "/settings") });
   } catch (error) {
-    return handleFirebaseServiceError("Error fetching settings:", error);
+    return handleLibraryApiError("Error fetching settings:", error);
   }
 }
 
@@ -25,9 +21,12 @@ export async function PUT(request: NextRequest) {
 
   try {
     return NextResponse.json({
-      data: await updateSettingsData((await request.json()) as Record<string, unknown>),
+      data: await libraryApi(request, "/settings", {
+        method: "PUT",
+        body: JSON.stringify((await request.json()) as Record<string, unknown>),
+      }),
     });
   } catch (error) {
-    return handleFirebaseServiceError("Error updating settings:", error);
+    return handleLibraryApiError("Error updating settings:", error);
   }
 }

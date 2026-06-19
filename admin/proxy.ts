@@ -36,6 +36,10 @@ function csvEnv(name: string, fallback = "") {
   );
 }
 
+function hasAdminRestriction() {
+  return csvEnv("ADMIN_EMAILS").size > 0 || csvEnv("ADMIN_GROUPS").size > 0;
+}
+
 function claimValues(value: unknown): Set<string> {
   const values = new Set<string>();
   if (typeof value === "string") {
@@ -83,8 +87,12 @@ function isAdminUser(info: Record<string, unknown>) {
   return [...claims].some((claim) => allowedGroups.has(claim));
 }
 
-async function validateAdminWithUserInfo(accessToken: string): Promise<boolean> {
-  const userInfoEndpoint = (process.env.ASGARDEO_USERINFO_ENDPOINT || "").trim();
+async function validateAdminWithUserInfo(
+  accessToken: string,
+): Promise<boolean> {
+  const userInfoEndpoint = (
+    process.env.ASGARDEO_USERINFO_ENDPOINT || ""
+  ).trim();
   if (!userInfoEndpoint) {
     return false;
   }
@@ -99,7 +107,15 @@ async function validateAdminWithUserInfo(accessToken: string): Promise<boolean> 
       return false;
     }
     const info = (await res.json()) as Record<string, unknown>;
-    return typeof info.sub === "string" && info.sub.trim() !== "" && isAdminUser(info);
+    if (typeof info.sub !== "string" || info.sub.trim() === "") {
+      return false;
+    }
+
+    if (!hasAdminRestriction()) {
+      return true;
+    }
+
+    return isAdminUser(info);
   } catch {
     return false;
   }

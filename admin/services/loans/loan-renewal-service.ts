@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import { renewLoanData } from "@/lib/firebase/library-data";
-import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
+import { handleLibraryApiError, libraryApi } from "@/lib/server-api";
 
 export async function POST(
   _request: NextRequest,
@@ -12,8 +11,10 @@ export async function POST(
 
   try {
     const { id } = await params;
-    return NextResponse.json(await renewLoanData(id));
+    return NextResponse.json(
+      await libraryApi(_request, `/loans/renew/${id}`, { method: "POST" }),
+    );
   } catch (error) {
-    return handleFirebaseServiceError("Error renewing loan:", error);
+    return handleLibraryApiError("Error renewing loan:", error);
   }
 }

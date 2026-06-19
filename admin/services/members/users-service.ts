@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import {
-  createUserData,
-  listUsersData,
-} from "@/lib/firebase/library-data";
-import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
+import { handleLibraryApiError, libraryApi } from "@/lib/server-api";
 
 // GET all users with pagination and filtering
 export async function GET(request: NextRequest) {
@@ -14,15 +10,17 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     return NextResponse.json(
-      await listUsersData({
-        page: parseInt(searchParams.get("page") || "1"),
-        limit: parseInt(searchParams.get("limit") || "10"),
-        search: searchParams.get("search"),
-        status: searchParams.get("status"),
+      await libraryApi(request, "/users", {
+        headers: {
+          "X-Page": searchParams.get("page") || "1",
+          "X-Limit": searchParams.get("limit") || "10",
+          "X-Search": searchParams.get("search") || "",
+          "X-Status": searchParams.get("status") || "",
+        },
       }),
     );
   } catch (error) {
-    return handleFirebaseServiceError("Error fetching users:", error);
+    return handleLibraryApiError("Error fetching users:", error);
   }
 }
 
@@ -33,10 +31,10 @@ export async function POST(request: NextRequest) {
 
   try {
     return NextResponse.json(
-      { data: await createUserData((await request.json()) as Record<string, unknown>) },
-      { status: 201 },
+      { error: "Creating users is not migrated to PostgreSQL yet." },
+      { status: 501 },
     );
   } catch (error) {
-    return handleFirebaseServiceError("Error creating user:", error);
+    return handleLibraryApiError("Error creating user:", error);
   }
 }

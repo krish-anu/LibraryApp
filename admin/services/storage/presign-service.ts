@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import { createFirebaseSignedUploadUrls } from "@/lib/firebase/storage";
 
 const ALLOWED_CONTENT_TYPES = new Set([
   "image/jpeg",
@@ -45,13 +44,11 @@ export async function POST(req: NextRequest) {
     if (key.includes("..") || key.includes("//")) {
       return NextResponse.json({ error: "Invalid key path" }, { status: 400 });
     }
-    const signedUrls = await createFirebaseSignedUploadUrls({
-      key,
-      contentType,
-      expiresInSeconds: 3600,
-    });
 
-    return NextResponse.json(signedUrls);
+    return NextResponse.json(
+      { error: "Direct storage uploads are not migrated to PostgreSQL yet." },
+      { status: 501 },
+    );
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("/api/storage/presign error:", errorMessage);
