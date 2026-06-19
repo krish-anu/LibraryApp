@@ -10,10 +10,10 @@ build:
 	docker build -t $(IMAGE) .
 
 run: build remove-container
-	docker run --rm --name $(CONTAINER) --env-file $(ENV_FILE) -p $(HOST_PORT):$(CONTAINER_PORT) $(IMAGE)
+	docker compose up --build
 
 run-detached: build remove-container
-	docker run -d --name $(CONTAINER) --env-file $(ENV_FILE) -p $(HOST_PORT):$(CONTAINER_PORT) $(IMAGE)
+	docker compose up -d --build
 
 stop:
 	docker stop $(CONTAINER)

@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Optional
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException, status
 
 from .database import SessionLocal
 from .env import load_app_env
@@ -12,6 +12,70 @@ load_app_env()
 
 ASGARDEO_BASE_URL = os.getenv("ASGARDEO_BASE_URL", "")
 logger = logging.getLogger(__name__)
+
+
+def _csv_env(name: str, default: str = "") -> set[str]:
+    raw = os.getenv(name, default)
+    return {part.strip().lower() for part in raw.split(",") if part.strip()}
+
+
+def _claim_values(value) -> set[str]:
+    if value is None:
+        return set()
+    if isinstance(value, str):
+        return {part.strip().lower() for part in value.replace(",", " ").split() if part.strip()}
+    if isinstance(value, dict):
+        values = set()
+        for key in ("value", "name", "display", "displayName"):
+            item = value.get(key)
+            if isinstance(item, str) and item.strip():
+                values.add(item.strip().lower())
+        return values
+    if isinstance(value, (list, tuple, set)):
+        values = set()
+        for item in value:
+            values.update(_claim_values(item))
+        return values
+    return set()
+
+
+def identity_subject(identity: dict) -> str:
+    subject = str(identity.get("sub") or "").strip()
+    if not subject:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Authenticated user is missing subject",
+        )
+    return subject
+
+
+def identity_is_admin(identity: dict) -> bool:
+    admin_emails = _csv_env("ADMIN_EMAILS")
+    email = str(identity.get("email") or "").strip().lower()
+    if email and email in admin_emails:
+        return True
+
+    allowed_roles = _csv_env(
+        "ADMIN_GROUPS",
+        "admin,library-admin,library_admin,Library Administrator",
+    )
+    claim_values = set()
+    for claim in ("groups", "roles", "role", "permissions"):
+        claim_values.update(_claim_values(identity.get(claim)))
+    claim_values.update(_claim_values(identity.get("scope")))
+    return bool(claim_values.intersection(allowed_roles))
+
+
+def require_subject_or_admin(identity: dict, requested_subject: str) -> None:
+    requested = str(requested_subject or "").strip()
+    if requested and identity_subject(identity) == requested:
+        return
+    if identity_is_admin(identity):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You are not allowed to access this resource",
+    )
 
 
 def get_db():
@@ -72,3 +136,12 @@ async def verify_access_token(
             status_code=503,
             detail="Unable to verify token with identity provider",
         ) from exc
+
+
+async def require_admin(identity: dict = Depends(verify_access_token)) -> dict:
+    if not identity_is_admin(identity):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator privileges are required",
+        )
+    return identity

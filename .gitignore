@@ -59,6 +59,9 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 *.db
+*.dump
+*_dump.sql
+*.backup
 .codex
 
 # Node / frontend

@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 part 'auth_local_repository.g.dart';
 
@@ -9,31 +9,23 @@ AuthLocalRepository authLocalRepository(Ref ref) {
 }
 
 class AuthLocalRepository {
-  SharedPreferences? _sharedPreferences;
+  static const _secureStorage = FlutterSecureStorage();
+  static const _tokenKey = 'x-auth-token';
 
-  Future<SharedPreferences> init() async {
-    if (_sharedPreferences != null) {
-      return _sharedPreferences!;
-    }
-    _sharedPreferences = await SharedPreferences.getInstance();
-    return _sharedPreferences!;
-  }
+  Future<void> init() async {}
 
   Future<void> setToken(String? token) async {
     if (token == null) {
       return;
     }
-    final prefs = await init();
-    await prefs.setString('x-auth-token', token);
+    await _secureStorage.write(key: _tokenKey, value: token);
   }
 
   Future<String?> getToken() async {
-    final prefs = await init();
-    return prefs.getString('x-auth-token');
+    return _secureStorage.read(key: _tokenKey);
   }
 
   Future<void> clearToken() async {
-    final prefs = await init();
-    await prefs.remove('x-auth-token');
+    await _secureStorage.delete(key: _tokenKey);
   }
 }

@@ -1,6 +1,9 @@
 .env
 .env.*
 *.env
+*.dump
+*_dump.sql
+*.backup
 !.env.example
 !.env.*.example
 .venv

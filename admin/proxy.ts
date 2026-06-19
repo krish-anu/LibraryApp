@@ -13,12 +13,6 @@ const PUBLIC_PATHS = [
 
 const COOKIE_CLEAR_OPTIONS = { path: "/", maxAge: 0 };
 
-type StoredUser = {
-  sub?: string;
-  email?: string;
-  name?: string;
-};
-
 function unauthorized(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname.startsWith("/api/")) {
@@ -33,39 +27,63 @@ function unauthorized(request: NextRequest) {
   return response;
 }
 
-function parseJwtPayload(token: string): { exp?: number } | null {
-  const parts = token.split(".");
-  if (parts.length !== 3) {
-    return null;
-  }
-
-  try {
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-    const json = atob(padded);
-    return JSON.parse(json) as { exp?: number };
-  } catch {
-    return null;
-  }
+function csvEnv(name: string, fallback = "") {
+  return new Set(
+    (process.env[name] || fallback)
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
 }
 
-function hasStoredUserCookie(request: NextRequest): boolean {
-  const userCookie = request.cookies.get("library_user")?.value;
-  if (!userCookie) {
-    return false;
+function claimValues(value: unknown): Set<string> {
+  const values = new Set<string>();
+  if (typeof value === "string") {
+    value
+      .replaceAll(",", " ")
+      .split(/\s+/)
+      .map((part) => part.trim().toLowerCase())
+      .filter(Boolean)
+      .forEach((part) => values.add(part));
+    return values;
   }
-
-  try {
-    const parsed = JSON.parse(
-      decodeURIComponent(userCookie),
-    ) as StoredUser | null;
-    return Boolean(parsed?.sub);
-  } catch {
-    return false;
+  if (Array.isArray(value)) {
+    value.forEach((entry) => {
+      claimValues(entry).forEach((part) => values.add(part));
+    });
+    return values;
   }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    ["value", "name", "display", "displayName"].forEach((key) => {
+      const item = record[key];
+      if (typeof item === "string" && item.trim()) {
+        values.add(item.trim().toLowerCase());
+      }
+    });
+  }
+  return values;
 }
 
-async function validateWithUserInfo(accessToken: string): Promise<boolean> {
+function isAdminUser(info: Record<string, unknown>) {
+  const email = typeof info.email === "string" ? info.email.toLowerCase() : "";
+  const allowedEmails = csvEnv("ADMIN_EMAILS");
+  if (email && allowedEmails.has(email)) {
+    return true;
+  }
+
+  const allowedGroups = csvEnv(
+    "ADMIN_GROUPS",
+    "admin,library-admin,library_admin,Library Administrator",
+  );
+  const claims = new Set<string>();
+  ["groups", "roles", "role", "permissions", "scope"].forEach((claim) => {
+    claimValues(info[claim]).forEach((value) => claims.add(value));
+  });
+  return [...claims].some((claim) => allowedGroups.has(claim));
+}
+
+async function validateAdminWithUserInfo(accessToken: string): Promise<boolean> {
   const userInfoEndpoint = (process.env.ASGARDEO_USERINFO_ENDPOINT || "").trim();
   if (!userInfoEndpoint) {
     return false;
@@ -77,7 +95,11 @@ async function validateWithUserInfo(accessToken: string): Promise<boolean> {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     });
-    return res.ok;
+    if (!res.ok) {
+      return false;
+    }
+    const info = (await res.json()) as Record<string, unknown>;
+    return typeof info.sub === "string" && info.sub.trim() !== "" && isAdminUser(info);
   } catch {
     return false;
   }
@@ -97,24 +119,7 @@ export async function proxy(request: NextRequest) {
     return unauthorized(request);
   }
 
-  // JWT tokens can be checked locally for expiry.
-  const payload = parseJwtPayload(session);
-  if (payload) {
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && typeof payload.exp === "number" && payload.exp < now) {
-      return unauthorized(request);
-    }
-    return NextResponse.next();
-  }
-
-  // For opaque tokens, trust the user cookie created by the callback route
-  // before falling back to a network validation step.
-  if (hasStoredUserCookie(request)) {
-    return NextResponse.next();
-  }
-
-  // Non-JWT token (opaque/JWE): validate through userinfo endpoint.
-  const valid = await validateWithUserInfo(session);
+  const valid = await validateAdminWithUserInfo(session);
   if (!valid) {
     return unauthorized(request);
   }

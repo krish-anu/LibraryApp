@@ -3,9 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Verify that the current request has a valid admin session.
  *
- * Accepts either JWT or opaque access tokens.
- * - For JWTs, uses payload claims and exp locally.
- * - For opaque/non-decodable tokens, validates through userinfo endpoint.
+ * Validates the access token through the identity provider and requires an
+ * administrator claim before allowing admin API access.
  *
  * Returns the user info if valid, or a NextResponse error if not.
  */
@@ -15,66 +14,7 @@ type VerifyAdminResult =
   | { user: VerifiedUser; error?: never }
   | { user?: never; error: NextResponse };
 
-type JwtPayload = {
-  sub?: string;
-  email?: string;
-  name?: string;
-  given_name?: string;
-  family_name?: string;
-  exp?: number;
-};
-
-function userFromStoredCookie(cookieValue?: string): VerifiedUser | null {
-  if (!cookieValue) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(
-      decodeURIComponent(cookieValue),
-    ) as Partial<VerifiedUser> | null;
-    const sub = (parsed?.sub || "").trim();
-    if (!sub) {
-      return null;
-    }
-
-    return {
-      sub,
-      email: (parsed?.email || "").trim(),
-      name: (parsed?.name || "").trim(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function parseJwtPayload(token: string): JwtPayload | null {
-  const parts = token.split(".");
-  if (parts.length !== 3) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf-8"));
-  } catch {
-    return null;
-  }
-}
-
-function userFromPayload(payload: JwtPayload): VerifiedUser | null {
-  const sub = (payload.sub || "").trim();
-  if (!sub) {
-    return null;
-  }
-
-  return {
-    sub,
-    email: (payload.email || "").trim(),
-    name:
-      (payload.name || "").trim() ||
-      [payload.given_name, payload.family_name].filter(Boolean).join(" "),
-  };
-}
+type UserInfo = Record<string, unknown>;
 
 function unauthorized(message: string): VerifyAdminResult {
   return {
@@ -99,7 +39,7 @@ async function userFromUserInfo(accessToken: string): Promise<VerifiedUser | nul
       return null;
     }
 
-    const info = await res.json();
+    const info = (await res.json()) as UserInfo;
     const sub = typeof info.sub === "string" ? info.sub.trim() : "";
     if (!sub) {
       return null;
@@ -110,11 +50,94 @@ async function userFromUserInfo(accessToken: string): Promise<VerifiedUser | nul
       email: typeof info.email === "string" ? info.email : "",
       name:
         [info.given_name, info.family_name].filter(Boolean).join(" ") ||
-        info.name ||
-        info.preferred_username ||
-        info.username ||
+        (typeof info.name === "string" ? info.name : "") ||
+        (typeof info.preferred_username === "string" ? info.preferred_username : "") ||
+        (typeof info.username === "string" ? info.username : "") ||
         "",
     };
+  } catch {
+    return null;
+  }
+}
+
+function csvEnv(name: string, fallback = "") {
+  return new Set(
+    (process.env[name] || fallback)
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function claimValues(value: unknown): Set<string> {
+  const values = new Set<string>();
+  if (typeof value === "string") {
+    value
+      .replaceAll(",", " ")
+      .split(/\s+/)
+      .map((part) => part.trim().toLowerCase())
+      .filter(Boolean)
+      .forEach((part) => values.add(part));
+    return values;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry) => {
+      claimValues(entry).forEach((part) => values.add(part));
+    });
+    return values;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    ["value", "name", "display", "displayName"].forEach((key) => {
+      const item = record[key];
+      if (typeof item === "string" && item.trim()) {
+        values.add(item.trim().toLowerCase());
+      }
+    });
+  }
+  return values;
+}
+
+async function adminFromUserInfo(accessToken: string): Promise<VerifiedUser | null> {
+  const userinfoEndpoint = (
+    process.env.ASGARDEO_USERINFO_ENDPOINT || ""
+  ).trim();
+  if (!userinfoEndpoint) {
+    return null;
+  }
+
+  try {
+    const res = await fetch(userinfoEndpoint, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      return null;
+    }
+
+    const info = (await res.json()) as UserInfo;
+    const user = await userFromUserInfo(accessToken);
+    if (!user) {
+      return null;
+    }
+
+    const allowedEmails = csvEnv("ADMIN_EMAILS");
+    if (user.email && allowedEmails.has(user.email.toLowerCase())) {
+      return user;
+    }
+
+    const allowedGroups = csvEnv(
+      "ADMIN_GROUPS",
+      "admin,library-admin,library_admin,Library Administrator",
+    );
+    const userClaims = new Set<string>();
+    ["groups", "roles", "role", "permissions", "scope"].forEach((claim) => {
+      claimValues(info[claim]).forEach((value) => userClaims.add(value));
+    });
+
+    return [...userClaims].some((claim) => allowedGroups.has(claim))
+      ? user
+      : null;
   } catch {
     return null;
   }
@@ -124,39 +147,15 @@ export async function verifyAdmin(
   req: NextRequest,
 ): Promise<VerifyAdminResult> {
   const accessToken = req.cookies.get("library_session")?.value;
-  const storedUser = userFromStoredCookie(
-    req.cookies.get("library_user")?.value,
-  );
 
   if (!accessToken) {
     return unauthorized("Unauthorized");
   }
 
-  const jwtPayload = parseJwtPayload(accessToken);
-  if (jwtPayload) {
-    const now = Math.floor(Date.now() / 1000);
-    if (
-      typeof jwtPayload.exp === "number" &&
-      Number.isFinite(jwtPayload.exp) &&
-      jwtPayload.exp < now
-    ) {
-      return unauthorized("Session expired");
-    }
-
-    const jwtUser = userFromPayload(jwtPayload);
-    if (jwtUser) {
-      return { user: jwtUser };
-    }
-  }
-
-  if (storedUser) {
-    return { user: storedUser };
-  }
-
-  const user = await userFromUserInfo(accessToken);
+  const user = await adminFromUserInfo(accessToken);
   if (user) {
     return { user };
   }
 
-  return unauthorized("Invalid session");
+  return unauthorized("Invalid admin session");
 }

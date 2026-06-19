@@ -10,16 +10,38 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/png",
   "image/webp",
   "image/gif",
-  "image/svg+xml",
 ]);
-const ALLOWED_EXTENSIONS = new Set([
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".webp",
-  ".gif",
-  ".svg",
-]);
+const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+
+function hasAllowedMagicBytes(body: Buffer, mimeType: string) {
+  if (mimeType === "image/jpeg") {
+    return body.length >= 3 && body[0] === 0xff && body[1] === 0xd8 && body[2] === 0xff;
+  }
+  if (mimeType === "image/png") {
+    return (
+      body.length >= 8 &&
+      body[0] === 0x89 &&
+      body[1] === 0x50 &&
+      body[2] === 0x4e &&
+      body[3] === 0x47 &&
+      body[4] === 0x0d &&
+      body[5] === 0x0a &&
+      body[6] === 0x1a &&
+      body[7] === 0x0a
+    );
+  }
+  if (mimeType === "image/gif") {
+    return body.length >= 4 && body.subarray(0, 4).toString("ascii") === "GIF8";
+  }
+  if (mimeType === "image/webp") {
+    return (
+      body.length >= 12 &&
+      body.subarray(0, 4).toString("ascii") === "RIFF" &&
+      body.subarray(8, 12).toString("ascii") === "WEBP"
+    );
+  }
+  return false;
+}
 
 export async function POST(req: NextRequest) {
   const auth = await verifyAdmin(req);
@@ -82,12 +104,18 @@ export async function POST(req: NextRequest) {
     // Basic env checks for clearer diagnostics
     console.log(`/api/storage/upload starting upload`, {
       key,
-      filename,
       contentType: file.type,
       size: file.size,
     });
     const arrayBuffer = await file.arrayBuffer();
     const body = Buffer.from(arrayBuffer);
+    if (!hasAllowedMagicBytes(body, mimeType)) {
+      return NextResponse.json(
+        { error: "File contents do not match an allowed image type" },
+        { status: 415 },
+      );
+    }
+
     const { publicUrl } = await uploadBufferToFirebaseStorage({
       key,
       body,

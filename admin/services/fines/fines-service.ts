@@ -8,6 +8,9 @@ import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
 
 // GET all fines with pagination and filtering
 export async function GET(request: NextRequest) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     const { searchParams } = new URL(request.url);
     return NextResponse.json(

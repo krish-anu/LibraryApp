@@ -1,13 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, verify_access_token
+from ..dependencies import get_db, require_admin, verify_access_token
 from ..models import settings as settings_model
 from ..pydantic_schemas import settings as settings_schema
 
-router = APIRouter(
-    prefix="/settings", tags=["settings"], dependencies=[Depends(verify_access_token)]
-)
+router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 def _get_or_create_settings_row(db: Session) -> settings_model.Settings:
@@ -27,7 +25,9 @@ def _get_or_create_settings_row(db: Session) -> settings_model.Settings:
 
 
 @router.get("", response_model=settings_schema.Settings)
-def get_settings(db: Session = Depends(get_db)):
+def get_settings(
+    _identity: dict = Depends(verify_access_token), db: Session = Depends(get_db)
+):
     return _get_or_create_settings_row(db)
 
 
@@ -35,6 +35,7 @@ def get_settings(db: Session = Depends(get_db)):
 @router.patch("", response_model=settings_schema.Settings)
 def update_settings(
     payload: settings_schema.SettingsUpdate,
+    _admin: dict = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     row = _get_or_create_settings_row(db)

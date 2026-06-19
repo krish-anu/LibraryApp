@@ -47,21 +47,18 @@ class User {
 
   @override
   String toString() {
-    return 'User(userName: $userName, email: $email, id: $id, token: $token)';
+    return 'User(userName: $userName, email: $email, id: $id, token: [redacted])';
   }
 
   @override
   bool operator ==(covariant User other) {
     if (identical(this, other)) return true;
 
-    return other.userName == userName &&
-        other.email == email &&
-        other.id == id &&
-        other.token == token;
+    return other.userName == userName && other.email == email && other.id == id;
   }
 
   @override
   int get hashCode {
-    return userName.hashCode ^ email.hashCode ^ id.hashCode ^ token.hashCode;
+    return userName.hashCode ^ email.hashCode ^ id.hashCode;
   }
 }

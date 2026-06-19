@@ -5,16 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, verify_access_token
+from ..dependencies import get_db, require_admin, require_subject_or_admin, verify_access_token
 from ..models import loan as loan_model
 from ..models import reservation as reservation_model
 from ..models import book as book_model
 from ..notification_center import create_admin_notification, create_user_notification
 from ..pydantic_schemas import reservation as reservation_schema
 
-router = APIRouter(
-    prefix="", tags=["reservations"], dependencies=[Depends(verify_access_token)]
-)
+router = APIRouter(prefix="", tags=["reservations"])
 
 
 def _safe_notify(callback) -> None:
@@ -26,14 +24,20 @@ def _safe_notify(callback) -> None:
 
 
 @router.get("/reservations", response_model=List[reservation_schema.Reservation])
-def list_reservations(db: Session = Depends(get_db)):
+def list_reservations(
+    _admin: dict = Depends(require_admin), db: Session = Depends(get_db)
+):
     return db.query(reservation_model.Reservation).all()
 
 
 @router.get(
     "/reservations/{reservation_id}", response_model=reservation_schema.Reservation
 )
-def get_reservation(reservation_id: str, db: Session = Depends(get_db)):
+def get_reservation(
+    reservation_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
     reservation = (
         db.query(reservation_model.Reservation)
         .filter(reservation_model.Reservation.id == reservation_id)
@@ -41,6 +45,7 @@ def get_reservation(reservation_id: str, db: Session = Depends(get_db)):
     )
     if not reservation:
         raise HTTPException(status_code=404, detail="Reservation not found")
+    require_subject_or_admin(identity, str(reservation.member_id or ""))
     return reservation
 
 
@@ -48,7 +53,12 @@ def get_reservation(reservation_id: str, db: Session = Depends(get_db)):
     "/reservations/member/{member_id}",
     response_model=List[reservation_schema.Reservation],
 )
-def get_reservations_for_member(member_id: str, db: Session = Depends(get_db)):
+def get_reservations_for_member(
+    member_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, member_id)
     return (
         db.query(reservation_model.Reservation)
         .filter(reservation_model.Reservation.member_id == member_id)
@@ -60,8 +70,11 @@ def get_reservations_for_member(member_id: str, db: Session = Depends(get_db)):
     "/reservations", response_model=reservation_schema.Reservation, status_code=201
 )
 def create_reservation(
-    res_in: reservation_schema.ReservationCreate, db: Session = Depends(get_db)
+    res_in: reservation_schema.ReservationCreate,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
 ):
+    require_subject_or_admin(identity, res_in.member_id)
     existing_loan = (
         db.query(loan_model.Loan)
         .filter(
@@ -183,6 +196,7 @@ def create_reservation(
 )
 def cancel_reservation(
     reservation_id: str,
+    identity: dict = Depends(verify_access_token),
     db: Session = Depends(get_db),
 ):
     reservation = (
@@ -192,6 +206,7 @@ def cancel_reservation(
     )
     if not reservation:
         raise HTTPException(status_code=404, detail="Reservation not found")
+    require_subject_or_admin(identity, str(reservation.member_id or ""))
 
     reservation.status = "Cancelled"
     db.commit()

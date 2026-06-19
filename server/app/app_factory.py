@@ -159,6 +159,13 @@ def create_app(
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
         )
+        if environment == "production":
+            response.headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains",
+            )
+        if request.url.path.startswith("/auth/"):
+            response.headers.setdefault("Cache-Control", "no-store")
         return response
 
     # Serve Flutter client assets (book covers etc.) at /assets when available.

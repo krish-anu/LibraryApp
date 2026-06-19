@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class ServerConstant {
   static const String _envServer = String.fromEnvironment(
     'SERVER_URL',
@@ -7,6 +9,9 @@ class ServerConstant {
 
   static String get serverURL {
     if (_envServer.isNotEmpty) {
+      if (kReleaseMode && _envServer.startsWith('http://')) {
+        throw StateError('SERVER_URL must use HTTPS in release builds.');
+      }
       if (!_logged) {
         // ignore: avoid_print
         print('ServerConstant: using SERVER_URL override -> $_envServer');

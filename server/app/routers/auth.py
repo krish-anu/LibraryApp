@@ -9,7 +9,6 @@ that has the necessary credentials to create users.
 import os
 import httpx
 import logging
-import traceback
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -368,10 +367,9 @@ async def _ensure_user_from_access_token(
     except Exception:
         try:
             db.rollback()
-        except Exception:
-            pass
-        print("Exception while ensuring/creating local user:")
-        traceback.print_exc()
+        except Exception as rollback_error:
+            logger.warning("Database rollback failed: %s", rollback_error)
+        logger.exception("Exception while ensuring or creating local user")
         raise HTTPException(
             status_code=500,
             detail="An internal error occurred. Please try again later.",
@@ -416,9 +414,9 @@ async def asgardeo_login_sync(
 @router.post("/login/credentials", response_model=CredentialLoginResponse)
 @limiter.limit(AUTH_CREDENTIAL_LOGIN_RATE_LIMIT)
 async def login_with_credentials(
-    payload: CredentialLoginRequest,
+    _payload: CredentialLoginRequest,
     request: Request = None,
-    db: Session = Depends(get_db),
+    _db: Session = Depends(get_db),
 ):
     """Validate email/password with Asgardeo, then ensure local user exists.
 
@@ -427,53 +425,12 @@ async def login_with_credentials(
     create/sync the user in the local `users` table.
     """
 
-    if not ASGARDEO_PUBLIC_CLIENT_ID:
-        raise HTTPException(
-            status_code=500,
-            detail="Server configuration error: ASGARDEO_PUBLIC_CLIENT_ID not configured.",
-        )
-
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{ASGARDEO_BASE_URL}/oauth2/token",
-            data={
-                "grant_type": "password",
-                "username": payload.email,
-                "password": payload.password,
-                "client_id": ASGARDEO_PUBLIC_CLIENT_ID,
-            },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-
-    if response.status_code != 200:
-        detail = None
-        try:
-            detail = response.json().get("error_description") or response.json().get(
-                "error"
-            )
-        except Exception:
-            detail = response.text or "Authentication failed"
-
-        raise HTTPException(status_code=401, detail=detail)
-
-    token_data = response.json() if response.content else {}
-    access_token = token_data.get("access_token")
-    refresh_token = token_data.get("refresh_token")
-
-    if not access_token:
-        raise HTTPException(
-            status_code=401, detail="Authentication failed: no access token returned"
-        )
-
-    user, created = await _ensure_user_from_access_token(access_token, db)
-
-    return CredentialLoginResponse(
-        success=True,
-        created=created,
-        user_id=str(user.id),
-        user=user_schema.User.model_validate(user),
-        access_token=access_token,
-        refresh_token=refresh_token,
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "Password-grant login is disabled. Use Authorization Code with PKCE "
+            "through the Asgardeo hosted sign-in flow."
+        ),
     )
 
 

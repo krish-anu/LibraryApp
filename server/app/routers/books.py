@@ -5,15 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session, selectinload
 
-from ..dependencies import get_db, verify_access_token
+from ..dependencies import get_db, require_admin, require_subject_or_admin, verify_access_token
 from ..models import book as book_model
 from ..models import category as category_model
 from ..models.interactions import Interaction
 from ..pydantic_schemas import book as book_schema
 
-router = APIRouter(
-    prefix="/books", tags=["books"], dependencies=[Depends(verify_access_token)]
-)
+router = APIRouter(prefix="/books", tags=["books"])
 
 
 def _book_to_response(book_obj: book_model.Book) -> book_schema.Book:
@@ -55,13 +53,19 @@ def _book_query(db: Session):
 
 
 @router.get("", response_model=List[book_schema.Book])
-def get_books(db: Session = Depends(get_db)):
+def get_books(
+    _identity: dict = Depends(verify_access_token), db: Session = Depends(get_db)
+):
     books = _book_query(db).all()
     return [_book_to_response(book) for book in books]
 
 
 @router.post("", response_model=book_schema.Book, status_code=201)
-def create_book(book_data: book_schema.BookCreate, db: Session = Depends(get_db)):
+def create_book(
+    book_data: book_schema.BookCreate,
+    _admin: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     existing_category = (
         db.query(category_model.Category)
         .filter(category_model.Category.name == book_data.category)
@@ -98,7 +102,9 @@ def create_book(book_data: book_schema.BookCreate, db: Session = Depends(get_db)
 
 
 @router.get("/trending", response_model=List[book_schema.Book])
-def get_trending_books(db: Session = Depends(get_db)):
+def get_trending_books(
+    _identity: dict = Depends(verify_access_token), db: Session = Depends(get_db)
+):
     time_threshold = datetime.now(timezone.utc) - timedelta(days=7)
 
     trending_books = (
@@ -118,7 +124,12 @@ def get_trending_books(db: Session = Depends(get_db)):
 
 
 @router.get("/recommended/{user_id}", response_model=List[book_schema.Book])
-def get_recommended_books(user_id: str, db: Session = Depends(get_db)):
+def get_recommended_books(
+    user_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, user_id)
     user_categories = (
         db.query(category_model.Category.id)
         .join(
@@ -149,7 +160,11 @@ def get_recommended_books(user_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{book_id}", response_model=book_schema.Book)
-def get_book(book_id: str, db: Session = Depends(get_db)):
+def get_book(
+    book_id: str,
+    _identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
     book_obj = _book_query(db).filter(book_model.Book.id == book_id).first()
     if not book_obj:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -158,7 +173,10 @@ def get_book(book_id: str, db: Session = Depends(get_db)):
 
 @router.put("/{book_id}", response_model=book_schema.Book)
 def update_book(
-    book_id: str, book_data: book_schema.BookCreate, db: Session = Depends(get_db)
+    book_id: str,
+    book_data: book_schema.BookCreate,
+    _admin: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
     if not book_obj:
@@ -196,7 +214,9 @@ def update_book(
 
 
 @router.delete("/{book_id}", status_code=204)
-def delete_book(book_id: str, db: Session = Depends(get_db)):
+def delete_book(
+    book_id: str, _admin: dict = Depends(require_admin), db: Session = Depends(get_db)
+):
     book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
     if not book_obj:
         raise HTTPException(status_code=404, detail="Book not found")

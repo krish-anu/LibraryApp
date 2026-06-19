@@ -18,5 +18,8 @@ export function sanitizeEnvValue(value?: string | null): string {
 
 export function resolveAppUrl(request?: NextRequest): string {
   const configuredUrl = sanitizeEnvValue(process.env.NEXT_PUBLIC_APP_URL);
-  return request?.nextUrl.origin || configuredUrl || "http://localhost:3000";
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+  return request?.nextUrl.origin || "http://localhost:3000";
 }

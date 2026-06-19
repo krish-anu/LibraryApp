@@ -4,18 +4,21 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, verify_access_token
+from ..dependencies import get_db, require_subject_or_admin, verify_access_token
 from ..models.book import Book
 from ..models.interactions import Interaction
 from ..pydantic_schemas import book as book_schema
 
-router = APIRouter(
-    prefix="/favorites", tags=["favorites"], dependencies=[Depends(verify_access_token)]
-)
+router = APIRouter(prefix="/favorites", tags=["favorites"])
 
 
 @router.get("/{member_id}", response_model=List[book_schema.Book])
-def get_favorites(member_id: str, db: Session = Depends(get_db)):
+def get_favorites(
+    member_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, member_id)
     favorites = (
         db.query(Interaction)
         .filter(
@@ -30,7 +33,12 @@ def get_favorites(member_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{member_id}/ids")
-def get_favorite_ids(member_id: str, db: Session = Depends(get_db)):
+def get_favorite_ids(
+    member_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, member_id)
     favorites = (
         db.query(Interaction)
         .filter(
@@ -43,7 +51,13 @@ def get_favorite_ids(member_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{member_id}/{book_id}")
-def add_favorite(member_id: str, book_id: str, db: Session = Depends(get_db)):
+def add_favorite(
+    member_id: str,
+    book_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, member_id)
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -74,7 +88,13 @@ def add_favorite(member_id: str, book_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/{member_id}/{book_id}")
-def remove_favorite(member_id: str, book_id: str, db: Session = Depends(get_db)):
+def remove_favorite(
+    member_id: str,
+    book_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, member_id)
     favorite = (
         db.query(Interaction)
         .filter(
@@ -95,7 +115,13 @@ def remove_favorite(member_id: str, book_id: str, db: Session = Depends(get_db))
 
 
 @router.get("/{member_id}/{book_id}/check")
-def check_favorite(member_id: str, book_id: str, db: Session = Depends(get_db)):
+def check_favorite(
+    member_id: str,
+    book_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, member_id)
     favorite = (
         db.query(Interaction)
         .filter(

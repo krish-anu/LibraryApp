@@ -112,6 +112,9 @@ venv.bak/
 *firebase-adminsdk*.json
 *service-account*.json
 *serviceaccount*.json
+*.dump
+*_dump.sql
+*.backup
 
 # ===========================
 # FIREBASE CLI

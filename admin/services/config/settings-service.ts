@@ -7,7 +7,10 @@ import {
 import { handleFirebaseServiceError } from "@/lib/firebase/service-error";
 
 // GET settings
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await verifyAdmin(request);
+  if (auth.error) return auth.error;
+
   try {
     return NextResponse.json({ data: await getSettingsData() });
   } catch (error) {

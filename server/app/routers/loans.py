@@ -6,7 +6,13 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, verify_access_token
+from ..dependencies import (
+    get_db,
+    identity_is_admin,
+    require_admin,
+    require_subject_or_admin,
+    verify_access_token,
+)
 from ..models import (
     book as book_model,
     fine as fine_model,
@@ -17,9 +23,7 @@ from ..models import (
 from ..notification_center import create_admin_notification, create_user_notification
 from ..pydantic_schemas import loan as loan_schema
 
-router = APIRouter(
-    prefix="/loans", tags=["loans"], dependencies=[Depends(verify_access_token)]
-)
+router = APIRouter(prefix="/loans", tags=["loans"])
 
 
 def _safe_notify(callback) -> None:
@@ -31,15 +35,25 @@ def _safe_notify(callback) -> None:
 
 
 @router.get("", response_model=List[loan_schema.Loan])
-def get_loans(db: Session = Depends(get_db)):
+def get_loans(_admin: dict = Depends(require_admin), db: Session = Depends(get_db)):
     return db.query(loan.Loan).all()
 
 
 @router.get("/active", response_model=List[loan_schema.Loan])
-def get_active_loans(member_id: Optional[str] = None, db: Session = Depends(get_db)):
+def get_active_loans(
+    member_id: Optional[str] = None,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
     query = db.query(loan.Loan)
     if member_id:
+        require_subject_or_admin(identity, member_id)
         query = query.filter(loan.Loan.member_id == member_id)
+    elif not identity_is_admin(identity):
+        raise HTTPException(
+            status_code=403,
+            detail="member_id is required unless you are an administrator",
+        )
     return query.all()
 
 
@@ -80,7 +94,13 @@ def _is_blank(value: str | None) -> bool:
 
 
 @router.post("/borrow", response_model=loan_schema.Loan)
-def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
+def borrow_book(
+    book_id: str,
+    member_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, member_id)
     existing_loan = (
         db.query(loan.Loan)
         .filter(loan.Loan.book_id == book_id, loan.Loan.member_id == member_id)
@@ -213,10 +233,15 @@ def borrow_book(book_id: str, member_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/return/{loan_id}")
-def return_book(loan_id: str, db: Session = Depends(get_db)):
+def return_book(
+    loan_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
     db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
     if not db_loan:
         raise HTTPException(status_code=404, detail="Loan not found")
+    require_subject_or_admin(identity, str(cast(Any, db_loan.member_id) or ""))
 
     db_book = cast(
         Any,
@@ -271,11 +296,13 @@ def return_book(loan_id: str, db: Session = Depends(get_db)):
 @router.post("/renew/{loan_id}", response_model=loan_schema.Loan)
 def renew_loan(
     loan_id: str,
+    identity: dict = Depends(verify_access_token),
     db: Session = Depends(get_db),
 ):
     db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
     if not db_loan:
         raise HTTPException(status_code=404, detail="Loan not found")
+    require_subject_or_admin(identity, str(cast(Any, db_loan.member_id) or ""))
 
     loan_period_days = _loan_period_days(db)
     db_loan.returned_date = date.today() + timedelta(days=loan_period_days)

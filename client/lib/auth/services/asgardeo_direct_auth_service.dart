@@ -234,62 +234,9 @@ class AsgardeoDirectAuthService {
     required String username,
     required String password,
   }) async {
-    try {
-      AsgardeoRuntimeConfig.ensureConfigured();
-      debugPrint('Attempting direct login to Asgardeo...');
-
-      final body = {
-        'grant_type': 'password',
-        'client_id': AsgardeoDirectConfig.clientId,
-        'username': username,
-        'password': password,
-        'scope': AsgardeoDirectConfig.scopes.join(' '),
-      };
-
-      // Add client secret if configured
-      if (AsgardeoDirectConfig.clientSecret.isNotEmpty) {
-        body['client_secret'] = AsgardeoDirectConfig.clientSecret;
-      }
-
-      final tokenUri = Uri.parse(AsgardeoDirectConfig.tokenEndpoint);
-      if (kDebugMode) {
-        debugPrint('Asgardeo token endpoint: $tokenUri');
-      }
-
-      final response = await http.post(
-        tokenUri,
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: body,
-      );
-
-      debugPrint('Login response status: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final json = _tryDecodeJsonObject(response.body);
-        if (json == null) {
-          return AuthResult.failure(
-            'Asgardeo login succeeded with a non-JSON response. '
-            'Check ASGARDEO_BASE_URL and tenant configuration.',
-          );
-        }
-        final tokenResponse = AsgardeoTokenResponse.fromJson(json);
-        debugPrint('Login successful!');
-
-        return AuthResult.success(tokenResponse);
-      } else {
-        final errorDescription = _errorMessageFromResponse(
-          response: response,
-          endpoint: tokenUri,
-          action: 'login',
-          fallback: 'Login failed',
-        );
-        debugPrint('Login failed: $errorDescription');
-        return AuthResult.failure(errorDescription.toString());
-      }
-    } catch (e, s) {
-      debugPrint('Login error: $e\n$s');
-      return AuthResult.failure(_messageFromException(e));
-    }
+    return AuthResult.failure(
+      'Direct password login is disabled. Use the secure Asgardeo browser sign-in flow.',
+    );
   }
 
   /// Get user info using access token
@@ -527,7 +474,6 @@ class AsgardeoDirectAuthService {
       );
 
       debugPrint('Update response status: ${response.statusCode}');
-      debugPrint('Update response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final json = _tryDecodeJsonObject(response.body);

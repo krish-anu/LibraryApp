@@ -13,11 +13,20 @@ export class LibraryApiError extends Error {
 }
 
 function apiBaseUrl() {
-  return (
+  const url = (
     process.env.LIBRARY_API_BASE_URL ||
     process.env.SERVER_API_URL ||
     "http://127.0.0.1:8000"
   ).replace(/\/+$/, "");
+  if (
+    process.env.NODE_ENV === "production" &&
+    url.startsWith("http://") &&
+    !url.startsWith("http://127.0.0.1") &&
+    !url.startsWith("http://localhost")
+  ) {
+    throw new Error("LIBRARY_API_BASE_URL must use HTTPS in production.");
+  }
+  return url;
 }
 
 async function readResponseBody(response: Response) {
