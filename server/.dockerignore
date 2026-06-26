@@ -4,7 +4,6 @@
 *.dump
 *_dump.sql
 *.backup
-!.env.example
 !.env.*.example
 .venv
 venv/
@@ -20,9 +19,5 @@ dist/
 *.egg-info/
 .git
 .gitignore
-*firebase-adminsdk*.json
 *service-account*.json
 *serviceaccount*.json
-firebase.json
-.firebase/
-.firebaserc
