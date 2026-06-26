@@ -1,6 +1,6 @@
 # Library Admin Portal
 
- A full-stack Next.js admin portal for library management with Firestore data, Firebase Storage for media, and Asgardeo authentication.
+ A full-stack Next.js admin portal for library management with PostgreSQL data and Asgardeo authentication.
 
 ## Features
 
@@ -13,8 +13,7 @@
 ## Tech Stack
 
 - **Framework**: Next.js 16+ with App Router
-- **Database**: Firebase Firestore
-- **Cloud Storage**: Firebase Storage
+- **Database**: PostgreSQL
 - **Authentication**: Asgardeo OAuth 2.0
 - **Styling**: Tailwind CSS v4
 - **Charts**: Recharts
@@ -29,21 +28,14 @@
 
 ## Getting Started
 
-### 1. Set up Firebase
-
-1. Create a Firebase project.
-2. Enable Cloud Storage for the project.
-3. Create a service account with Storage access and download the credentials.
-4. Copy the project ID, client email, private key, and default storage bucket name.
-
-### 2. Set up Asgardeo
+### 1. Set up Asgardeo
 
 1. Create an account at [asgardeo.io](https://asgardeo.io)
 2. Create a new application (Traditional Web Application)
 3. Configure the callback URL: `http://localhost:3000/api/auth/callback`
 4. Copy the Client ID and Client Secret
 
-### 3. Configure Environment Variables
+### 2. Configure Environment Variables
 
 For local development, copy `.env.local.example` to `.env.local` and fill in your credentials:
 
@@ -61,13 +53,7 @@ Real env files are ignored by Git. Keep secrets in `.env.local`,
 `.env.production`, or your deployment secret manager.
 
 ```env
-# Firebase Admin
 LIBRARY_API_BASE_URL=http://127.0.0.1:8000
-FIREBASE_PROJECT_ID=
-FIREBASE_STORAGE_BUCKET=
-FIREBASE_SERVICE_ACCOUNT_JSON=
-FIREBASE_CLIENT_EMAIL=
-FIREBASE_PRIVATE_KEY=
 
 # Asgardeo Authentication
 ASGARDEO_CLIENT_ID=
@@ -78,13 +64,13 @@ ASGARDEO_USERINFO_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oauth2/
 ASGARDEO_LOGOUT_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oidc/logout
 ```
 
-### 4. Install Dependencies
+### 3. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 5. Run Development Server
+### 4. Run Development Server
 
 ```bash
 npm run dev
@@ -123,12 +109,12 @@ admin/
 │   ├── loans/                 # Loan renewal service
 │   ├── config/                # Settings/config service
 │   ├── analytics/             # Dashboard aggregation service
-│   └── storage/               # Firebase Storage service
+│   └── storage/               # Storage service boundary
 ├── components/
 │   ├── layout/                # Layout components (Sidebar, Header)
 │   └── ui/                    # Reusable UI components
 ├── lib/
-│   ├── firebase/              # Firebase Admin helpers
+│   ├── firebase/              # Legacy compatibility layer / adapters
 │   ├── auth/                  # Auth context
 │   ├── types.ts               # TypeScript interfaces
 │   └── utils.ts               # Utility functions
@@ -137,8 +123,8 @@ admin/
 
 ## Data Model
 
-The admin app now stores data in Firestore collections such as `books`, `categories`, `users`, `loans`, `fines`, `finePayments`, and `settings`.
-Default settings and categories are created automatically when the app first reads them.
+The admin app now reads and writes library data through the FastAPI backend backed by PostgreSQL.
+Default settings and categories are created automatically by the server when needed.
 
 ## API Endpoints
 

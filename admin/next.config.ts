@@ -16,7 +16,7 @@ const securityHeaders = [
         process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"
       }`,
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https://firebasestorage.googleapis.com",
+      "img-src 'self' data: https:",
       "font-src 'self' data:",
       "connect-src 'self' https:",
       "frame-ancestors 'none'",
