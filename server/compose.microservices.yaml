@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - .env.local
     command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8101:8000"
@@ -27,7 +27,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - .env.local
     command: uvicorn services.catalog_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8102:8000"
@@ -50,7 +50,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - .env.local
     command: uvicorn services.users_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8103:8000"
@@ -73,7 +73,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - .env.local
     command: uvicorn services.circulation_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8104:8000"
@@ -96,7 +96,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - .env.local
     command: uvicorn services.settings_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8105:8000"

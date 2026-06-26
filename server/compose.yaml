@@ -4,12 +4,12 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      ENV_FILE: .env.compose
+      ENV_FILE: .env.local
       DB_HOST: postgres
       DB_PORT: 5432
       DB_SSLMODE: disable
     env_file:
-      - .env.compose
+      - .env.local
     ports:
       - "8000:8000"
     depends_on:

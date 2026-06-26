@@ -15,12 +15,12 @@ def resolve_env_file() -> Path:
         env_path = Path(configured)
         return env_path if env_path.is_absolute() else SERVER_ROOT / env_path
 
-    for candidate in (".env.local", ".env"):
+    for candidate in (".env.local", ".env.production"):
         env_path = SERVER_ROOT / candidate
         if env_path.exists():
             return env_path
 
-    return SERVER_ROOT / ".env"
+    return SERVER_ROOT / ".env.local"
 
 
 def load_app_env() -> Path:

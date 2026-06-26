@@ -1,6 +1,6 @@
 IMAGE ?= libraryapp-server
 CONTAINER ?= libraryapp-server
-ENV_FILE ?= .env
+ENV_FILE ?= .env.local
 HOST_PORT ?= 8000
 CONTAINER_PORT ?= 8000
 

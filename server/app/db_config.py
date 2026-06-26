@@ -54,7 +54,7 @@ def get_database_config() -> DatabaseConfig:
 
     raise ValueError(
         "Database configuration is incomplete. Set DATABASE_URL, or set "
-        "DB_USER/DB_PASSWORD/DB_NAME plus DB_HOST/DB_PORT. Cloud SQL is disabled."
+        "DB_USER/DB_PASSWORD/DB_NAME plus DB_HOST/DB_PORT."
     )
 
 

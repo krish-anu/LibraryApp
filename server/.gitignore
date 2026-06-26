@@ -89,7 +89,6 @@ ipython_config.py
 .env
 .env.*
 *.env
-!.env.example
 !.env.*.example
 .venv
 .envrc
@@ -108,35 +107,11 @@ venv.bak/
 # ===========================
 # SECRETS & CREDENTIALS
 # ===========================
-# Firebase service account key (NEVER commit this)
-*firebase-adminsdk*.json
 *service-account*.json
 *serviceaccount*.json
 *.dump
 *_dump.sql
 *.backup
-
-# ===========================
-# FIREBASE CLI
-# ===========================
-.firebase/
-.firebaserc
-firebase.json
-
-# Firebase Data Connect local state
-dataconnect/.dataconnect/
-dataconnect/
-
-# ===========================
-# GOOGLE CLOUD SDK & TOOLS
-# ===========================
-google-cloud-sdk/
-google-cloud-cli-linux-x86_64.tar.gz
-google-cloud-cli*.tar.gz
-
-# Cloud SQL Auth Proxy binary
-cloud-sql-proxy
-cloud-sql-proxy.exe
 
 # ===========================
 # DOCKER
