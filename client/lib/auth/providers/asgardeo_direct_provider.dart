@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:libraryapp/auth/services/asgardeo_direct_auth_service.dart';
+import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/core/services/notification_service.dart';
 
 part 'asgardeo_direct_provider.g.dart';
@@ -62,6 +63,7 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
 
   @override
   AsgardeoDirectState build() {
+    AuthenticatedHttpClient.configureTokenRefresher(refreshAccessToken);
     // Try to restore session on startup
     _restoreSession();
     return const AsgardeoDirectState();
@@ -82,8 +84,12 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
           idToken: idToken,
         );
 
-        // Fetch user info
-        await getUserInfo();
+        // Fetch user info. If the stored access token expired while the app
+        // was closed, renew it once and retry without forcing a new login.
+        final restored = await getUserInfo();
+        if (!restored && refreshToken != null && await refreshAccessToken()) {
+          await getUserInfo();
+        }
       }
     } catch (e) {
       debugPrint('Error restoring session: $e');
@@ -265,7 +271,7 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
     final result = await _authService.getUserInfo(state.accessToken!);
 
     if (result.success && result.data != null) {
-      state = state.copyWith(user: result.data);
+      state = state.copyWith(user: result.data, clearError: true);
       if (syncWithBackend) {
         final syncResult = await _authService.syncUserWithBackend(
           accessToken: state.accessToken!,
@@ -299,6 +305,7 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken ?? state.refreshToken,
         idToken: tokens.idToken ?? state.idToken,
+        clearError: true,
       );
       return true;
     }

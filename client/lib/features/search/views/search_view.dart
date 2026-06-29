@@ -171,7 +171,31 @@ class _SearchViewState extends ConsumerState<SearchView> {
 
   Widget _buildError(String message) {
     return Center(
-      child: Text(message, style: const TextStyle(color: Pallete.textPrimary)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Pallete.textPrimary),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => ref
+                  .read(
+                    searchViewModelProvider(
+                      initialCategory: widget.currentCategory,
+                    ).notifier,
+                  )
+                  .refresh(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -197,6 +221,10 @@ class _SearchViewState extends ConsumerState<SearchView> {
         initialCategory: widget.currentCategory,
       );
       final searchState = ref.read(provider);
+      if (searchState.error != null) {
+        ref.read(provider.notifier).refresh();
+        return;
+      }
       if (!searchState.showSearchResults) {
         ref.read(provider.notifier).openSearch();
       }
