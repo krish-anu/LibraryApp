@@ -39,8 +39,9 @@ class AsgardeoDirectConfig {
     'openid',
     'profile',
     'email',
-    'phone',
-    'address',
+    'books_read',
+    'books_manage',
+    'loans_manage',
   ];
 }
 

@@ -13,7 +13,14 @@ class AsgardeoConfig {
   static String get redirectUrl => AsgardeoRuntimeConfig.redirectUrl;
   static String get discoveryUrl => AsgardeoRuntimeConfig.discoveryUrl;
   static String get userInfoEndpoint => AsgardeoRuntimeConfig.userInfoEndpoint;
-  static const List<String> scopes = ['openid', 'profile', 'email'];
+  static const List<String> scopes = [
+    'openid',
+    'profile',
+    'email',
+    'books_read',
+    'books_manage',
+    'loans_manage',
+  ];
 }
 
 /// State class for Asgardeo authentication
