@@ -19,5 +19,3 @@ dist/
 *.egg-info/
 .git
 .gitignore
-*service-account*.json
-*serviceaccount*.json

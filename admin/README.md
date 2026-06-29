@@ -114,7 +114,6 @@ admin/
 │   ├── layout/                # Layout components (Sidebar, Header)
 │   └── ui/                    # Reusable UI components
 ├── lib/
-│   ├── firebase/              # Legacy compatibility layer / adapters
 │   ├── auth/                  # Auth context
 │   ├── types.ts               # TypeScript interfaces
 │   └── utils.ts               # Utility functions

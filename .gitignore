@@ -1,29 +1,6 @@
 # Root-level .gitignore for LibraryApp
 
 # ===========================
-# SECRETS & CREDENTIALS
-# ===========================
-# Firebase service account keys (NEVER commit these)
-*firebase-adminsdk*.json
-*service-account*.json
-*serviceaccount*.json
-client/android/app/google-services.json
-client/android/google-services.json
-client/ios/Runner/GoogleService-Info.plist
-
-# ===========================
-# FIREBASE CLI
-# ===========================
-.firebase/
-.firebaserc
-firebase.json
-
-# Firebase Data Connect generated/local files
-dataconnect/
-server/dataconnect/
-dataconnect/.dataconnect/
-
-# ===========================
 # AGENT / AI TOOLS
 # ===========================
 .agents/
@@ -98,11 +75,6 @@ tmp/
 
 # Local environment helpers
 .envrc
-
-# Cloud SDK & binaries
-server/google-cloud-sdk/
-server/google-cloud-cli-linux-x86_64.tar.gz
-server/cloud-sql-proxy
 
 # Client local run config
 client/Makefile

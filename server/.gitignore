@@ -104,11 +104,6 @@ venv.bak/
 
 .DS_Store
 
-# ===========================
-# SECRETS & CREDENTIALS
-# ===========================
-*service-account*.json
-*serviceaccount*.json
 *.dump
 *_dump.sql
 *.backup

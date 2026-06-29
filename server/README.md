@@ -24,11 +24,10 @@ cp .env.production.example .env.production
 Real env files are ignored by Git. The `*.example` files are only safe templates.
 Keep secrets in `.env.local`, `.env.production`, or your deployment secret manager.
 
-You can connect in any of these ways:
+You can connect in either of these ways:
 
 1. `DATABASE_URL`
-2. `INSTANCE_CONNECTION_NAME` + `DB_USER` + `DB_PASSWORD` + `DB_NAME`
-3. `DB_HOST` + `DB_PORT` + `DB_USER` + `DB_PASSWORD` + `DB_NAME`
+2. `DB_HOST` + `DB_PORT` + `DB_USER` + `DB_PASSWORD` + `DB_NAME`
 
 You still need to fill in the actual database name, user, and password before starting the API or running `seed_db.py`.
 

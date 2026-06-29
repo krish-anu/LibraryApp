@@ -11,7 +11,7 @@ LibraryApp has three main parts:
 Install these before running the project:
 
 - Python 3.11+ and `pip`
-- PostgreSQL, Cloud SQL, or Firebase SQL Connect PostgreSQL access
+- PostgreSQL
 - Flutter SDK
 - Node.js 20+ and npm
 - Docker, optional
@@ -29,7 +29,6 @@ Edit `server/.env.local` and fill in your real values. At minimum, configure:
 
 - Database: `DATABASE_URL`, or `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`
 - Asgardeo: `ASGARDEO_BASE_URL`
-- Firebase service account values if you use Firebase features
 
 Install dependencies:
 
@@ -72,15 +71,6 @@ Open a new terminal from the project root:
 cd client
 flutter pub get
 ```
-
-For Firebase push notifications, also add your platform config files before
-running the mobile app:
-
-- `client/android/app/google-services.json`
-- `client/ios/Runner/GoogleService-Info.plist`
-
-The backend and admin app also need Firebase Admin credentials configured if
-you want notification records and push delivery to work end to end.
 
 Run on Android emulator:
 
@@ -144,7 +134,7 @@ LIBRARY_API_BASE_URL=http://127.0.0.1:8000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Also fill in Firebase and Asgardeo values if your admin login or storage features need them.
+Also fill in the Asgardeo values required for admin login.
 
 ## Docker Option For Backend
 
@@ -212,7 +202,7 @@ If backend protected routes return `401` or `503`:
 If the server cannot start:
 
 - Check the database values in `server/.env.local`.
-- Make sure PostgreSQL or Cloud SQL is running and reachable.
+- Make sure PostgreSQL is running and reachable.
 - Run `python seed_db.py` after database setup.
 
 
@@ -229,7 +219,7 @@ LibraryApp has three main parts:
 Install these before running the project:
 
 - Python 3.11+ and `pip`
-- PostgreSQL, Cloud SQL, or Firebase SQL Connect PostgreSQL access
+- PostgreSQL
 - Flutter SDK
 - Node.js 20+ and npm
 - Docker, optional
@@ -247,7 +237,6 @@ Edit `server/.env.local` and fill in your real values. At minimum, configure:
 
 - Database: `DATABASE_URL`, or `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`
 - Asgardeo: `ASGARDEO_BASE_URL`
-- Firebase service account values if you use Firebase features
 
 Install dependencies:
 
@@ -353,7 +342,7 @@ LIBRARY_API_BASE_URL=http://127.0.0.1:8000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Also fill in Firebase and Asgardeo values if your admin login or storage features need them.
+Also fill in the Asgardeo values required for admin login.
 
 ## Docker Option For Backend
 
@@ -421,5 +410,5 @@ If backend protected routes return `401` or `503`:
 If the server cannot start:
 
 - Check the database values in `server/.env.local`.
-- Make sure PostgreSQL or Cloud SQL is running and reachable.
+- Make sure PostgreSQL is running and reachable.
 - Run `python seed_db.py` after database setup.

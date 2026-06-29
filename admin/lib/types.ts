@@ -1,4 +1,4 @@
-// Shared admin types for Firestore-backed library data
+// Shared admin types for library data
 
 export interface Book {
   id: string;

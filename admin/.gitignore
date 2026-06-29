@@ -35,11 +35,6 @@ yarn-error.log*
 !.env.example
 !.env.*.example
 
-# Firebase service account keys
-*firebase-adminsdk*.json
-*service-account*.json
-*serviceaccount*.json
-
 # vercel
 .vercel
 
