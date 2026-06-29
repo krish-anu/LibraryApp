@@ -1,18 +1,21 @@
 import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:libraryapp/auth/config/asgardeo_runtime_config.dart';
 import 'package:libraryapp/core/constants/server_constant.dart';
 
-/// Asgardeo Direct Authentication Configuration
-/// Uses Resource Owner Password Credentials (ROPC) grant for in-app authentication
+/// WSO2 Identity Platform app-native authentication configuration.
 class AsgardeoDirectConfig {
   static String get clientId => AsgardeoRuntimeConfig.clientId;
   // Public client - no client secret needed for mobile apps
   static const String clientSecret = '';
   static String get baseUrl => AsgardeoRuntimeConfig.baseUrl;
   static String get tokenEndpoint => AsgardeoRuntimeConfig.tokenEndpoint;
+  static String get authorizeEndpoint => '$baseUrl/oauth2/authorize/';
+  static String get authenticationEndpoint => '$baseUrl/oauth2/authn';
   static String get userInfoEndpoint => AsgardeoRuntimeConfig.userInfoEndpoint;
   static String get scim2Endpoint => AsgardeoRuntimeConfig.scim2Endpoint;
   static String get scim2MeEndpoint => AsgardeoRuntimeConfig.scim2MeEndpoint;
@@ -165,6 +168,9 @@ class AuthResult<T> {
 
 /// Service for direct Asgardeo authentication (no browser redirect)
 class AsgardeoDirectAuthService {
+  static const _pkceCharacters =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+
   Map<String, dynamic>? _tryDecodeJsonObject(String body) {
     try {
       final decoded = jsonDecode(body);
@@ -230,14 +236,213 @@ class AsgardeoDirectAuthService {
     return message;
   }
 
-  /// Login using username/password with Resource Owner Password Grant
+  String _randomUrlSafeValue(int length) {
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => _pkceCharacters[random.nextInt(_pkceCharacters.length)],
+    ).join();
+  }
+
+  String _pkceChallenge(String verifier) {
+    return base64Url
+        .encode(sha256.convert(utf8.encode(verifier)).bytes)
+        .replaceAll('=', '');
+  }
+
+  String _flowError(Map<String, dynamic> response, String fallback) {
+    final nextStep = response['nextStep'];
+    if (nextStep is Map<String, dynamic>) {
+      final messages = nextStep['messages'];
+      if (messages is List) {
+        for (final item in messages) {
+          if (item is Map<String, dynamic>) {
+            final message = item['message']?.toString().trim();
+            if (message != null && message.isNotEmpty) {
+              return message;
+            }
+          }
+        }
+      }
+    }
+
+    return response['error_description']?.toString() ??
+        response['description']?.toString() ??
+        response['message']?.toString() ??
+        response['error']?.toString() ??
+        fallback;
+  }
+
+  Map<String, dynamic>? _usernamePasswordAuthenticator(
+    Map<String, dynamic> response,
+  ) {
+    final nextStep = response['nextStep'];
+    if (nextStep is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final authenticators = nextStep['authenticators'];
+    if (authenticators is! List) {
+      return null;
+    }
+
+    for (final item in authenticators) {
+      if (item is! Map<String, dynamic>) {
+        continue;
+      }
+      final requiredParams = item['requiredParams'];
+      if (requiredParams is List &&
+          requiredParams.contains('username') &&
+          requiredParams.contains('password')) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  /// Authenticate inside the app using WSO2's App-Native Authentication API.
+  /// The flow still uses Authorization Code + PKCE and never stores the password.
   Future<AuthResult<AsgardeoTokenResponse>> login({
     required String username,
     required String password,
   }) async {
-    return AuthResult.failure(
-      'Direct password login is disabled. Use the secure Asgardeo browser sign-in flow.',
-    );
+    try {
+      AsgardeoRuntimeConfig.ensureConfigured();
+      final normalizedUsername = username.trim();
+      if (normalizedUsername.isEmpty || password.isEmpty) {
+        return AuthResult.failure('Username and password are required.');
+      }
+
+      final verifier = _randomUrlSafeValue(64);
+      final state = _randomUrlSafeValue(32);
+      final redirectUri = AsgardeoRuntimeConfig.redirectUrl;
+      final authorizeUri = Uri.parse(AsgardeoDirectConfig.authorizeEndpoint);
+
+      final initiationResponse = await http.post(
+        authorizeUri,
+        headers: const {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'client_id': AsgardeoDirectConfig.clientId,
+          'response_type': 'code',
+          'redirect_uri': redirectUri,
+          'scope': AsgardeoDirectConfig.scopes.join(' '),
+          'response_mode': 'direct',
+          'state': state,
+          'code_challenge': _pkceChallenge(verifier),
+          'code_challenge_method': 'S256',
+        },
+      );
+
+      final initiation = _tryDecodeJsonObject(initiationResponse.body);
+      if (initiationResponse.statusCode != 200 || initiation == null) {
+        return AuthResult.failure(
+          _errorMessageFromResponse(
+            response: initiationResponse,
+            endpoint: authorizeUri,
+            action: 'app-native authentication initiation',
+            fallback:
+                'Unable to start sign in. Enable App-Native Authentication for this application in WSO2 Identity Platform.',
+          ),
+        );
+      }
+
+      final flowId = initiation['flowId']?.toString();
+      final authenticator = _usernamePasswordAuthenticator(initiation);
+      final authenticatorId = authenticator?['authenticatorId']?.toString();
+      if (flowId == null ||
+          flowId.isEmpty ||
+          authenticatorId == null ||
+          authenticatorId.isEmpty) {
+        return AuthResult.failure(
+          _flowError(
+            initiation,
+            'Username and password authentication is not available in the configured WSO2 login flow.',
+          ),
+        );
+      }
+
+      final authenticationUri = Uri.parse(
+        AsgardeoDirectConfig.authenticationEndpoint,
+      );
+      final authenticationResponse = await http.post(
+        authenticationUri,
+        headers: const {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'flowId': flowId,
+          'selectedAuthenticator': {
+            'authenticatorId': authenticatorId,
+            'params': {'username': normalizedUsername, 'password': password},
+          },
+        }),
+      );
+
+      final authentication = _tryDecodeJsonObject(authenticationResponse.body);
+      if (authenticationResponse.statusCode != 200 || authentication == null) {
+        return AuthResult.failure(
+          _errorMessageFromResponse(
+            response: authenticationResponse,
+            endpoint: authenticationUri,
+            action: 'app-native authentication',
+            fallback: 'Sign in failed.',
+          ),
+        );
+      }
+
+      final authData = authentication['authData'];
+      final code = authData is Map<String, dynamic>
+          ? authData['code']?.toString()
+          : authentication['code']?.toString();
+      if (authentication['flowStatus'] != 'SUCCESS_COMPLETED' ||
+          code == null ||
+          code.isEmpty) {
+        return AuthResult.failure(
+          _flowError(
+            authentication,
+            'Sign in requires an additional authentication step that this screen does not yet support.',
+          ),
+        );
+      }
+
+      final tokenUri = Uri.parse(AsgardeoDirectConfig.tokenEndpoint);
+      final tokenResponse = await http.post(
+        tokenUri,
+        headers: const {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'grant_type': 'authorization_code',
+          'code': code,
+          'redirect_uri': redirectUri,
+          'client_id': AsgardeoDirectConfig.clientId,
+          'code_verifier': verifier,
+        },
+      );
+
+      final tokenJson = _tryDecodeJsonObject(tokenResponse.body);
+      if (tokenResponse.statusCode != 200 || tokenJson == null) {
+        return AuthResult.failure(
+          _errorMessageFromResponse(
+            response: tokenResponse,
+            endpoint: tokenUri,
+            action: 'authorization code exchange',
+            fallback: 'Unable to complete sign in.',
+          ),
+        );
+      }
+
+      return AuthResult.success(AsgardeoTokenResponse.fromJson(tokenJson));
+    } catch (error) {
+      return AuthResult.failure(
+        'Sign in failed: ${_messageFromException(error)}',
+      );
+    }
   }
 
   /// Get user info using access token

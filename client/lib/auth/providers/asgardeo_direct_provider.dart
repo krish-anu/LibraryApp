@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:libraryapp/auth/config/asgardeo_runtime_config.dart';
 import 'package:libraryapp/auth/services/asgardeo_direct_auth_service.dart';
 import 'package:libraryapp/core/services/notification_service.dart';
 
@@ -56,7 +54,6 @@ class AsgardeoDirectState {
 @Riverpod(keepAlive: true)
 class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
   final AsgardeoDirectAuthService _authService = AsgardeoDirectAuthService();
-  final FlutterAppAuth _appAuth = FlutterAppAuth();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   static const String _accessTokenKey = 'asgardeo_access_token';
@@ -125,44 +122,17 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
     }
   }
 
-  /// Login with Asgardeo through the system browser using Authorization Code + PKCE.
-  Future<bool> login({String? username, String? password}) async {
+  /// Login inside the app using WSO2 App-Native Authentication and PKCE.
+  Future<bool> login({
+    required String username,
+    required String password,
+  }) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
-    AuthResult<AsgardeoTokenResponse> result;
-    try {
-      AsgardeoRuntimeConfig.ensureConfigured();
-      final response = await _appAuth.authorizeAndExchangeCode(
-        AuthorizationTokenRequest(
-          AsgardeoRuntimeConfig.clientId,
-          AsgardeoRuntimeConfig.redirectUrl,
-          discoveryUrl: AsgardeoRuntimeConfig.discoveryUrl,
-          scopes: AsgardeoDirectConfig.scopes,
-          promptValues: const ['login'],
-        ),
-      );
-
-      final accessToken = response.accessToken;
-      if (accessToken == null || accessToken.isEmpty) {
-        result = AuthResult.failure('Login failed: no access token returned');
-      } else {
-        result = AuthResult.success(
-          AsgardeoTokenResponse(
-            accessToken: accessToken,
-            refreshToken: response.refreshToken,
-            idToken: response.idToken,
-            expiresIn:
-                response.accessTokenExpirationDateTime
-                    ?.difference(DateTime.now())
-                    .inSeconds ??
-                3600,
-            tokenType: response.tokenType ?? 'Bearer',
-          ),
-        );
-      }
-    } catch (error) {
-      result = AuthResult.failure('Login failed: ${error.toString()}');
-    }
+    final result = await _authService.login(
+      username: username,
+      password: password,
+    );
 
     if (result.success && result.data != null) {
       final tokens = result.data!;
