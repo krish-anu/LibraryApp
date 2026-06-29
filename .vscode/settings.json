@@ -58,8 +58,22 @@
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
-  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.configuration.updateBuildConfiguration": "disabled",
   "java.import.gradle.enabled": false,
-  "cmake.sourceDirectory": "/home/anusan/Desktop/LibraryApp/client/linux",
-  "cmake.ignoreCMakeListsMissing": true
+  "java.gradle.buildServer.enabled": "off",
+  "java.project.importOnFirstTimeStartup": "disabled",
+  "java.import.exclusions": [
+    "**/.dart_tool/**",
+    "**/.plugin_symlinks/**",
+    "**/build/**"
+  ],
+  "gradle.autoDetect": "off",
+  "gradle.nestedProjects": false,
+  "jdk.jdkhome": "/usr/lib/jvm/temurin-17-jdk",
+  "jdk.project.jdkhome": "/usr/lib/jvm/temurin-17-jdk",
+  "java.import.gradle.java.home": "/usr/lib/jvm/temurin-17-jdk",
+  "java.jdt.ls.java.home": "/usr/lib/jvm/temurin-17-jdk",
+  "cmake.sourceDirectory": "/home/anusankrishnathas/Desktop/libraryapp/LibraryApp/client/linux",
+  "cmake.ignoreCMakeListsMissing": true,
+  "cmake.configureOnOpen": false
 }

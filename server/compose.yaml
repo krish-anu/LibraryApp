@@ -7,6 +7,12 @@ services:
       ENV_FILE: .env.local
       DB_HOST: postgres
       DB_PORT: 5432
+      # Keep the API credentials aligned with the local Postgres service.
+      # Values from .env.local are intended for non-Compose connections and
+      # may point at a different database.
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: libraryapp
       DB_SSLMODE: disable
     env_file:
       - .env.local

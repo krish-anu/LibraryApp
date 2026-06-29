@@ -51,7 +51,7 @@ if (!hasReleaseSigning) {
 }
 
 android {
-    namespace = androidNamespace
+    namespace = "com.focus.libraryapp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
