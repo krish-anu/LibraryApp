@@ -22,6 +22,11 @@ class BookBase(BaseModel):
         cleaned = value.strip()
         if not cleaned:
             return cleaned
+        # Older seeded rows stored paths relative to the repository root.
+        # Flutter assets are relative to the client package, so normalize the
+        # legacy prefix before validating or returning the API response.
+        if cleaned.startswith("client/assets/"):
+            cleaned = cleaned.removeprefix("client/")
         if cleaned.startswith(("https://", "assets/", "/assets/")):
             return cleaned
         raise ValueError("image must be an HTTPS URL or local asset path")

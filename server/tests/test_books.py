@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.pydantic_schemas.book import Book
+
 VALID_BOOK = {
     "title": "Test Book",
     "description": "A test book description",
@@ -14,6 +16,18 @@ VALID_BOOK = {
     "rating_count": 10,
     "author": "Test Author",
 }
+
+
+def test_legacy_seed_image_path_is_normalized():
+    payload = {
+        **VALID_BOOK,
+        "id": "legacy-image-book",
+        "image": "client/assets/book/book_cover.webp",
+    }
+
+    book = Book(**payload)
+
+    assert book.image == "assets/book/book_cover.webp"
 
 
 def test_create_valid_book(client: TestClient, admin_user):
