@@ -26,6 +26,13 @@ class UserUpdate(BaseModel):
     profile_image: Optional[str] = None
 
 
+class UserAdminCreate(BaseModel):
+    name: str
+    email: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+
+
 class ProfileStats(BaseModel):
     total_borrows: int = 0
     books_read: int = 0

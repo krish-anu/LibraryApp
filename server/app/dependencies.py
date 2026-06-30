@@ -51,6 +51,12 @@ def identity_subject(identity: dict) -> str:
 
 def identity_is_admin(identity: dict) -> bool:
     admin_emails = _csv_env("ADMIN_EMAILS")
+    configured_groups = os.getenv("ADMIN_GROUPS", "").strip()
+    if not admin_emails and not configured_groups:
+        # The admin portal uses the same policy: when no allowlist is configured,
+        # every successfully authenticated portal session is allowed.
+        return True
+
     email = str(identity.get("email") or "").strip().lower()
     if email and email in admin_emails:
         return True

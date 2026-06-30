@@ -23,6 +23,11 @@ function toNumber(value: unknown, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function adminCoverUrl(value?: string) {
+  const image = (value || "").trim();
+  return /^(https?:\/\/|data:|blob:|\/)/.test(image) ? image : "";
+}
+
 function normalizeBook(book: ApiBook, categories: Category[]): Book {
   const category = categories.find((entry) => entry.name === book.category);
   const copiesOwned = toNumber(book.copies_owned, 0);
@@ -39,7 +44,7 @@ function normalizeBook(book: ApiBook, categories: Category[]): Book {
     copies_owned: copiesOwned,
     copies_available: copiesOwned,
     status: copiesOwned > 0 ? "available" : "not_available",
-    image: book.image || "",
+    image: adminCoverUrl(book.image),
     language: book.language || "English",
     pages: toNumber(book.pages, 0),
     rating_count: toNumber(book.rating_count, 0),

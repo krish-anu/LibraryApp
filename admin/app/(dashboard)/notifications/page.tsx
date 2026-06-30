@@ -21,6 +21,9 @@ export default function NotificationsPage() {
       setLoading(true);
       const response = await fetch("/api/notifications", { cache: "no-store" });
       const json = await response.json().catch(() => ({ data: [] }));
+      if (!response.ok) {
+        throw new Error(json.error || "Failed to load notifications");
+      }
       setNotifications(Array.isArray(json.data) ? json.data : []);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -36,7 +39,10 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: "POST" });
+      const response = await fetch(`/api/notifications/${id}/read`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to mark notification read");
       setNotifications((current) =>
         current.map((item) =>
           item.id === id
@@ -52,11 +58,12 @@ export default function NotificationsPage() {
   const markAllAsRead = async () => {
     try {
       setMarkingAll(true);
-      await fetch("/api/notifications", {
+      const response = await fetch("/api/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "read_all" }),
       });
+      if (!response.ok) throw new Error("Failed to mark notifications read");
       setNotifications((current) =>
         current.map((item) => ({
           ...item,

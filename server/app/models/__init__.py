@@ -10,4 +10,5 @@ from . import (
     fine,
     fine_payment,
     settings,
+    notification,
 )

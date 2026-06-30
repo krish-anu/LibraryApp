@@ -20,6 +20,8 @@ from .routers import (
     auth,
     books,
     category,
+    dashboard,
+    fines,
     favorites,
     general,
     loans,
@@ -100,6 +102,8 @@ def _parse_asset_extensions(default_serve_assets: bool) -> set[str] | None:
 
 DEFAULT_ROUTERS: tuple[APIRouter, ...] = (
     general.router,
+    dashboard.router,
+    fines.router,
     auth.router,
     books.router,
     loans.router,

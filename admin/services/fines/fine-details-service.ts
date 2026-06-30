@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import { handleLibraryApiError } from "@/lib/server-api";
+import { handleLibraryApiError, libraryApi } from "@/lib/server-api";
 
-// GET single fine
+async function finePath(params: Promise<{ id: string }>) {
+  const { id } = await params;
+  return `/fines/${encodeURIComponent(id)}`;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -11,17 +15,12 @@ export async function GET(
   if (auth.error) return auth.error;
 
   try {
-    const { id } = await params;
-    return NextResponse.json(
-      { error: `Fine ${id} is not migrated to PostgreSQL yet.` },
-      { status: 501 },
-    );
+    return NextResponse.json(await libraryApi(request, await finePath(params)));
   } catch (error) {
     return handleLibraryApiError("Error fetching fine:", error);
   }
 }
 
-// PUT update fine
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -30,17 +29,17 @@ export async function PUT(
   if (auth.error) return auth.error;
 
   try {
-    const { id } = await params;
     return NextResponse.json(
-      { error: `Fine ${id} is not migrated to PostgreSQL yet.` },
-      { status: 501 },
+      await libraryApi(request, await finePath(params), {
+        method: "PUT",
+        body: JSON.stringify(await request.json()),
+      }),
     );
   } catch (error) {
     return handleLibraryApiError("Error updating fine:", error);
   }
 }
 
-// DELETE fine
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -49,10 +48,8 @@ export async function DELETE(
   if (auth.error) return auth.error;
 
   try {
-    const { id } = await params;
     return NextResponse.json(
-      { error: `Fine ${id} is not migrated to PostgreSQL yet.` },
-      { status: 501 },
+      await libraryApi(request, await finePath(params), { method: "DELETE" }),
     );
   } catch (error) {
     return handleLibraryApiError("Error deleting fine:", error);

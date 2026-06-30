@@ -1,31 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import { handleLibraryApiError } from "@/lib/server-api";
+import { handleLibraryApiError, libraryApi } from "@/lib/server-api";
 
-// GET all fines with pagination and filtering
+function collectionPath(request: NextRequest) {
+  const params = new URLSearchParams();
+  for (const key of ["page", "limit", "search", "status"]) {
+    const value = request.nextUrl.searchParams.get(key);
+    if (value) params.set(key, value);
+  }
+  const query = params.toString();
+  return query ? `/fines?${query}` : "/fines";
+}
+
 export async function GET(request: NextRequest) {
   const auth = await verifyAdmin(request);
   if (auth.error) return auth.error;
 
   try {
-    return NextResponse.json(
-      { error: "Fines are not migrated to PostgreSQL yet." },
-      { status: 501 },
-    );
+    return NextResponse.json(await libraryApi(request, collectionPath(request)));
   } catch (error) {
     return handleLibraryApiError("Error fetching fines:", error);
   }
 }
 
-// POST create new fine
 export async function POST(request: NextRequest) {
   const auth = await verifyAdmin(request);
   if (auth.error) return auth.error;
 
   try {
     return NextResponse.json(
-      { error: "Creating fines is not migrated to PostgreSQL yet." },
-      { status: 501 },
+      await libraryApi(request, "/fines", {
+        method: "POST",
+        body: JSON.stringify(await request.json()),
+      }),
+      { status: 201 },
     );
   } catch (error) {
     return handleLibraryApiError("Error creating fine:", error);

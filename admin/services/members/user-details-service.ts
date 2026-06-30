@@ -30,10 +30,11 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    return NextResponse.json(
-      { error: "Updating users is not migrated to PostgreSQL yet." },
-      { status: 501 },
-    );
+    const data = await libraryApi(request, `/users/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(await request.json()),
+    });
+    return NextResponse.json({ data });
   } catch (error) {
     return handleLibraryApiError("Error updating user:", error);
   }
@@ -50,8 +51,9 @@ export async function DELETE(
   try {
     const { id } = await params;
     return NextResponse.json(
-      { error: "Deleting users is not migrated to PostgreSQL yet." },
-      { status: 501 },
+      await libraryApi(request, `/users/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
     );
   } catch (error) {
     return handleLibraryApiError("Error deleting user:", error);

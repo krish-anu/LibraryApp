@@ -33,6 +33,9 @@ export function NotificationsMenu() {
         cache: "no-store",
       });
       const json = await response.json().catch(() => ({ data: [], unread: 0 }));
+      if (!response.ok) {
+        throw new Error(json.error || "Failed to load notifications");
+      }
       setNotifications(Array.isArray(json.data) ? json.data : []);
       setUnread(typeof json.unread === "number" ? json.unread : 0);
     } catch (error) {
@@ -62,7 +65,10 @@ export function NotificationsMenu() {
 
   const markAsRead = async (id: string) => {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: "POST" });
+      const response = await fetch(`/api/notifications/${id}/read`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to mark notification read");
       setNotifications((current) =>
         current.map((item) =>
           item.id === id
