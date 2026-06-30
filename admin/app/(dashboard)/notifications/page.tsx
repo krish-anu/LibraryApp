@@ -11,22 +11,30 @@ function formatDate(value?: string) {
   return date.toLocaleString();
 }
 
+async function readJson(response: Response) {
+  return response.json().catch(() => ({ data: [] }));
+}
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<LibraryNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/notifications", { cache: "no-store" });
-      const json = await response.json().catch(() => ({ data: [] }));
+      const json = await readJson(response);
       if (!response.ok) {
-        throw new Error(json.error || "Failed to load notifications");
+        setUnavailable(true);
+        setNotifications([]);
+        return;
       }
+      setUnavailable(false);
       setNotifications(Array.isArray(json.data) ? json.data : []);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
+    } catch {
+      setUnavailable(true);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -50,8 +58,8 @@ export default function NotificationsPage() {
             : item,
         ),
       );
-    } catch (error) {
-      console.error("Error marking notification read:", error);
+    } catch {
+      setUnavailable(true);
     }
   };
 
@@ -71,8 +79,8 @@ export default function NotificationsPage() {
           read_at: new Date().toISOString(),
         })),
       );
-    } catch (error) {
-      console.error("Error marking all notifications read:", error);
+    } catch {
+      setUnavailable(true);
     } finally {
       setMarkingAll(false);
     }
@@ -107,6 +115,10 @@ export default function NotificationsPage() {
           {loading ? (
             <div className="px-6 py-12 text-center text-sm text-gray-500">
               Loading notifications...
+            </div>
+          ) : unavailable ? (
+            <div className="px-6 py-12 text-center text-sm text-gray-500">
+              Notifications unavailable.
             </div>
           ) : notifications.length === 0 ? (
             <div className="px-6 py-12 text-center text-sm text-gray-500">

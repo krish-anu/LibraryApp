@@ -12,9 +12,14 @@ function formatDate(value?: string) {
   return date.toLocaleString();
 }
 
+async function readJson(response: Response) {
+  return response.json().catch(() => ({ data: [], unread: 0 }));
+}
+
 export function NotificationsMenu() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
   const [notifications, setNotifications] = useState<LibraryNotification[]>([]);
   const [unread, setUnread] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -32,14 +37,18 @@ export function NotificationsMenu() {
       const response = await fetch("/api/notifications?limit=6", {
         cache: "no-store",
       });
-      const json = await response.json().catch(() => ({ data: [], unread: 0 }));
+      const json = await readJson(response);
       if (!response.ok) {
-        throw new Error(json.error || "Failed to load notifications");
+        setUnavailable(true);
+        setNotifications([]);
+        setUnread(0);
+        return;
       }
+      setUnavailable(false);
       setNotifications(Array.isArray(json.data) ? json.data : []);
       setUnread(typeof json.unread === "number" ? json.unread : 0);
-    } catch (error) {
-      console.error("Error loading notifications:", error);
+    } catch {
+      setUnavailable(true);
       setNotifications([]);
       setUnread(0);
     } finally {
@@ -81,8 +90,8 @@ export function NotificationsMenu() {
         ),
       );
       setUnread((current) => Math.max(0, current - 1));
-    } catch (error) {
-      console.error("Error marking notification read:", error);
+    } catch {
+      setUnavailable(true);
     }
   };
 
@@ -122,6 +131,10 @@ export function NotificationsMenu() {
           {loading ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500">
               Loading notifications...
+            </div>
+          ) : unavailable ? (
+            <div className="px-4 py-8 text-center text-sm text-gray-500">
+              Notifications unavailable.
             </div>
           ) : !hasNotifications ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500">
