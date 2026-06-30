@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAppUrl, sanitizeEnvValue } from "@/lib/auth/env";
+import { signAdminSession } from "@/lib/auth/session";
+import { resolveAdminIdentity } from "@/lib/auth/user-info";
 
 // PKCE callback — exchanges the authorization code for tokens.
 // Environment variables:
@@ -8,14 +10,55 @@ import { resolveAppUrl, sanitizeEnvValue } from "@/lib/auth/env";
 // ASGARDEO_USERINFO_ENDPOINT – (optional) userinfo endpoint
 // NEXT_PUBLIC_APP_URL         – e.g. http://localhost:3000
 
+function callbackErrorDetail(error: unknown) {
+  if (!(error instanceof Error)) {
+    return "Unknown callback error";
+  }
+
+  const cause =
+    error.cause && typeof error.cause === "object"
+      ? (error.cause as { code?: unknown; message?: unknown })
+      : undefined;
+  const causeCode = typeof cause?.code === "string" ? cause.code : "";
+  const causeMessage =
+    typeof cause?.message === "string" ? cause.message : "";
+
+  return [error.name, error.message, causeCode, causeMessage]
+    .filter(Boolean)
+    .join(": ");
+}
+
+async function getTokenJson(
+  tokenEndpoint: string,
+  headers: Record<string, string>,
+  body: string,
+) {
+  const tokenRes = await fetch(tokenEndpoint, {
+    method: "POST",
+    headers,
+    body,
+  });
+
+  const text = await tokenRes.text();
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+  } catch {
+    payload = { error: text || "Token endpoint returned a non-JSON response" };
+  }
+
+  return { ok: tokenRes.ok, status: tokenRes.status, payload };
+}
+
 export async function GET(req: NextRequest) {
+  const appUrl = resolveAppUrl(req);
+
+  try {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
-
-  const appUrl = resolveAppUrl(req);
 
   console.log("[CALLBACK] Start — code:", !!code, "state:", !!state);
   console.log(
@@ -96,21 +139,23 @@ export async function GET(req: NextRequest) {
     params.append("client_id", clientId);
   }
 
-  const tokenRes = await fetch(tokenEndpoint, {
-    method: "POST",
+  const tokenResult = await getTokenJson(
+    tokenEndpoint,
     headers,
-    body: params.toString(),
-  });
+    params.toString(),
+  );
 
-  if (!tokenRes.ok) {
-    const errorBody = await tokenRes.json().catch(() => ({}));
+  if (!tokenResult.ok) {
+    const errorBody = tokenResult.payload;
     const detail =
-      errorBody?.error_description ||
-      errorBody?.error ||
+      (typeof errorBody.error_description === "string"
+        ? errorBody.error_description
+        : "") ||
+      (typeof errorBody.error === "string" ? errorBody.error : "") ||
       "Token exchange failed";
     console.error(
       "[CALLBACK] Token exchange failed:",
-      tokenRes.status,
+      tokenResult.status,
       detail,
       JSON.stringify(errorBody),
     );
@@ -119,42 +164,44 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const tokenJson = await tokenRes.json();
+  const tokenJson = tokenResult.payload;
   console.log(
     "[CALLBACK] Token exchange success, access_token:",
     !!tokenJson.access_token,
   );
-  const accessToken = tokenJson.access_token;
-  const idToken = tokenJson.id_token || "";
-  const expiresIn = tokenJson.expires_in || 3600;
+  const accessToken =
+    typeof tokenJson.access_token === "string" ? tokenJson.access_token : "";
+  const idToken = typeof tokenJson.id_token === "string" ? tokenJson.id_token : "";
+  const expiresIn =
+    typeof tokenJson.expires_in === "number" ? tokenJson.expires_in : 3600;
 
-  // Fetch userinfo
-  let userPayload: string = JSON.stringify({ sub: "", email: "", name: "" });
-  try {
-    const userinfoEndpoint = sanitizeEnvValue(
-      process.env.ASGARDEO_USERINFO_ENDPOINT,
+  if (!accessToken) {
+    console.error("[CALLBACK] Token response did not include an access token");
+    return NextResponse.redirect(
+      `${appUrl}/login?error=${encodeURIComponent("Token response missing access token")}`,
     );
-    if (userinfoEndpoint && accessToken) {
-      const ures = await fetch(userinfoEndpoint, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (ures.ok) {
-        const info = await ures.json();
-        userPayload = JSON.stringify({
-          sub: info.sub || "",
-          email: info.email || "",
-          name:
-            [info.given_name, info.family_name].filter(Boolean).join(" ") ||
-            info.preferred_username ||
-            info.username ||
-            "",
-          picture: info.picture || undefined,
-        });
-      }
-    }
-  } catch {
-    // userinfo is best-effort
   }
+
+  // Require an administrator claim before writing cookies. Asgardeo may expose
+  // custom role claims through either userinfo or the issued tokens.
+  const adminIdentity = await resolveAdminIdentity(accessToken, idToken);
+  if (!adminIdentity.ok) {
+    const message =
+      adminIdentity.reason === "not_admin"
+        ? "Administrator role is required"
+        : "Unable to verify administrator role";
+    return NextResponse.redirect(
+      `${appUrl}/login?error=${encodeURIComponent(message)}`,
+    );
+  }
+  const info = adminIdentity.info;
+  const userPayload = JSON.stringify({
+    sub: adminIdentity.user.sub,
+    email: adminIdentity.user.email,
+    name: adminIdentity.user.name,
+    picture: info.picture || undefined,
+  });
+  const sessionSignature = await signAdminSession(accessToken, userPayload);
 
   // Build Set-Cookie headers manually to bypass Next.js cookie API issues.
   // Use JavaScript redirect (not meta-refresh) to ensure the browser has fully
@@ -187,15 +234,28 @@ export async function GET(req: NextRequest) {
     "Set-Cookie",
     `library_user=${encodeURIComponent(userPayload)}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
   );
+  if (sessionSignature) {
+    respHeaders.append(
+      "Set-Cookie",
+      `library_session_sig=${sessionSignature}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
+    );
+  }
   // Clear PKCE cookies
   respHeaders.append("Set-Cookie", `pkce_code_verifier=; Path=/; Max-Age=0`);
   respHeaders.append("Set-Cookie", `pkce_state=; Path=/; Max-Age=0`);
 
   console.log(
     "[CALLBACK] Returning 200 HTML with",
-    respHeaders.getSetCookie().length,
+    sessionSignature ? 6 : 5,
     "Set-Cookie headers",
   );
 
   return new NextResponse(html, { status: 200, headers: respHeaders });
+  } catch (error) {
+    const detail = callbackErrorDetail(error);
+    console.error("[CALLBACK] Unhandled callback failure:", detail);
+    return NextResponse.redirect(
+      `${appUrl}/login?error=${encodeURIComponent(`Callback failed: ${detail}`)}`,
+    );
+  }
 }

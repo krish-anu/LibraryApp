@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAppUrl, sanitizeEnvValue } from "@/lib/auth/env";
+import { signAdminSession } from "@/lib/auth/session";
+import { resolveAdminIdentity } from "@/lib/auth/user-info";
 
 // PKCE callback — exchanges the authorization code for tokens.
 // Environment variables:
@@ -98,33 +100,26 @@ export async function GET(req: NextRequest) {
   const idToken = tokenJson.id_token || "";
   const expiresIn = tokenJson.expires_in || 3600;
 
-  // Fetch userinfo
-  let userPayload: string = JSON.stringify({ sub: "", email: "", name: "" });
-  try {
-    const userinfoEndpoint = sanitizeEnvValue(
-      process.env.ASGARDEO_USERINFO_ENDPOINT,
+  // Require an administrator claim before writing cookies. Asgardeo may expose
+  // custom role claims through either userinfo or the issued tokens.
+  const adminIdentity = await resolveAdminIdentity(accessToken, idToken);
+  if (!adminIdentity.ok) {
+    const message =
+      adminIdentity.reason === "not_admin"
+        ? "Administrator role is required"
+        : "Unable to verify administrator role";
+    return NextResponse.redirect(
+      `${appUrl}/login?error=${encodeURIComponent(message)}`,
     );
-    if (userinfoEndpoint && accessToken) {
-      const ures = await fetch(userinfoEndpoint, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (ures.ok) {
-        const info = await ures.json();
-        userPayload = JSON.stringify({
-          sub: info.sub || "",
-          email: info.email || "",
-          name:
-            [info.given_name, info.family_name].filter(Boolean).join(" ") ||
-            info.preferred_username ||
-            info.username ||
-            "",
-          picture: info.picture || undefined,
-        });
-      }
-    }
-  } catch {
-    // userinfo is best-effort
   }
+  const info = adminIdentity.info;
+  const userPayload = JSON.stringify({
+    sub: adminIdentity.user.sub,
+    email: adminIdentity.user.email,
+    name: adminIdentity.user.name,
+    picture: info.picture || undefined,
+  });
+  const sessionSignature = await signAdminSession(accessToken, userPayload);
 
   const response = NextResponse.redirect(`${appUrl}/dashboard`);
 
@@ -148,6 +143,13 @@ export async function GET(req: NextRequest) {
     ...cookieOptions,
     httpOnly: true,
   });
+  if (sessionSignature) {
+    response.cookies.set(
+      "library_session_sig",
+      sessionSignature,
+      cookieOptions,
+    );
+  }
 
   // Clear PKCE cookies
   response.cookies.set("pkce_code_verifier", "", { path: "/", maxAge: 0 });

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isAdminUser } from "@/lib/auth/admin-policy";
+import { readSessionUser, verifyAdminSession } from "@/lib/auth/session";
+import { fetchUserInfo } from "@/lib/auth/user-info";
 
 // Paths that don't require authentication
 const PUBLIC_PATHS = [
@@ -24,101 +27,19 @@ function unauthorized(request: NextRequest) {
   response.cookies.set("library_session", "", COOKIE_CLEAR_OPTIONS);
   response.cookies.set("library_id_token", "", COOKIE_CLEAR_OPTIONS);
   response.cookies.set("library_user", "", COOKIE_CLEAR_OPTIONS);
+  response.cookies.set("library_session_sig", "", COOKIE_CLEAR_OPTIONS);
   return response;
-}
-
-function csvEnv(name: string, fallback = "") {
-  return new Set(
-    (process.env[name] || fallback)
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  );
-}
-
-function hasAdminRestriction() {
-  return csvEnv("ADMIN_EMAILS").size > 0 || csvEnv("ADMIN_GROUPS").size > 0;
-}
-
-function claimValues(value: unknown): Set<string> {
-  const values = new Set<string>();
-  if (typeof value === "string") {
-    value
-      .replaceAll(",", " ")
-      .split(/\s+/)
-      .map((part) => part.trim().toLowerCase())
-      .filter(Boolean)
-      .forEach((part) => values.add(part));
-    return values;
-  }
-  if (Array.isArray(value)) {
-    value.forEach((entry) => {
-      claimValues(entry).forEach((part) => values.add(part));
-    });
-    return values;
-  }
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    ["value", "name", "display", "displayName"].forEach((key) => {
-      const item = record[key];
-      if (typeof item === "string" && item.trim()) {
-        values.add(item.trim().toLowerCase());
-      }
-    });
-  }
-  return values;
-}
-
-function isAdminUser(info: Record<string, unknown>) {
-  const email = typeof info.email === "string" ? info.email.toLowerCase() : "";
-  const allowedEmails = csvEnv("ADMIN_EMAILS");
-  if (email && allowedEmails.has(email)) {
-    return true;
-  }
-
-  const allowedGroups = csvEnv(
-    "ADMIN_GROUPS",
-    "admin,library-admin,library_admin,Library Administrator",
-  );
-  const claims = new Set<string>();
-  ["groups", "roles", "role", "permissions", "scope"].forEach((claim) => {
-    claimValues(info[claim]).forEach((value) => claims.add(value));
-  });
-  return [...claims].some((claim) => allowedGroups.has(claim));
 }
 
 async function validateAdminWithUserInfo(
   accessToken: string,
 ): Promise<boolean> {
-  const userInfoEndpoint = (
-    process.env.ASGARDEO_USERINFO_ENDPOINT || ""
-  ).trim();
-  if (!userInfoEndpoint) {
+  const result = await fetchUserInfo(accessToken);
+  if (!result.ok) {
     return false;
   }
 
-  try {
-    const res = await fetch(userInfoEndpoint, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      return false;
-    }
-    const info = (await res.json()) as Record<string, unknown>;
-    if (typeof info.sub !== "string" || info.sub.trim() === "") {
-      return false;
-    }
-
-    if (!hasAdminRestriction()) {
-      return true;
-    }
-
-    return isAdminUser(info);
-  } catch {
-    return false;
-  }
+  return isAdminUser(result.info);
 }
 
 export async function proxy(request: NextRequest) {
@@ -133,6 +54,16 @@ export async function proxy(request: NextRequest) {
   const session = request.cookies.get("library_session")?.value;
   if (!session) {
     return unauthorized(request);
+  }
+
+  const userPayload = request.cookies.get("library_user")?.value || "";
+  const sessionSignature =
+    request.cookies.get("library_session_sig")?.value || "";
+  if (
+    (await verifyAdminSession(session, userPayload, sessionSignature)) &&
+    readSessionUser(userPayload)
+  ) {
+    return NextResponse.next();
   }
 
   const valid = await validateAdminWithUserInfo(session);

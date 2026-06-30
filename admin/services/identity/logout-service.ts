@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
     response.cookies.set(clearCookie("library_session"));
     response.cookies.set(clearCookie("library_id_token"));
     response.cookies.set(clearCookie("library_user"));
+    response.cookies.set(clearCookie("library_session_sig"));
     return response;
   }
 
@@ -45,5 +46,6 @@ export async function GET(req: NextRequest) {
   response.cookies.set(clearCookie("library_session"));
   response.cookies.set(clearCookie("library_id_token"));
   response.cookies.set(clearCookie("library_user"));
+  response.cookies.set(clearCookie("library_session_sig"));
   return response;
 }

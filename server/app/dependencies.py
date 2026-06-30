@@ -12,6 +12,17 @@ load_app_env()
 
 ASGARDEO_BASE_URL = os.getenv("ASGARDEO_BASE_URL", "")
 logger = logging.getLogger(__name__)
+DEFAULT_ADMIN_GROUPS = "admin,library-admin,library_admin,Library Administrator"
+ROLE_CLAIMS = (
+    "groups",
+    "roles",
+    "role",
+    "permissions",
+    "scope",
+    "http://wso2.org/claims/role",
+    "http://wso2.org/claims/roles",
+    "http://wso2.org/claims/groups",
+)
 
 
 def _csv_env(name: str, default: str = "") -> set[str]:
@@ -23,7 +34,11 @@ def _claim_values(value) -> set[str]:
     if value is None:
         return set()
     if isinstance(value, str):
-        return {part.strip().lower() for part in value.replace(",", " ").split() if part.strip()}
+        return {
+            part.strip().lower()
+            for part in value.replace(",", " ").split()
+            if part.strip()
+        }
     if isinstance(value, dict):
         values = set()
         for key in ("value", "name", "display", "displayName"):
@@ -51,24 +66,18 @@ def identity_subject(identity: dict) -> str:
 
 def identity_is_admin(identity: dict) -> bool:
     admin_emails = _csv_env("ADMIN_EMAILS")
-    configured_groups = os.getenv("ADMIN_GROUPS", "").strip()
-    if not admin_emails and not configured_groups:
-        # The admin portal uses the same policy: when no allowlist is configured,
-        # every successfully authenticated portal session is allowed.
+    user_identifiers = {
+        str(identity.get(claim) or "").strip().lower()
+        for claim in ("email", "username", "preferred_username")
+        if str(identity.get(claim) or "").strip()
+    }
+    if user_identifiers.intersection(admin_emails):
         return True
 
-    email = str(identity.get("email") or "").strip().lower()
-    if email and email in admin_emails:
-        return True
-
-    allowed_roles = _csv_env(
-        "ADMIN_GROUPS",
-        "admin,library-admin,library_admin,Library Administrator",
-    )
+    allowed_roles = _csv_env("ADMIN_GROUPS", DEFAULT_ADMIN_GROUPS)
     claim_values = set()
-    for claim in ("groups", "roles", "role", "permissions"):
+    for claim in ROLE_CLAIMS:
         claim_values.update(_claim_values(identity.get(claim)))
-    claim_values.update(_claim_values(identity.get("scope")))
     return bool(claim_values.intersection(allowed_roles))
 
 
