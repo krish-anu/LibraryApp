@@ -5,17 +5,11 @@ class ServerConstant {
     'SERVER_URL',
     defaultValue: '',
   );
-  static bool _logged = false;
 
   static String get serverURL {
     if (_envServer.isNotEmpty) {
       if (kReleaseMode && _envServer.startsWith('http://')) {
         throw StateError('SERVER_URL must use HTTPS in release builds.');
-      }
-      if (!_logged) {
-        // ignore: avoid_print
-        print('ServerConstant: using SERVER_URL override -> $_envServer');
-        _logged = true;
       }
       return _envServer;
     }
@@ -25,12 +19,6 @@ class ServerConstant {
     // host machine. If you're using an Android emulator, pass the emulator
     // host address explicitly when running the app:
     // `flutter run --dart-define=SERVER_URL=http://10.0.2.2:8000`
-    final url = 'http://127.0.0.1:8000';
-    if (!_logged) {
-      // ignore: avoid_print
-      print('ServerConstant: resolved serverURL -> $url');
-      _logged = true;
-    }
-    return url;
+    return 'http://127.0.0.1:8000';
   }
 }

@@ -39,9 +39,6 @@ class AuthViewModel extends _$AuthViewModel {
       ),
       Right(value: final r) => state = AsyncValue.data(r),
     };
-
-    // update state appropriately
-    // print(res);
   }
 
   Future<void> loginUser(String email, String password) async {
@@ -56,9 +53,6 @@ class AuthViewModel extends _$AuthViewModel {
       ),
       Right(value: final r) => await _loginSuccess(r),
     };
-
-    // update state appropriately
-    // print(res);
   }
 
   Future<void> _loginSuccess(User user) async {

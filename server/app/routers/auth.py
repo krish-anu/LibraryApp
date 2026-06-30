@@ -127,7 +127,7 @@ class CredentialLoginResponse(BaseModel):
 async def get_client_credentials_token() -> Optional[str]:
     """Get an access token using client credentials grant from M2M app."""
     if not ASGARDEO_M2M_CLIENT_ID or not ASGARDEO_M2M_CLIENT_SECRET:
-        print(
+        logger.error(
             "M2M credentials not configured. Set ASGARDEO_M2M_CLIENT_ID and ASGARDEO_M2M_CLIENT_SECRET environment variables."
         )
         return None
@@ -144,9 +144,8 @@ async def get_client_credentials_token() -> Optional[str]:
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
-        print(f"Token request status: {response.status_code}")
         if response.status_code != 200:
-            print("Token request failed")
+            logger.warning("Token request failed with status %s", response.status_code)
 
         if response.status_code == 200:
             data = response.json()
@@ -415,7 +414,7 @@ async def asgardeo_login_sync(
 @limiter.limit(AUTH_CREDENTIAL_LOGIN_RATE_LIMIT)
 async def login_with_credentials(
     _payload: CredentialLoginRequest,
-    request: Request = None,
+    request: Request,
     _db: Session = Depends(get_db),
 ):
     """Validate email/password with Asgardeo, then ensure local user exists.

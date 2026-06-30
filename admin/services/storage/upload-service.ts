@@ -101,16 +101,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const filename = (form.get("filename") as string) || file.name || "upload";
-    const safeName = filename.replace(/[^a-zA-Z0-9.-_]/g, "_");
-    const key = `books/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
-
-    // Basic env checks for clearer diagnostics
-    console.log(`/api/storage/upload starting upload`, {
-      key,
-      contentType: file.type,
-      size: file.size,
-    });
     const arrayBuffer = await file.arrayBuffer();
     const body = Buffer.from(arrayBuffer);
     if (!hasAllowedMagicBytes(body, mimeType)) {

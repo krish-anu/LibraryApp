@@ -60,12 +60,6 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
-  console.log("[CALLBACK] Start — code:", !!code, "state:", !!state);
-  console.log(
-    "[CALLBACK] All cookies:",
-    req.cookies.getAll().map((c) => c.name),
-  );
-
   // Handle error response from IdP
   if (error) {
     console.error("[CALLBACK] OAuth IdP error:", error, errorDescription);
@@ -81,14 +75,6 @@ export async function GET(req: NextRequest) {
 
   // Validate state
   const storedState = req.cookies.get("pkce_state")?.value;
-  console.log(
-    "[CALLBACK] storedState:",
-    storedState ? storedState.substring(0, 10) + "..." : "MISSING",
-  );
-  console.log(
-    "[CALLBACK] incomingState:",
-    state ? state.substring(0, 10) + "..." : "MISSING",
-  );
   if (!storedState || storedState !== state) {
     console.error(
       "[CALLBACK] State mismatch! stored:",
@@ -105,8 +91,6 @@ export async function GET(req: NextRequest) {
     console.error("[CALLBACK] Missing PKCE code_verifier cookie");
     return NextResponse.redirect(`${appUrl}/login?error=missing_verifier`);
   }
-  console.log("[CALLBACK] PKCE cookies present, proceeding to token exchange");
-
   const tokenEndpoint = sanitizeEnvValue(process.env.ASGARDEO_TOKEN_ENDPOINT);
   const clientId = sanitizeEnvValue(process.env.ASGARDEO_CLIENT_ID);
   const redirectUri = `${appUrl}/api/auth/callback/asgardeo`;
@@ -165,10 +149,6 @@ export async function GET(req: NextRequest) {
   }
 
   const tokenJson = tokenResult.payload;
-  console.log(
-    "[CALLBACK] Token exchange success, access_token:",
-    !!tokenJson.access_token,
-  );
   const accessToken =
     typeof tokenJson.access_token === "string" ? tokenJson.access_token : "";
   const idToken = typeof tokenJson.id_token === "string" ? tokenJson.id_token : "";
@@ -243,12 +223,6 @@ export async function GET(req: NextRequest) {
   // Clear PKCE cookies
   respHeaders.append("Set-Cookie", `pkce_code_verifier=; Path=/; Max-Age=0`);
   respHeaders.append("Set-Cookie", `pkce_state=; Path=/; Max-Age=0`);
-
-  console.log(
-    "[CALLBACK] Returning 200 HTML with",
-    sessionSignature ? 6 : 5,
-    "Set-Cookie headers",
-  );
 
   return new NextResponse(html, { status: 200, headers: respHeaders });
   } catch (error) {
