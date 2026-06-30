@@ -17,11 +17,19 @@ ROLE_CLAIMS = (
     "groups",
     "roles",
     "role",
+    "app_roles",
+    "appRoles",
+    "application_roles",
+    "applicationRoles",
+    "assigned_roles",
+    "assignedRoles",
     "permissions",
     "scope",
     "http://wso2.org/claims/role",
     "http://wso2.org/claims/roles",
     "http://wso2.org/claims/groups",
+    "http://wso2.org/claims/applicationRoles",
+    "http://wso2.org/claims/application_roles",
 )
 
 
@@ -31,20 +39,31 @@ def _csv_env(name: str, default: str = "") -> set[str]:
 
 
 def _claim_values(value) -> set[str]:
+    def normalize(raw: str) -> set[str]:
+        normalized = raw.strip().lower()
+        if not normalized:
+            return set()
+        values = {normalized}
+        for separator in ("/", ":", "|"):
+            for part in normalized.split(separator):
+                part = part.strip()
+                if part:
+                    values.add(part)
+        return values
+
     if value is None:
         return set()
     if isinstance(value, str):
-        return {
-            part.strip().lower()
-            for part in value.replace(",", " ").split()
-            if part.strip()
-        }
+        values = set()
+        for part in value.replace(",", " ").split():
+            values.update(normalize(part))
+        return values
     if isinstance(value, dict):
         values = set()
         for key in ("value", "name", "display", "displayName"):
             item = value.get(key)
             if isinstance(item, str) and item.strip():
-                values.add(item.strip().lower())
+                values.update(normalize(item))
         return values
     if isinstance(value, (list, tuple, set)):
         values = set()

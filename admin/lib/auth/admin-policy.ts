@@ -6,11 +6,19 @@ const ROLE_CLAIMS = [
   "groups",
   "roles",
   "role",
+  "app_roles",
+  "appRoles",
+  "application_roles",
+  "applicationRoles",
+  "assigned_roles",
+  "assignedRoles",
   "permissions",
   "scope",
   "http://wso2.org/claims/role",
   "http://wso2.org/claims/roles",
   "http://wso2.org/claims/groups",
+  "http://wso2.org/claims/applicationRoles",
+  "http://wso2.org/claims/application_roles",
 ];
 
 export function csvEnv(name: string, fallback = "") {
@@ -24,13 +32,24 @@ export function csvEnv(name: string, fallback = "") {
 
 export function claimValues(value: unknown): Set<string> {
   const values = new Set<string>();
+  const addValue = (raw: string) => {
+    const normalized = raw.trim().toLowerCase();
+    if (!normalized) {
+      return;
+    }
+    values.add(normalized);
+    normalized
+      .split(/[/:|]/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .forEach((part) => values.add(part));
+  };
+
   if (typeof value === "string") {
     value
       .replaceAll(",", " ")
       .split(/\s+/)
-      .map((part) => part.trim().toLowerCase())
-      .filter(Boolean)
-      .forEach((part) => values.add(part));
+      .forEach(addValue);
     return values;
   }
   if (Array.isArray(value)) {
@@ -44,7 +63,7 @@ export function claimValues(value: unknown): Set<string> {
     ["value", "name", "display", "displayName"].forEach((key) => {
       const item = record[key];
       if (typeof item === "string" && item.trim()) {
-        values.add(item.trim().toLowerCase());
+        addValue(item);
       }
     });
   }

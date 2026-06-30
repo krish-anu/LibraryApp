@@ -27,6 +27,9 @@ def test_admin_policy_requires_admin_role_by_default(monkeypatch):
         identity_is_admin({"sub": "admin", "http://wso2.org/claims/role": "admin"})
         is True
     )
+    assert identity_is_admin({"sub": "admin", "applicationRoles": ["admin"]}) is True
+    assert identity_is_admin({"sub": "admin", "roles": ["Next.js/admin"]}) is True
+    assert identity_is_admin({"sub": "admin", "roles": [{"display": "admin"}]}) is True
 
     monkeypatch.setenv("ADMIN_EMAILS", "admin@gmail.com")
     assert identity_is_admin({"sub": "admin", "username": "admin@gmail.com"}) is True

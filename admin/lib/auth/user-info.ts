@@ -185,6 +185,20 @@ export async function resolveAdminIdentity(
         status: userInfo.status,
       };
     }
+    console.warn(
+      "[AUTH] Administrator role missing from identity claims",
+      candidates.map((info) => ({
+        username: info.username,
+        email: info.email,
+        groups: info.groups,
+        roles: info.roles,
+        role: info.role,
+        applicationRoles: info.applicationRoles,
+        application_roles: info.application_roles,
+        wso2Roles: info["http://wso2.org/claims/roles"],
+        wso2Role: info["http://wso2.org/claims/role"],
+      })),
+    );
     return { ok: false, reason: "not_admin" };
   }
 
