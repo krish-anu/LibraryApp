@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, require_admin, require_subject_or_admin, verify_access_token
+from ..dependencies import (
+    get_db,
+    require_admin,
+    require_subject_or_admin,
+    verify_access_token,
+)
 from ..models import loan as loan_model
 from ..models import reservation as reservation_model
 from ..models import book as book_model
@@ -162,7 +167,7 @@ def create_reservation(
                 "book_title": book_title,
                 "reservation_date": (
                     reservation.reservation_date.isoformat()
-                    if reservation.reservation_date
+                    if reservation.reservation_date is not None
                     else None
                 ),
                 "status": reservation.status,
@@ -208,7 +213,7 @@ def cancel_reservation(
         raise HTTPException(status_code=404, detail="Reservation not found")
     require_subject_or_admin(identity, str(reservation.member_id or ""))
 
-    reservation.status = "Cancelled"
+    setattr(reservation, "status", "Cancelled")
     db.commit()
     db.refresh(reservation)
 
