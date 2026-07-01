@@ -28,7 +28,12 @@ class BorrowConfirmationSheet extends ConsumerStatefulWidget {
 class _BorrowConfirmationSheetState
     extends ConsumerState<BorrowConfirmationSheet> {
   bool _isLoading = false;
+  late Book _book;
   int _loanPeriodDays = 14;
+  int _gracePeriodDays = 2;
+  int _notificationDaysBeforeDue = 3;
+  double _dailyFineRate = 0.50;
+  bool _sendNotifications = true;
   static const _borrowConflictMessage =
       'You already borrowed this book. Return it before borrowing again.';
   static const _reserveWhileBorrowedMessage =
@@ -38,12 +43,13 @@ class _BorrowConfirmationSheetState
   @override
   void initState() {
     super.initState();
-    _loadSettings();
+    _book = widget.book;
+    _loadSheetDetails();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isAvailable = widget.book.copiesOwned > 0;
+    final isAvailable = _book.copiesOwned > 0;
     final returnDate = DateTime.now().add(Duration(days: _loanPeriodDays));
     final dateStr =
         '${_monthName(returnDate.month)} ${returnDate.day}, ${returnDate.year}';
@@ -66,7 +72,7 @@ class _BorrowConfirmationSheetState
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFF1A3D2E), Color(0xFF0D2818)],
+                  colors: [Pallete.primaryColor, Pallete.primaryDark],
                 ),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
@@ -77,11 +83,23 @@ class _BorrowConfirmationSheetState
                   const SizedBox(height: 20),
                   _SheetTitle(isAvailable: isAvailable),
                   const SizedBox(height: 24),
-                  _BookInfoCard(book: widget.book),
+                  _BookInfoCard(book: _book),
                   const SizedBox(height: 20),
-                  _LoanDetailsRow(dateStr: dateStr, isAvailable: isAvailable),
+                  _LoanDetailsRow(
+                    dateStr: dateStr,
+                    isAvailable: isAvailable,
+                    loanPeriodDays: _loanPeriodDays,
+                    gracePeriodDays: _gracePeriodDays,
+                    dailyFineRate: _dailyFineRate,
+                    sendNotifications: _sendNotifications,
+                  ),
                   const SizedBox(height: 20),
-                  _WarningNote(isAvailable: isAvailable),
+                  _InfoNote(
+                    isAvailable: isAvailable,
+                    gracePeriodDays: _gracePeriodDays,
+                    notificationDaysBeforeDue: _notificationDaysBeforeDue,
+                    sendNotifications: _sendNotifications,
+                  ),
                   const SizedBox(height: 24),
                   _ConfirmButton(
                     isAvailable: isAvailable,
@@ -126,7 +144,7 @@ class _BorrowConfirmationSheetState
     if (isAvailable) {
       // Borrow the book
       final loanRepo = ref.read(loanRepositoryProvider);
-      final result = await loanRepo.borrowBook(widget.book.id, memberId);
+      final result = await loanRepo.borrowBook(_book.id, memberId);
 
       if (mounted) {
         setState(() => _isLoading = false);
@@ -159,7 +177,7 @@ class _BorrowConfirmationSheetState
       final reserveRepo = ref.read(reserveRepositoryProvider);
       final reservation = Reserve(
         id: '',
-        bookId: widget.book.id,
+        bookId: _book.id,
         memberId: memberId,
         reservationDate: DateTime.now().toIso8601String().split('T')[0],
         status: 'pending',
@@ -327,6 +345,46 @@ class _BorrowConfirmationSheetState
     return result;
   }
 
+  Future<void> _loadSheetDetails() async {
+    await Future.wait([_loadLatestBook(), _loadSettings()]);
+  }
+
+  Future<void> _loadLatestBook() async {
+    try {
+      final res = await AuthenticatedHttpClient.get(
+        Uri.parse('${ServerConstant.serverURL}/books/${widget.book.id}'),
+      );
+      if (res.statusCode != 200) return;
+      final data = jsonDecode(res.body);
+      if (data is! Map<String, dynamic> || !mounted) return;
+
+      setState(() => _book = _bookFromResponse(data));
+    } catch (_) {
+      // Keep the passed-in book if the latest record cannot be fetched.
+    }
+  }
+
+  Book _bookFromResponse(Map<String, dynamic> data) {
+    return Book(
+      id: data['id']?.toString() ?? widget.book.id,
+      title: data['title']?.toString() ?? widget.book.title,
+      author: data['author']?.toString() ?? widget.book.author,
+      category: data['category']?.toString() ?? widget.book.category,
+      description: data['description']?.toString() ?? widget.book.description,
+      rating: (data['rating'] as num?)?.toDouble() ?? widget.book.rating,
+      publicationYear:
+          (data['publication_year'] as num?)?.toInt() ??
+          widget.book.publicationYear,
+      copiesOwned:
+          (data['copies_owned'] as num?)?.toInt() ?? widget.book.copiesOwned,
+      image: data['image']?.toString() ?? widget.book.image,
+      language: data['language']?.toString() ?? widget.book.language,
+      pages: (data['pages'] as num?)?.toInt() ?? widget.book.pages,
+      ratingCount:
+          (data['rating_count'] as num?)?.toInt() ?? widget.book.ratingCount,
+    );
+  }
+
   Future<void> _loadSettings() async {
     try {
       final res = await AuthenticatedHttpClient.get(
@@ -336,16 +394,45 @@ class _BorrowConfirmationSheetState
       final data = jsonDecode(res.body);
       if (data is! Map<String, dynamic>) return;
 
-      final value = data['loan_period_days'];
-      final parsed = value is num
-          ? value.toInt()
-          : int.tryParse(value?.toString() ?? '');
-      if (parsed == null || parsed <= 0 || !mounted) return;
-
-      setState(() => _loanPeriodDays = parsed);
+      if (!mounted) return;
+      setState(() {
+        _loanPeriodDays =
+            _positiveInt(data['loan_period_days']) ?? _loanPeriodDays;
+        _gracePeriodDays =
+            _nonNegativeInt(data['grace_period_days']) ?? _gracePeriodDays;
+        _notificationDaysBeforeDue =
+            _nonNegativeInt(data['notification_days_before_due']) ??
+            _notificationDaysBeforeDue;
+        _dailyFineRate =
+            _nonNegativeDouble(data['daily_fine_rate']) ?? _dailyFineRate;
+        _sendNotifications = data['send_notifications'] is bool
+            ? data['send_notifications'] as bool
+            : _sendNotifications;
+      });
     } catch (_) {
       // Keep default fallback values if settings fetch fails.
     }
+  }
+
+  int? _positiveInt(Object? value) {
+    final parsed = value is num
+        ? value.toInt()
+        : int.tryParse(value?.toString() ?? '');
+    return parsed != null && parsed > 0 ? parsed : null;
+  }
+
+  int? _nonNegativeInt(Object? value) {
+    final parsed = value is num
+        ? value.toInt()
+        : int.tryParse(value?.toString() ?? '');
+    return parsed != null && parsed >= 0 ? parsed : null;
+  }
+
+  double? _nonNegativeDouble(Object? value) {
+    final parsed = value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '');
+    return parsed != null && parsed >= 0 ? parsed : null;
   }
 
   String _resolveMemberId() {
@@ -459,7 +546,7 @@ class _SheetTitle extends StatelessWidget {
     return Text(
       isAvailable ? 'Confirm Borrow' : 'Confirm Reservation',
       style: const TextStyle(
-        color: Pallete.textPrimary,
+        color: Colors.white,
         fontSize: 24,
         fontWeight: FontWeight.bold,
       ),
@@ -511,11 +598,15 @@ class _BookInfoCard extends StatelessWidget {
                   style: TextStyle(color: Pallete.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
-                Row(
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    _SmallChip(label: book.category),
-                    const SizedBox(width: 6),
-                    const _SmallChip(label: 'Classic'),
+                    if (book.category.trim().isNotEmpty)
+                      _SmallChip(label: book.category),
+                    _SmallChip(label: book.language),
+                    if (book.pages > 0)
+                      _SmallChip(label: '${book.pages} pages'),
                   ],
                 ),
               ],
@@ -555,8 +646,19 @@ class _SmallChip extends StatelessWidget {
 class _LoanDetailsRow extends StatelessWidget {
   final String dateStr;
   final bool isAvailable;
+  final int loanPeriodDays;
+  final int gracePeriodDays;
+  final double dailyFineRate;
+  final bool sendNotifications;
 
-  const _LoanDetailsRow({required this.dateStr, required this.isAvailable});
+  const _LoanDetailsRow({
+    required this.dateStr,
+    required this.isAvailable,
+    required this.loanPeriodDays,
+    required this.gracePeriodDays,
+    required this.dailyFineRate,
+    required this.sendNotifications,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -567,7 +669,9 @@ class _LoanDetailsRow extends StatelessWidget {
             icon: Icons.calendar_today,
             title: isAvailable ? 'RETURN BY' : 'RESERVED ON',
             value: dateStr,
-            subtitle: isAvailable ? '14 days loan period' : 'Queue position: 1',
+            subtitle: isAvailable
+                ? '$loanPeriodDays days loan period'
+                : 'Queue request will be saved',
           ),
         ),
         const SizedBox(width: 12),
@@ -575,8 +679,14 @@ class _LoanDetailsRow extends StatelessWidget {
           child: _InfoCard(
             icon: isAvailable ? Icons.attach_money : Icons.notifications,
             title: isAvailable ? 'LATE FEE' : 'NOTIFICATION',
-            value: isAvailable ? 'LKR 0.25/day' : 'Email',
-            subtitle: isAvailable ? 'After due date' : 'When book is available',
+            value: isAvailable
+                ? 'LKR ${dailyFineRate.toStringAsFixed(2)}/day'
+                : (sendNotifications ? 'Enabled' : 'Disabled'),
+            subtitle: isAvailable
+                ? gracePeriodDays > 0
+                      ? 'After $gracePeriodDays day grace period'
+                      : 'After due date'
+                : 'When book is available',
           ),
         ),
       ],
@@ -651,31 +761,45 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-class _WarningNote extends StatelessWidget {
+class _InfoNote extends StatelessWidget {
   final bool isAvailable;
+  final int gracePeriodDays;
+  final int notificationDaysBeforeDue;
+  final bool sendNotifications;
 
-  const _WarningNote({required this.isAvailable});
+  const _InfoNote({
+    required this.isAvailable,
+    required this.gracePeriodDays,
+    required this.notificationDaysBeforeDue,
+    required this.sendNotifications,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final message = isAvailable
+        ? gracePeriodDays > 0
+              ? 'Note: Late fees begin after a $gracePeriodDays day grace period.'
+              : 'Note: Late fees begin after the due date.'
+        : sendNotifications
+        ? 'Note: You will be notified when this book becomes available. Reminders are sent $notificationDaysBeforeDue days before due dates.'
+        : 'Note: Notifications are currently disabled by library settings.';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Pallete.warning.withValues(alpha: 0.1),
+        color: Pallete.primaryLight.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Pallete.warning.withValues(alpha: 0.3)),
+        border: Border.all(color: Pallete.primaryLight.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: Pallete.warning, size: 18),
+          Icon(Icons.info_outline, color: Pallete.primaryLight, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              isAvailable
-                  ? 'Note: Items not picked up within 48 hours of reservation approval will be released to the next person in queue.'
-                  : 'Note: You will be notified when this book becomes available. Your reservation will be held for 48 hours.',
+              message,
               style: TextStyle(
-                color: Pallete.warning,
+                color: Pallete.primaryLight,
                 fontSize: 11,
                 height: 1.4,
               ),
@@ -717,7 +841,7 @@ class _ConfirmButton extends StatelessWidget {
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.black,
+                  color: Pallete.btnTextColor,
                 ),
               )
             : Row(
@@ -726,7 +850,7 @@ class _ConfirmButton extends StatelessWidget {
                   Text(
                     isAvailable ? 'Confirm Borrow' : 'Confirm Reservation',
                     style: const TextStyle(
-                      color: Colors.black,
+                      color: Pallete.btnTextColor,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -734,7 +858,7 @@ class _ConfirmButton extends StatelessWidget {
                   const SizedBox(width: 8),
                   const Icon(
                     Icons.arrow_forward,
-                    color: Colors.black,
+                    color: Pallete.btnTextColor,
                     size: 20,
                   ),
                 ],
