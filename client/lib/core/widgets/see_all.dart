@@ -15,7 +15,7 @@ class _SeeAllState extends State<SeeAll> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(automaticallyImplyLeading: false),
       body: GridView.builder(
         padding: EdgeInsets.all(10),
         itemCount: widget.bookDetail.length,

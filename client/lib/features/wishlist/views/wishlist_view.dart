@@ -46,6 +46,7 @@ class WishlistView extends ConsumerWidget {
     return AppBar(
       backgroundColor: Pallete.scaffoldBackground,
       elevation: 0,
+      automaticallyImplyLeading: false,
       centerTitle: true,
       title: const Text(
         'Favorites',

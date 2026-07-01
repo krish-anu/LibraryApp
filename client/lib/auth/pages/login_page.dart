@@ -56,7 +56,7 @@ class _LoginState extends ConsumerState<Login> {
     final authState = ref.watch(asgardeoDirectAuthProvider);
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(automaticallyImplyLeading: false),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(28.0),

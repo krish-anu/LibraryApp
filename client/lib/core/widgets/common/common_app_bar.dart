@@ -14,7 +14,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.actions,
     this.centerTitle = true,
-    this.showBack = true,
+    this.showBack = false,
     this.onBack,
     this.bottom,
   });
@@ -28,6 +28,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: Pallete.scaffoldBackground,
       elevation: 0,
+      automaticallyImplyLeading: false,
       leading: showBack
           ? IconButton(
               icon: const Icon(Icons.arrow_back, color: Pallete.iconColor),
