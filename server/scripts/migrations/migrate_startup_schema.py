@@ -28,6 +28,10 @@ MIGRATION_STATEMENTS = [
     "ALTER TABLE fines ADD COLUMN IF NOT EXISTS created_at TIMESTAMP",
     "ALTER TABLE fines ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
     "UPDATE fines SET status = 'unpaid' WHERE status IS NULL OR TRIM(status) = ''",
+    "ALTER TABLE loans ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'",
+    "ALTER TABLE loans ADD COLUMN IF NOT EXISTS returned_at DATE",
+    "ALTER TABLE loans ADD COLUMN IF NOT EXISTS returned_by TEXT",
+    "UPDATE loans SET status = 'active' WHERE status IS NULL OR TRIM(status) = ''",
     """
     CREATE TABLE IF NOT EXISTS fine_payments (
         id TEXT PRIMARY KEY,

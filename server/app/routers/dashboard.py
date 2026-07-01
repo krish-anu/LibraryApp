@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -95,6 +95,33 @@ def get_dashboard(
         .all()
     )
 
+    seven_days_start = today - timedelta(days=6)
+    borrowed_rows = (
+        db.query(Loan.loan_date, func.count(Loan.id).label("borrow_count"))
+        .filter(
+            Loan.loan_date >= seven_days_start,
+            Loan.loan_date <= today,
+        )
+        .group_by(Loan.loan_date)
+        .all()
+    )
+    borrowed_counts = {
+        loan_date: int(count or 0)
+        for loan_date, count in borrowed_rows
+        if loan_date is not None
+    }
+    last_7_days = [
+        seven_days_start + timedelta(days=offset)
+        for offset in range(7)
+    ]
+    borrowed_last_7_days = [
+        {
+            "date": day.isoformat(),
+            "count": borrowed_counts.get(day, 0),
+        }
+        for day in last_7_days
+    ]
+
     recent_fine_rows = (
         db.query(Fine, User)
         .outerjoin(User, User.id == Fine.member_id)
@@ -139,5 +166,6 @@ def get_dashboard(
             {"id": str(book_id), "title": title, "count": int(count)}
             for book_id, title, count in top_book_rows
         ],
+        "borrowedLast7Days": borrowed_last_7_days,
         "recentFines": recent_fines,
     }

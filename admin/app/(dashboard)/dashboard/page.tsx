@@ -9,6 +9,8 @@ import { Users, BookOpen, AlertCircle, Clock, TrendingUp } from "lucide-react";
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -28,6 +30,7 @@ interface DashboardData {
     checkoutImprovement: number;
   };
   topBooks: Array<{ id: string; title: string; count: number }>;
+  borrowedLast7Days: Array<{ date: string; count: number }>;
   recentFines: Array<{
     id: string;
     amount: number;
@@ -84,6 +87,24 @@ export default function DashboardPage() {
       views: book.count,
     })) ?? [];
 
+  const borrowedTrendData =
+    data?.borrowedLast7Days?.map((day) => {
+      const [year, month, date] = day.date.split("-").map(Number);
+      const label = new Date(year, month - 1, date).toLocaleDateString(
+        undefined,
+        {
+          month: "short",
+          day: "numeric",
+        },
+      );
+
+      return {
+        date: day.date,
+        label,
+        borrowed: day.count,
+      };
+    }) ?? [];
+
   return (
     <div>
       <Header
@@ -135,7 +156,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          {/* Most Viewed Books Chart */}
+          {/* Most Borrowed Books Chart */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="mb-6 flex items-center justify-between gap-4">
               <h2 className="text-lg font-semibold text-gray-900">
@@ -166,6 +187,59 @@ export default function DashboardPage() {
               ) : (
                 <div className="flex h-full items-center justify-center rounded-lg bg-gray-50 text-sm text-gray-500">
                   No borrowing data available
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Borrowed Books Trend */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Borrowed Books Trend
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">Last 7 days</p>
+              </div>
+              <TrendingUp className="w-5 h-5 text-gray-400" />
+            </div>
+            <div className="h-64 min-h-64 sm:h-72">
+              {borrowedTrendData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={borrowedTrendData}
+                    margin={{ top: 12, right: 18, bottom: 8, left: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      labelFormatter={(_, payload) =>
+                        payload?.[0]?.payload?.date ?? ""
+                      }
+                      formatter={(value) => [value, "Borrowed"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="borrowed"
+                      stroke="#2563EB"
+                      strokeWidth={3}
+                      dot={{ r: 4, strokeWidth: 2 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-lg bg-gray-50 text-sm text-gray-500">
+                  No borrowing trend available
                 </div>
               )}
             </div>

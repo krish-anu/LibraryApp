@@ -13,6 +13,9 @@ class Loan(Base):
     member_id = Column(TEXT, ForeignKey("users.id"))
     loan_date = Column(Date)
     returned_date = Column(Date)
+    status = Column(TEXT, default="active")
+    returned_at = Column(Date, nullable=True)
+    returned_by = Column(TEXT, nullable=True)
 
     book = relationship(Book)
     member = relationship(User)

@@ -2,7 +2,9 @@ from datetime import date, timedelta
 from typing import Any, List, Optional, cast
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import func
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -26,12 +28,47 @@ from ..pydantic_schemas import loan as loan_schema
 router = APIRouter(prefix="/loans", tags=["loans"])
 
 
+class ReturnBookPayload(BaseModel):
+    returned_by: Optional[str] = None
+
+
 def _safe_notify(callback) -> None:
     try:
         callback()
     except Exception:
         # Notification delivery should never break the circulation flow.
         return
+
+
+def _active_loan_filter() -> ColumnElement[bool]:
+    return func.lower(func.coalesce(loan.Loan.status, "active")) == "active"
+
+
+def _loan_detail(db_loan: Any, book: Any, user: Any) -> dict[str, Any]:
+    return {
+        "id": str(db_loan.id),
+        "book_id": str(db_loan.book_id),
+        "member_id": str(db_loan.member_id),
+        "loan_date": db_loan.loan_date,
+        "returned_date": db_loan.returned_date,
+        "status": db_loan.status or "active",
+        "returned_at": db_loan.returned_at,
+        "returned_by": db_loan.returned_by,
+        "book": {
+            "id": str(book.id),
+            "title": book.title or "Untitled book",
+            "author": book.author,
+            "copies_owned": int(book.copies_owned or 0),
+            "image": book.image,
+        },
+        "member": {
+            "id": str(user.id),
+            "member_id": user.member_id,
+            "name": user.name or "Unknown member",
+            "email": user.email,
+            "phone": user.phone,
+        },
+    }
 
 
 @router.get("", response_model=List[loan_schema.Loan])
@@ -45,7 +82,7 @@ def get_active_loans(
     identity: dict = Depends(verify_access_token),
     db: Session = Depends(get_db),
 ):
-    query = db.query(loan.Loan)
+    query = db.query(loan.Loan).filter(_active_loan_filter())
     if member_id:
         require_subject_or_admin(identity, member_id)
         query = query.filter(loan.Loan.member_id == member_id)
@@ -55,6 +92,55 @@ def get_active_loans(
             detail="member_id is required unless you are an administrator",
         )
     return query.all()
+
+
+@router.get("/active/details")
+def get_active_loan_details(
+    _admin: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    rows = (
+        db.query(loan.Loan, book_model.Book, user_model.User)
+        .join(book_model.Book, book_model.Book.id == loan.Loan.book_id)
+        .join(user_model.User, user_model.User.id == loan.Loan.member_id)
+        .filter(_active_loan_filter())
+        .order_by(loan.Loan.loan_date.desc(), loan.Loan.id.asc())
+        .all()
+    )
+
+    data = [_loan_detail(db_loan, book, user) for db_loan, book, user in rows]
+    return {"data": data, "totalCount": len(data)}
+
+
+@router.get("/history")
+def get_loan_history(
+    status: Optional[str] = None,
+    _admin: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    query = (
+        db.query(loan.Loan, book_model.Book, user_model.User)
+        .join(book_model.Book, book_model.Book.id == loan.Loan.book_id)
+        .join(user_model.User, user_model.User.id == loan.Loan.member_id)
+    )
+
+    normalized_status = (status or "").strip().lower()
+    if normalized_status:
+        query = query.filter(
+            func.lower(func.coalesce(loan.Loan.status, "active"))
+            == normalized_status
+        )
+
+    rows = (
+        query.order_by(
+            loan.Loan.loan_date.desc(),
+            loan.Loan.returned_at.desc().nullslast(),
+            loan.Loan.id.asc(),
+        )
+        .all()
+    )
+    data = [_loan_detail(db_loan, book, user) for db_loan, book, user in rows]
+    return {"data": data, "totalCount": len(data)}
 
 
 def _get_settings(db: Session) -> Any | None:
@@ -103,7 +189,11 @@ def borrow_book(
     require_subject_or_admin(identity, member_id)
     existing_loan = (
         db.query(loan.Loan)
-        .filter(loan.Loan.book_id == book_id, loan.Loan.member_id == member_id)
+        .filter(
+            loan.Loan.book_id == book_id,
+            loan.Loan.member_id == member_id,
+            _active_loan_filter(),
+        )
         .first()
     )
     if existing_loan:
@@ -131,7 +221,12 @@ def borrow_book(
 
     max_books_allowed = _max_books_per_user(db)
     active_loans_count = (
-        db.query(loan.Loan).filter(loan.Loan.member_id == member_id).count()
+        db.query(loan.Loan)
+        .filter(
+            loan.Loan.member_id == member_id,
+            _active_loan_filter(),
+        )
+        .count()
     )
     if active_loans_count >= max_books_allowed:
         raise HTTPException(
@@ -179,6 +274,8 @@ def borrow_book(
         member_id=member_id,
         loan_date=date.today(),
         returned_date=date.today() + timedelta(days=loan_period_days),
+        status="active",
+        returned_at=None,
     )
 
     db_book.copies_owned = current_copies_owned - 1
@@ -235,6 +332,7 @@ def borrow_book(
 @router.post("/return/{loan_id}")
 def return_book(
     loan_id: str,
+    payload: ReturnBookPayload | None = None,
     identity: dict = Depends(verify_access_token),
     db: Session = Depends(get_db),
 ):
@@ -242,6 +340,8 @@ def return_book(
     if not db_loan:
         raise HTTPException(status_code=404, detail="Loan not found")
     require_subject_or_admin(identity, str(cast(Any, db_loan.member_id) or ""))
+    if str(cast(Any, db_loan.status) or "active").lower() == "returned":
+        raise HTTPException(status_code=409, detail="Loan is already returned")
 
     db_book = cast(
         Any,
@@ -253,22 +353,31 @@ def return_book(
     member_id = str(cast(Any, db_loan.member_id) or "")
     book_id = str(cast(Any, db_loan.book_id) or "")
     book_title = str(cast(Any, getattr(db_book, "title", None)) or "your borrowed book")
+    returned_by = (
+        payload.returned_by.strip()
+        if payload and payload.returned_by and payload.returned_by.strip()
+        else None
+    )
 
-    db.delete(db_loan)
+    db_loan.status = "returned"
+    db_loan.returned_at = date.today()
+    db_loan.returned_by = returned_by
     db.commit()
 
     if member_id:
+        returned_by_text = f" by {returned_by}" if returned_by else ""
         _safe_notify(
             lambda: create_user_notification(
                 member_id,
                 title="Return confirmed",
-                body=f'Your return for "{book_title}" was recorded successfully.',
+                body=f'Your return for "{book_title}" was recorded{returned_by_text}.',
                 category="returned",
                 entity_type="loan",
                 entity_id=str(loan_id),
                 metadata={
                     "book_id": book_id,
                     "book_title": book_title,
+                    "returned_by": returned_by,
                 },
                 dedupe_key=f"returned:{loan_id}",
                 send_push=True,
@@ -277,7 +386,11 @@ def return_book(
     _safe_notify(
         lambda: create_admin_notification(
             title="Book returned",
-            body=f'"{book_title}" was returned to the library.',
+            body=(
+                f'"{book_title}" was returned by {returned_by}.'
+                if returned_by
+                else f'"{book_title}" was returned to the library.'
+            ),
             category="returned",
             entity_type="loan",
             entity_id=str(loan_id),
@@ -285,12 +398,19 @@ def return_book(
                 "member_id": member_id,
                 "book_id": book_id,
                 "book_title": book_title,
+                "returned_by": returned_by,
             },
             dedupe_key=f"admin-returned:{loan_id}",
         )
     )
 
-    return {"message": "Book returned successfully"}
+    return {
+        "message": "Book returned successfully",
+        "status": "Returned",
+        "loan_id": str(loan_id),
+        "returned_at": db_loan.returned_at.isoformat(),
+        "returned_by": returned_by,
+    }
 
 
 @router.post("/renew/{loan_id}", response_model=loan_schema.Loan)
@@ -303,6 +423,8 @@ def renew_loan(
     if not db_loan:
         raise HTTPException(status_code=404, detail="Loan not found")
     require_subject_or_admin(identity, str(cast(Any, db_loan.member_id) or ""))
+    if str(cast(Any, db_loan.status) or "active").lower() == "returned":
+        raise HTTPException(status_code=409, detail="Returned loans cannot be renewed")
 
     loan_period_days = _loan_period_days(db)
     db_loan.returned_date = date.today() + timedelta(days=loan_period_days)

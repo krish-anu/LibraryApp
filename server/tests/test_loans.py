@@ -4,6 +4,14 @@ from datetime import date, timedelta
 from app.models.book import Book
 from app.models.category import Category
 from app.models.author import Author
+from app.models.loan import Loan
+from app.models.users import User
+from app.routers.loans import (
+    ReturnBookPayload,
+    get_active_loan_details,
+    get_loan_history,
+    return_book,
+)
 from sqlalchemy.orm import Session
 
 # Data
@@ -135,3 +143,68 @@ def test_borrow_no_copies(client: TestClient, admin_user, user_headers):
     if response.status_code in [404, 405, 500, 422, 401]:
         return
     assert response.status_code in [400, 409]  # Conflict or BadRequest
+
+
+def test_admin_return_marks_loan_returned_and_restores_inventory(db_session: Session):
+    author = Author(id="return-author", first_name="Return", last_name="Author")
+    category = Category(id="return-category", name="Returns")
+    book = Book(
+        id="return-book",
+        title="Returnable Book",
+        author_id=author.id,
+        category_id=category.id,
+        copies_owned=1,
+    )
+    user = User(
+        id="return-member",
+        member_id="M-RETURN",
+        name="Return Member",
+        email="return@example.com",
+        phone="0771234567",
+        address="Library Street",
+    )
+    db_loan = Loan(
+        id="return-loan",
+        book_id=book.id,
+        member_id=user.id,
+        loan_date=date.today(),
+        returned_date=date.today() + timedelta(days=14),
+        status="active",
+    )
+    db_session.add_all([author, category, book, user, db_loan])
+    db_session.commit()
+
+    active_before = get_active_loan_details(_admin={}, db=db_session)
+    assert active_before["totalCount"] == 1
+    assert active_before["data"][0]["book"]["title"] == "Returnable Book"
+    assert active_before["data"][0]["member"]["phone"] == "0771234567"
+
+    result = return_book(
+        "return-loan",
+        payload=ReturnBookPayload(returned_by="Desk Assistant"),
+        identity={"sub": "return-member"},
+        db=db_session,
+    )
+    db_session.refresh(book)
+    db_session.refresh(db_loan)
+
+    assert result["status"] == "Returned"
+    assert db_loan.status == "returned"
+    assert db_loan.returned_at == date.today()
+    assert db_loan.returned_by == "Desk Assistant"
+    assert result["returned_by"] == "Desk Assistant"
+    assert int(book.copies_owned) == 2
+
+    active_after = get_active_loan_details(_admin={}, db=db_session)
+    assert active_after == {"data": [], "totalCount": 0}
+
+    all_history = get_loan_history(_admin={}, db=db_session)
+    assert all_history["totalCount"] == 1
+    assert all_history["data"][0]["status"] == "returned"
+
+    returned_history = get_loan_history(status="returned", _admin={}, db=db_session)
+    assert returned_history["totalCount"] == 1
+    assert returned_history["data"][0]["returned_by"] == "Desk Assistant"
+
+    active_history = get_loan_history(status="active", _admin={}, db=db_session)
+    assert active_history == {"data": [], "totalCount": 0}

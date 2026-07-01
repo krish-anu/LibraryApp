@@ -8,6 +8,9 @@ class LoanBase(BaseModel):
     member_id: str
     loan_date: date
     returned_date: Optional[date] = None
+    status: str = "active"
+    returned_at: Optional[date] = None
+    returned_by: Optional[str] = None
 
 
 class LoanCreate(LoanBase):

@@ -11,6 +11,8 @@ import {
   BookOpen,
   Users,
   AlertCircle,
+  History,
+  RotateCcw,
   Settings,
   LogOut,
   Library,
@@ -21,6 +23,8 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Book Inventory", href: "/books", icon: BookOpen },
+  { name: "Book Returns", href: "/returns", icon: RotateCcw },
+  { name: "Loan History", href: "/loan-history", icon: History },
   { name: "User Management", href: "/users", icon: Users },
   { name: "Fines & Penalties", href: "/fines", icon: AlertCircle },
   { name: "Notifications", href: "/notifications", icon: Bell },

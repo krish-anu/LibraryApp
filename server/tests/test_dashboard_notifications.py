@@ -42,6 +42,20 @@ def test_dashboard_returns_postgres_aggregates(db_session):
         loan_date=date.today(),
         returned_date=date.today() + timedelta(days=14),
     )
+    earlier_loan = Loan(
+        id="loan-2",
+        book_id=book.id,
+        member_id=user.id,
+        loan_date=date.today() - timedelta(days=2),
+        returned_date=None,
+    )
+    older_loan = Loan(
+        id="loan-3",
+        book_id=book.id,
+        member_id=user.id,
+        loan_date=date.today() - timedelta(days=8),
+        returned_date=None,
+    )
     fine = Fine(
         id="fine-1",
         member_id=user.id,
@@ -52,7 +66,9 @@ def test_dashboard_returns_postgres_aggregates(db_session):
         reason="Overdue",
         created_at=datetime.utcnow(),
     )
-    db_session.add_all([user, author, category, book, loan, fine])
+    db_session.add_all(
+        [user, author, category, book, loan, earlier_loan, older_loan, fine]
+    )
     db_session.commit()
 
     data = get_dashboard(_admin={}, db=db_session)
@@ -62,7 +78,16 @@ def test_dashboard_returns_postgres_aggregates(db_session):
     assert data["stats"]["fineCount"] == 1
     assert data["stats"]["avgCheckoutTime"] == 14
     assert data["topBooks"] == [
-        {"id": "book-1", "title": "The Dispossessed", "count": 1}
+        {"id": "book-1", "title": "The Dispossessed", "count": 3}
+    ]
+    assert data["borrowedLast7Days"] == [
+        {
+            "date": (
+                date.today() - timedelta(days=6) + timedelta(days=offset)
+            ).isoformat(),
+            "count": 1 if offset in (4, 6) else 0,
+        }
+        for offset in range(7)
     ]
     assert data["recentFines"][0]["users"]["name"] == "Ada Reader"
 
