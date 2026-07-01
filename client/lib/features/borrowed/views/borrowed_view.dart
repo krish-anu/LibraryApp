@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
+import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
 import 'package:libraryapp/core/widgets/book_view.dart';
 import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
 import 'package:libraryapp/features/borrowed/viewmodels/borrowed_viewmodel.dart';
@@ -78,7 +79,11 @@ class _BorrowedViewState extends ConsumerState<BorrowedView>
 
   Widget _buildBorrowedTab(BorrowedState state) {
     if (state.borrowedItems.isEmpty) {
-      return BorrowedEmptyState(onBrowseBooks: () => Navigator.pop(context));
+      return BorrowedEmptyState(
+        onBrowseBooks: () {
+          ref.read(bottomNavIndexProvider.notifier).state = 1;
+        },
+      );
     }
 
     return RefreshIndicator(
