@@ -14,9 +14,7 @@ import {
   History,
   RotateCcw,
   Settings,
-  LogOut,
   Library,
-  User,
   X,
 } from "lucide-react";
 
@@ -34,11 +32,6 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const handleLogout = async () => {
-    setIsMobileMenuOpen(false);
-    window.location.href = "/api/auth/logout";
-  };
 
   return (
     <>
@@ -77,15 +70,6 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-4">
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <LogOut className="h-5 w-5" />
-            <span className="font-medium">Logout</span>
-          </button>
-        </div>
       </aside>
 
       <div className="sticky top-0 z-40 border-b border-[#35557d] bg-[#1E3A5F] text-white shadow-sm lg:hidden">
@@ -141,35 +125,6 @@ export function Sidebar() {
                 );
               })}
             </nav>
-
-            <div className="mt-4 border-t border-white/10 pt-4">
-              <div className="space-y-2">
-                <Link
-                  href="/notifications"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
-                >
-                  <Bell className="h-4 w-4" />
-                  Notifications
-                </Link>
-                <Link
-                  href="/settings"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
-                >
-                  <User className="h-4 w-4" />
-                  Profile
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Logout
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>

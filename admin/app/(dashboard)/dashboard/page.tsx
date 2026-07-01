@@ -7,8 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import { Users, BookOpen, AlertCircle, Clock, TrendingUp } from "lucide-react";
 import {
-  BarChart,
-  Bar,
   LineChart,
   Line,
   XAxis,
@@ -81,11 +79,13 @@ export default function DashboardPage() {
   }
 
   const chartData =
-    data?.topBooks?.map((book) => ({
-      name:
-        book.title.length > 15 ? book.title.slice(0, 15) + "..." : book.title,
-      views: book.count,
+    data?.topBooks?.map((book, index) => ({
+      id: book.id,
+      rank: index + 1,
+      title: book.title,
+      count: book.count,
     })) ?? [];
+  const maxBorrowCount = Math.max(...chartData.map((book) => book.count), 1);
 
   const borrowedTrendData =
     data?.borrowedLast7Days?.map((day) => {
@@ -159,31 +159,66 @@ export default function DashboardPage() {
           {/* Most Borrowed Books Chart */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="mb-6 flex items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Most Borrowed Books
-              </h2>
-              <TrendingUp className="w-5 h-5 text-gray-400" />
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Most Borrowed Books
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Ranked by total borrow count
+                </p>
+              </div>
+              <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
+                <TrendingUp className="w-5 h-5" />
+              </div>
             </div>
-            <div className="h-64 min-h-64 sm:h-72">
+            <div className="min-h-64 sm:min-h-72">
               {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} layout="vertical">
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      horizontal={true}
-                      vertical={false}
-                    />
-                    <XAxis type="number" />
-                    <YAxis
-                      dataKey="name"
-                      type="category"
-                      width={84}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip />
-                    <Bar dataKey="views" fill="#1E3A5F" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-5">
+                  {chartData.map((book) => {
+                    const width = `${Math.max(
+                      (book.count / maxBorrowCount) * 100,
+                      8,
+                    )}%`;
+
+                    return (
+                      <div key={book.id} className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${
+                              book.rank === 1
+                                ? "bg-[#1E3A5F] text-white"
+                                : "bg-blue-50 text-blue-700"
+                            }`}
+                          >
+                            {book.rank}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-gray-900">
+                              {book.title}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {book.count.toLocaleString()} borrow
+                              {book.count === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                          <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-800">
+                            {book.count}
+                          </div>
+                        </div>
+                        <div className="ml-11 h-3 overflow-hidden rounded-full bg-gray-100">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-[#1E3A5F] to-[#4A90D9] shadow-sm transition-all"
+                            style={{ width }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="ml-11 flex justify-between border-t border-gray-100 pt-3 text-xs text-gray-400">
+                    <span>0</span>
+                    <span>{maxBorrowCount.toLocaleString()} borrows</span>
+                  </div>
+                </div>
               ) : (
                 <div className="flex h-full items-center justify-center rounded-lg bg-gray-50 text-sm text-gray-500">
                   No borrowing data available
