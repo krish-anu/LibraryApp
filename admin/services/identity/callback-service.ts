@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAppUrl, sanitizeEnvValue } from "@/lib/auth/env";
-import { signAdminSession } from "@/lib/auth/session";
+import {
+  createAdminSessionMeta,
+  signAdminSession,
+} from "@/lib/auth/session";
 import { resolveAdminIdentity } from "@/lib/auth/user-info";
 
 // PKCE callback — exchanges the authorization code for tokens.
@@ -119,7 +122,12 @@ export async function GET(req: NextRequest) {
     name: adminIdentity.user.name,
     picture: info.picture || undefined,
   });
-  const sessionSignature = await signAdminSession(accessToken, userPayload);
+  const sessionMeta = createAdminSessionMeta(Number(expiresIn));
+  const sessionSignature = await signAdminSession(
+    accessToken,
+    userPayload,
+    sessionMeta,
+  );
 
   const response = NextResponse.redirect(`${appUrl}/dashboard`);
 
@@ -143,6 +151,7 @@ export async function GET(req: NextRequest) {
     ...cookieOptions,
     httpOnly: true,
   });
+  response.cookies.set("library_session_meta", sessionMeta, cookieOptions);
   if (sessionSignature) {
     response.cookies.set(
       "library_session_sig",

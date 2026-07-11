@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminUser } from "@/lib/auth/admin-policy";
-import { readSessionUser, verifyAdminSession } from "@/lib/auth/session";
+import { verifyAdminSession } from "@/lib/auth/session";
 import {
   fetchUserInfo,
   userFromInfo,
@@ -47,14 +47,20 @@ export async function verifyAdmin(
   }
 
   const userPayload = req.cookies.get("library_user")?.value || "";
+  const sessionMeta = req.cookies.get("library_session_meta")?.value || "";
   const sessionSignature = req.cookies.get("library_session_sig")?.value || "";
   if (
-    await verifyAdminSession(accessToken, userPayload, sessionSignature)
+    userPayload &&
+    sessionMeta &&
+    sessionSignature &&
+    !(await verifyAdminSession(
+      accessToken,
+      userPayload,
+      sessionMeta,
+      sessionSignature,
+    ))
   ) {
-    const user = readSessionUser(userPayload);
-    if (user) {
-      return { user };
-    }
+    return unauthorized("Expired admin session");
   }
 
   const user = await adminFromUserInfo(accessToken);

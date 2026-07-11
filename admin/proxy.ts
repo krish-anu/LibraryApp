@@ -27,6 +27,7 @@ function unauthorized(request: NextRequest) {
   response.cookies.set("library_session", "", COOKIE_CLEAR_OPTIONS);
   response.cookies.set("library_id_token", "", COOKIE_CLEAR_OPTIONS);
   response.cookies.set("library_user", "", COOKIE_CLEAR_OPTIONS);
+  response.cookies.set("library_session_meta", "", COOKIE_CLEAR_OPTIONS);
   response.cookies.set("library_session_sig", "", COOKIE_CLEAR_OPTIONS);
   return response;
 }
@@ -57,10 +58,16 @@ export async function proxy(request: NextRequest) {
   }
 
   const userPayload = request.cookies.get("library_user")?.value || "";
+  const sessionMeta = request.cookies.get("library_session_meta")?.value || "";
   const sessionSignature =
     request.cookies.get("library_session_sig")?.value || "";
   if (
-    (await verifyAdminSession(session, userPayload, sessionSignature)) &&
+    (await verifyAdminSession(
+      session,
+      userPayload,
+      sessionMeta,
+      sessionSignature,
+    )) &&
     readSessionUser(userPayload)
   ) {
     return NextResponse.next();

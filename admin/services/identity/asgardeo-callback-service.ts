@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAppUrl, sanitizeEnvValue } from "@/lib/auth/env";
-import { signAdminSession } from "@/lib/auth/session";
+import {
+  createAdminSessionMeta,
+  signAdminSession,
+} from "@/lib/auth/session";
 import { resolveAdminIdentity } from "@/lib/auth/user-info";
 
 // PKCE callback — exchanges the authorization code for tokens.
@@ -181,14 +184,17 @@ export async function GET(req: NextRequest) {
     name: adminIdentity.user.name,
     picture: info.picture || undefined,
   });
-  const sessionSignature = await signAdminSession(accessToken, userPayload);
+  const sessionMeta = createAdminSessionMeta(expiresIn);
+  const sessionSignature = await signAdminSession(
+    accessToken,
+    userPayload,
+    sessionMeta,
+  );
 
-  // Build Set-Cookie headers manually to bypass Next.js cookie API issues.
   // Use JavaScript redirect (not meta-refresh) to ensure the browser has fully
   // processed and persisted the Set-Cookie response headers before navigating.
   const isProduction = process.env.NODE_ENV === "production";
   const maxAge = Number(expiresIn);
-  const securePart = isProduction ? "; Secure" : "";
 
   const dashboardUrl = `${appUrl}/dashboard`;
   const html = `<!DOCTYPE html>
@@ -201,30 +207,26 @@ export async function GET(req: NextRequest) {
   const respHeaders = new Headers();
   respHeaders.set("Content-Type", "text/html; charset=utf-8");
   respHeaders.set("Cache-Control", "no-store");
-  // Session cookies — use append so each Set-Cookie is its own header
-  respHeaders.append(
-    "Set-Cookie",
-    `library_session=${accessToken}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
-  );
-  respHeaders.append(
-    "Set-Cookie",
-    `library_id_token=${idToken}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
-  );
-  respHeaders.append(
-    "Set-Cookie",
-    `library_user=${encodeURIComponent(userPayload)}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
-  );
-  if (sessionSignature) {
-    respHeaders.append(
-      "Set-Cookie",
-      `library_session_sig=${sessionSignature}; Path=/; HttpOnly; Max-Age=${maxAge}; SameSite=Lax${securePart}`,
-    );
-  }
-  // Clear PKCE cookies
-  respHeaders.append("Set-Cookie", `pkce_code_verifier=; Path=/; Max-Age=0`);
-  respHeaders.append("Set-Cookie", `pkce_state=; Path=/; Max-Age=0`);
+  const response = new NextResponse(html, { status: 200, headers: respHeaders });
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    path: "/",
+    maxAge,
+    sameSite: "lax" as const,
+  };
 
-  return new NextResponse(html, { status: 200, headers: respHeaders });
+  response.cookies.set("library_session", accessToken, cookieOptions);
+  response.cookies.set("library_id_token", idToken, cookieOptions);
+  response.cookies.set("library_user", userPayload, cookieOptions);
+  response.cookies.set("library_session_meta", sessionMeta, cookieOptions);
+  if (sessionSignature) {
+    response.cookies.set("library_session_sig", sessionSignature, cookieOptions);
+  }
+  response.cookies.set("pkce_code_verifier", "", { path: "/", maxAge: 0 });
+  response.cookies.set("pkce_state", "", { path: "/", maxAge: 0 });
+
+  return response;
   } catch (error) {
     const detail = callbackErrorDetail(error);
     console.error("[CALLBACK] Unhandled callback failure:", detail);

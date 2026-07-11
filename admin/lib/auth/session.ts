@@ -2,6 +2,12 @@ import { sanitizeEnvValue } from "@/lib/auth/env";
 import type { VerifiedUser } from "@/lib/auth/user-info";
 
 const encoder = new TextEncoder();
+const SESSION_CLOCK_SKEW_SECONDS = 30;
+
+export type AdminSessionMeta = {
+  iat: number;
+  exp: number;
+};
 
 function sessionSecret() {
   return (
@@ -35,40 +41,133 @@ async function hmac(data: string) {
   return base64Url(signature);
 }
 
-function signaturePayload(accessToken: string, userPayload: string) {
-  return `${accessToken}.${userPayload}`;
-}
-
-export async function signAdminSession(
+function signaturePayload(
   accessToken: string,
   userPayload: string,
+  metaPayload: string,
 ) {
-  return hmac(signaturePayload(accessToken, userPayload));
+  return `${accessToken}.${userPayload}.${metaPayload}`;
 }
 
-export async function verifyAdminSession(
-  accessToken: string,
-  userPayload: string,
-  signature: string,
-) {
-  if (!accessToken || !userPayload || !signature) {
-    return false;
+function parsePositiveInteger(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
+    return null;
   }
+  return value;
+}
 
-  const candidates = [userPayload];
+function readJsonCandidates(payload: string): unknown[] {
+  const candidates = [payload];
   try {
-    const decoded = decodeURIComponent(userPayload);
-    if (decoded !== userPayload) {
+    const decoded = decodeURIComponent(payload);
+    if (decoded !== payload) {
       candidates.push(decoded);
     }
   } catch {
     // Already decoded.
   }
 
-  for (const candidate of candidates) {
-    const expected = await signAdminSession(accessToken, candidate);
-    if (expected && expected === signature) {
-      return true;
+  return candidates.flatMap((candidate) => {
+    try {
+      return [JSON.parse(candidate)];
+    } catch {
+      return [];
+    }
+  });
+}
+
+export function createAdminSessionMeta(expiresIn: number): string {
+  const now = Math.floor(Date.now() / 1000);
+  const ttl = Number.isFinite(expiresIn) && expiresIn > 0 ? expiresIn : 3600;
+  return JSON.stringify({
+    iat: now,
+    exp: now + Math.floor(ttl),
+  } satisfies AdminSessionMeta);
+}
+
+export function readSessionMeta(metaPayload: string): AdminSessionMeta | null {
+  if (!metaPayload) {
+    return null;
+  }
+
+  for (const parsed of readJsonCandidates(metaPayload)) {
+    if (!parsed || typeof parsed !== "object") {
+      continue;
+    }
+    const record = parsed as Partial<AdminSessionMeta>;
+    const iat = parsePositiveInteger(record.iat);
+    const exp = parsePositiveInteger(record.exp);
+    if (iat && exp && exp > iat) {
+      return { iat, exp };
+    }
+  }
+
+  return null;
+}
+
+export function sessionMetaIsCurrent(meta: AdminSessionMeta | null) {
+  if (!meta) {
+    return false;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (meta.iat > now + SESSION_CLOCK_SKEW_SECONDS) {
+    return false;
+  }
+  return meta.exp > now - SESSION_CLOCK_SKEW_SECONDS;
+}
+
+export async function signAdminSession(
+  accessToken: string,
+  userPayload: string,
+  metaPayload: string,
+) {
+  return hmac(signaturePayload(accessToken, userPayload, metaPayload));
+}
+
+export async function verifyAdminSession(
+  accessToken: string,
+  userPayload: string,
+  metaPayload: string,
+  signature: string,
+) {
+  if (!accessToken || !userPayload || !metaPayload || !signature) {
+    return false;
+  }
+
+  if (!sessionMetaIsCurrent(readSessionMeta(metaPayload))) {
+    return false;
+  }
+
+  const userCandidates = [userPayload];
+  const metaCandidates = [metaPayload];
+  try {
+    const decodedUser = decodeURIComponent(userPayload);
+    if (decodedUser !== userPayload) {
+      userCandidates.push(decodedUser);
+    }
+  } catch {
+    // Already decoded.
+  }
+  try {
+    const decodedMeta = decodeURIComponent(metaPayload);
+    if (decodedMeta !== metaPayload) {
+      metaCandidates.push(decodedMeta);
+    }
+  } catch {
+    // Already decoded.
+  }
+
+  for (const userCandidate of userCandidates) {
+    for (const metaCandidate of metaCandidates) {
+      const expected = await signAdminSession(
+        accessToken,
+        userCandidate,
+        metaCandidate,
+      );
+      if (expected && expected === signature) {
+        return true;
+      }
     }
   }
 
@@ -80,28 +179,20 @@ export function readSessionUser(userPayload: string): VerifiedUser | null {
     return null;
   }
 
-  const candidates = [userPayload];
-  try {
-    candidates.push(decodeURIComponent(userPayload));
-  } catch {
-    // Already decoded.
-  }
-
-  for (const candidate of candidates) {
-    try {
-      const parsed = JSON.parse(candidate) as Partial<VerifiedUser>;
-      const sub = typeof parsed.sub === "string" ? parsed.sub.trim() : "";
-      if (!sub) {
-        continue;
-      }
-      return {
-        sub,
-        email: typeof parsed.email === "string" ? parsed.email : "",
-        name: typeof parsed.name === "string" ? parsed.name : "",
-      };
-    } catch {
-      // Try the next representation.
+  for (const parsed of readJsonCandidates(userPayload)) {
+    if (!parsed || typeof parsed !== "object") {
+      continue;
     }
+    const user = parsed as Partial<VerifiedUser>;
+    const sub = typeof user.sub === "string" ? user.sub.trim() : "";
+    if (!sub) {
+      continue;
+    }
+    return {
+      sub,
+      email: typeof user.email === "string" ? user.email : "",
+      name: typeof user.name === "string" ? user.name : "",
+    };
   }
 
   return null;
