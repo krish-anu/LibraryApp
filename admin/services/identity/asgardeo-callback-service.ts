@@ -162,9 +162,9 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Require an administrator claim before writing cookies. Asgardeo may expose
-  // custom role claims through either userinfo or the issued tokens.
-  const adminIdentity = await resolveAdminIdentity(accessToken, idToken);
+  // Require an administrator claim from verified Asgardeo userinfo before
+  // writing cookies.
+  const adminIdentity = await resolveAdminIdentity(accessToken);
   if (!adminIdentity.ok) {
     const message =
       adminIdentity.reason === "not_admin"

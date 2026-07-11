@@ -88,25 +88,6 @@ export function userFromInfo(info: UserInfo): VerifiedUser | null {
   };
 }
 
-function parseJwtClaims(token: string): UserInfo | null {
-  const [, payload] = token.split(".");
-  if (!payload) {
-    return null;
-  }
-
-  try {
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(
-      normalized.length + ((4 - (normalized.length % 4)) % 4),
-      "=",
-    );
-    const json = atob(padded);
-    return JSON.parse(json) as UserInfo;
-  } catch {
-    return null;
-  }
-}
-
 export async function fetchUserInfo(accessToken: string): Promise<UserInfoResult> {
   const endpoint = configuredUserInfoEndpoint();
   if (!endpoint) {
@@ -159,58 +140,35 @@ export async function fetchUserInfo(accessToken: string): Promise<UserInfoResult
 
 export async function resolveAdminIdentity(
   accessToken: string,
-  idToken = "",
 ): Promise<AdminIdentityResult> {
   const userInfo = await fetchUserInfo(accessToken);
-  const tokenClaims = [idToken, accessToken]
-    .map((token) => parseJwtClaims(token))
-    .filter((info): info is UserInfo => Boolean(info));
+  if (!userInfo.ok) {
+    console.warn("[AUTH] Userinfo unavailable during admin check", {
+      reason: userInfo.reason,
+      status: userInfo.status,
+      detail: userInfo.detail,
+    });
+    return {
+      ok: false,
+      reason: "userinfo_unavailable",
+      status: userInfo.status,
+    };
+  }
 
-  const candidates = [
-    ...(userInfo.ok ? [userInfo.info] : []),
-    ...tokenClaims,
-  ];
-  const adminInfo = candidates.find((info) => isAdminUser(info));
-
-  if (!adminInfo) {
-    if (!userInfo.ok) {
-      console.warn("[AUTH] Userinfo unavailable during admin check", {
-        reason: userInfo.reason,
-        status: userInfo.status,
-        detail: userInfo.detail,
-      });
-      return {
-        ok: false,
-        reason: "userinfo_unavailable",
-        status: userInfo.status,
-      };
-    }
-    console.warn(
-      "[AUTH] Administrator role missing from identity claims",
-      candidates.map((info) => ({
-        username: info.username,
-        email: info.email,
-        groups: info.groups,
-        roles: info.roles,
-        role: info.role,
-        applicationRoles: info.applicationRoles,
-        application_roles: info.application_roles,
-        wso2Roles: info["http://wso2.org/claims/roles"],
-        wso2Role: info["http://wso2.org/claims/role"],
-      })),
-    );
+  if (!isAdminUser(userInfo.info)) {
+    console.warn("[AUTH] Administrator role missing from userinfo claims", {
+      username: userInfo.info.username,
+      email: userInfo.info.email,
+      groups: userInfo.info.groups,
+      roles: userInfo.info.roles,
+      role: userInfo.info.role,
+      applicationRoles: userInfo.info.applicationRoles,
+      application_roles: userInfo.info.application_roles,
+      wso2Roles: userInfo.info["http://wso2.org/claims/roles"],
+      wso2Role: userInfo.info["http://wso2.org/claims/role"],
+    });
     return { ok: false, reason: "not_admin" };
   }
 
-  const mergedInfo = {
-    ...tokenClaims.reverse().reduce<UserInfo>((acc, info) => ({ ...acc, ...info }), {}),
-    ...adminInfo,
-    ...(userInfo.ok ? userInfo.info : {}),
-  };
-  const user = userFromInfo(mergedInfo);
-  if (!user) {
-    return { ok: false, reason: "missing_subject" };
-  }
-
-  return { ok: true, info: mergedInfo, user };
+  return { ok: true, info: userInfo.info, user: userInfo.user };
 }
