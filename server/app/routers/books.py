@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, Header, HTTPException
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session, selectinload
 
 from ..dependencies import get_db, require_admin, require_subject_or_admin, verify_access_token
+from ..image_blob import image_response, validate_image_body
 from ..models import book as book_model
 from ..models import category as category_model
 from ..models.interactions import Interaction
@@ -15,11 +16,16 @@ router = APIRouter(prefix="/books", tags=["books"])
 
 
 def _book_to_response(book_obj: book_model.Book) -> book_schema.Book:
+    image = (
+        f"/books/{book_obj.id}/image"
+        if book_obj.image_blob is not None
+        else str(book_obj.image or "")
+    )
     return book_schema.Book(
         id=str(book_obj.id),
         title=str(book_obj.title or ""),
-        author=str(book_obj.author or ""),
-        category=str(book_obj.category or ""),
+        author=str(book_obj.author or "Unknown"),
+        category=str(book_obj.category or "Unknown"),
         description=str(book_obj.description or ""),
         rating=(
             float(cast(float, book_obj.rating)) if book_obj.rating is not None else 0.0
@@ -34,7 +40,7 @@ def _book_to_response(book_obj: book_model.Book) -> book_schema.Book:
             if book_obj.copies_owned is not None
             else 0
         ),
-        image=str(book_obj.image or ""),
+        image=image,
         language=str(book_obj.language or "English"),
         pages=(int(cast(int, book_obj.pages)) if book_obj.pages is not None else 200),
         rating_count=(
@@ -157,6 +163,56 @@ def get_recommended_books(
         .all()
     )
     return [_book_to_response(book) for book in recommendations]
+
+
+@router.get("/{book_id}/image")
+def get_book_image(book_id: str, db: Session = Depends(get_db)):
+    book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
+    if not book_obj:
+        raise HTTPException(status_code=404, detail="Book not found")
+    if book_obj.image_blob is None:
+        raise HTTPException(status_code=404, detail="Book image not found")
+    return image_response(book_obj.image_blob, book_obj.image_mime_type)
+
+
+@router.put("/{book_id}/image", response_model=book_schema.Book)
+async def upload_book_image(
+    book_id: str,
+    body: bytes = Body(...),
+    content_type: str | None = Header(default=None),
+    _admin: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
+    if not book_obj:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    body, mime_type = validate_image_body(body, content_type)
+    book_obj.image_blob = body
+    book_obj.image_mime_type = mime_type
+    book_obj.image = f"/books/{book_id}/image"
+    db.commit()
+    db.refresh(book_obj)
+    return _book_to_response(book_obj)
+
+
+@router.delete("/{book_id}/image", response_model=book_schema.Book)
+def delete_book_image(
+    book_id: str,
+    _admin: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
+    if not book_obj:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    book_obj.image_blob = None
+    book_obj.image_mime_type = None
+    if str(book_obj.image or "") == f"/books/{book_id}/image":
+        book_obj.image = ""
+    db.commit()
+    db.refresh(book_obj)
+    return _book_to_response(book_obj)
 
 
 @router.get("/{book_id}", response_model=book_schema.Book)

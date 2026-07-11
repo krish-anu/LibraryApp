@@ -39,7 +39,7 @@ const initialFormData: BookFormData = {
   publication_year: new Date().getFullYear(),
   image: "",
   language: "English",
-  pages: 0,
+  pages: 200,
 };
 
 function bookToFormData(book: Book): BookFormData {
@@ -52,7 +52,7 @@ function bookToFormData(book: Book): BookFormData {
     publication_year: book.publication_year || new Date().getFullYear(),
     image: book.image || "",
     language: book.language || "English",
-    pages: book.pages || 0,
+    pages: book.pages || 200,
   };
 }
 
@@ -191,38 +191,10 @@ export default function BooksPage() {
     setIsSubmitting(true);
 
     try {
-      // If a new cover file was selected, upload it first and capture image URL
-      let uploadedImageUrl = formData.image;
-      if (coverFile) {
-        try {
-          const form = new FormData();
-          form.append("file", coverFile);
-          form.append("filename", coverFile.name);
-
-          const uploadRes = await fetch("/api/storage/upload", {
-            method: "POST",
-            body: form,
-          });
-          if (!uploadRes.ok) {
-            const text = await uploadRes.text();
-            console.error("Upload failed:", uploadRes.status, text);
-            throw new Error(`Upload failed: ${uploadRes.status} ${text}`);
-          }
-          const uploadJson = await uploadRes.json();
-          const publicUrl: string = uploadJson.publicUrl;
-          uploadedImageUrl = publicUrl;
-        } catch (err) {
-          console.error("Cover upload failed:", err);
-          alert("Failed to upload cover image");
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
       const url = editingBook ? `/api/books/${editingBook.id}` : "/api/books";
       const method = editingBook ? "PUT" : "POST";
 
-      const payload = { ...formData, image: uploadedImageUrl };
+      const payload = { ...formData, image: coverFile ? "" : formData.image };
 
       const res = await fetch(url, {
         method,
@@ -231,6 +203,32 @@ export default function BooksPage() {
       });
 
       if (res.ok) {
+        const saved = await res.json();
+        const savedBookId = saved?.data?.id as string | undefined;
+        if (coverFile && savedBookId) {
+          try {
+            const form = new FormData();
+            form.append("file", coverFile);
+
+            const uploadRes = await fetch(
+              `/api/books/${encodeURIComponent(savedBookId)}/image`,
+              {
+                method: "PUT",
+                body: form,
+              },
+            );
+            if (!uploadRes.ok) {
+              const text = await uploadRes.text();
+              console.error("Upload failed:", uploadRes.status, text);
+              throw new Error(`Upload failed: ${uploadRes.status} ${text}`);
+            }
+          } catch (err) {
+            console.error("Cover upload failed:", err);
+            alert("Book saved, but failed to upload cover image");
+            setIsSubmitting(false);
+            return;
+          }
+        }
         handleCloseModal();
         fetchBooks();
       } else {
@@ -759,12 +757,12 @@ export default function BooksPage() {
             <Input
               label="Pages"
               type="number"
-              min="0"
+              min="1"
               value={formData.pages}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  pages: parseInt(e.target.value) || 0,
+                  pages: parseInt(e.target.value) || 200,
                 })
               }
             />

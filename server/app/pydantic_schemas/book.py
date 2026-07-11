@@ -27,9 +27,9 @@ class BookBase(BaseModel):
         # legacy prefix before validating or returning the API response.
         if cleaned.startswith("client/assets/"):
             cleaned = cleaned.removeprefix("client/")
-        if cleaned.startswith(("https://", "assets/", "/assets/")):
+        if cleaned.startswith(("https://", "assets/", "/assets/", "/books/")):
             return cleaned
-        raise ValueError("image must be an HTTPS URL or local asset path")
+        raise ValueError("image must be an HTTPS URL, API image path, or local asset path")
 
 
 class BookCreate(BookBase):

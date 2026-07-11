@@ -1,5 +1,5 @@
 from .base import Base
-from sqlalchemy import Column, TEXT, NUMERIC, ForeignKey
+from sqlalchemy import Column, LargeBinary, TEXT, NUMERIC, ForeignKey
 from sqlalchemy.orm import relationship
 
 
@@ -15,6 +15,8 @@ class Book(Base):
     publication_year = Column(NUMERIC)
     copies_owned = Column(NUMERIC)
     image = Column(TEXT)
+    image_blob = Column(LargeBinary, nullable=True)
+    image_mime_type = Column(TEXT, nullable=True)
     language = Column(TEXT, default="English")
     pages = Column(NUMERIC, default=200)
     rating_count = Column(NUMERIC, default=0)

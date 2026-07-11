@@ -23,6 +23,21 @@ def _ensure_schema_columns() -> None:
             text("ALTER TABLE loans ADD COLUMN IF NOT EXISTS returned_by TEXT")
         )
         conn.execute(
+            text("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image_blob BYTEA")
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE users "
+                "ADD COLUMN IF NOT EXISTS profile_image_mime_type TEXT"
+            )
+        )
+        conn.execute(
+            text("ALTER TABLE books ADD COLUMN IF NOT EXISTS image_blob BYTEA")
+        )
+        conn.execute(
+            text("ALTER TABLE books ADD COLUMN IF NOT EXISTS image_mime_type TEXT")
+        )
+        conn.execute(
             text(
                 "UPDATE loans SET status = 'active' "
                 "WHERE status IS NULL OR TRIM(status) = ''"

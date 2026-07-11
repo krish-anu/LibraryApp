@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,7 @@ from app.dependencies import (
     require_subject_or_admin,
     verify_access_token,
 )
+from app.image_blob import image_response, validate_image_body
 from app.models.fine import Fine as FineModel
 from app.models.loan import Loan as LoanModel
 from app.models.reservation import Reservation as ReservationModel
@@ -18,6 +19,26 @@ from app.models.users import User as UserModel
 from app.pydantic_schemas import user as user_schema
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+def _user_to_response(user: UserModel) -> user_schema.User:
+    profile_image = (
+        f"/users/{user.id}/profile-image"
+        if user.profile_image_blob is not None
+        else user.profile_image
+    )
+    return user_schema.User(
+        id=user.id,
+        member_id=user.member_id,
+        name=user.name,
+        email=user.email,
+        phone=user.phone,
+        address=user.address,
+        profile_image=profile_image,
+        joined_date=user.joined_date,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+    )
 
 
 @router.get("")
@@ -47,7 +68,7 @@ def list_users(
         .limit(limit)
         .all()
     )
-    return {"data": rows, "totalCount": total}
+    return {"data": [_user_to_response(row) for row in rows], "totalCount": total}
 
 
 @router.post("", response_model=user_schema.User, status_code=201)
@@ -76,7 +97,61 @@ def create_user(
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+    return _user_to_response(user)
+
+
+@router.get("/{user_id}/profile-image")
+def get_profile_image(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.profile_image_blob is None:
+        raise HTTPException(status_code=404, detail="Profile image not found")
+    return image_response(user.profile_image_blob, user.profile_image_mime_type)
+
+
+@router.put("/{user_id}/profile-image", response_model=user_schema.User)
+async def upload_profile_image(
+    user_id: str,
+    body: bytes = Body(...),
+    content_type: str | None = Header(default=None),
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, user_id)
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    body, mime_type = validate_image_body(body, content_type)
+    user.profile_image_blob = body
+    user.profile_image_mime_type = mime_type
+    user.profile_image = f"/users/{user_id}/profile-image"
+    user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+    return _user_to_response(user)
+
+
+@router.delete("/{user_id}/profile-image", response_model=user_schema.User)
+def delete_profile_image(
+    user_id: str,
+    identity: dict = Depends(verify_access_token),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, user_id)
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.profile_image_blob = None
+    user.profile_image_mime_type = None
+    if str(user.profile_image or "") == f"/users/{user_id}/profile-image":
+        user.profile_image = None
+    user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+    return _user_to_response(user)
 
 
 @router.get("/{user_id}", response_model=user_schema.User)
@@ -89,7 +164,7 @@ def get_user(
     user = db.query(UserModel).filter(UserModel.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return _user_to_response(user)
 
 
 @router.get("/by-member/{member_id}", response_model=user_schema.User)
@@ -102,7 +177,7 @@ def get_user_by_member(
     user = db.query(UserModel).filter(UserModel.member_id == member_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return _user_to_response(user)
 
 
 @router.put("/{user_id}", response_model=user_schema.User)
@@ -124,7 +199,7 @@ def update_user(
 
     db.commit()
     db.refresh(user)
-    return user
+    return _user_to_response(user)
 
 
 @router.delete("/{user_id}")

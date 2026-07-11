@@ -15,6 +15,8 @@ class User(Base):
     phone = Column(VARCHAR(20), nullable=True)
     address = Column(TEXT, nullable=True)
     profile_image = Column(TEXT, nullable=True)
+    profile_image_blob = Column(LargeBinary, nullable=True)
+    profile_image_mime_type = Column(TEXT, nullable=True)
     joined_date = Column(Date, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.models.book import Book as BookModel
 from app.pydantic_schemas.book import Book
 
 VALID_BOOK = {
@@ -16,6 +17,14 @@ VALID_BOOK = {
     "rating_count": 10,
     "author": "Test Author",
 }
+
+VALID_PNG_BYTES = (
+    b"\x89PNG\r\n\x1a\n"
+    b"\x00\x00\x00\rIHDR"
+    b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00"
+    b"\x90wS\xde"
+    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+)
 
 
 def test_legacy_seed_image_path_is_normalized():
@@ -126,3 +135,37 @@ def test_delete_book(client: TestClient, admin_user):
 
     get_res = client.get(f"/books/{book_id}")
     assert get_res.status_code == 404
+
+
+def test_upload_and_fetch_book_image_blob(client: TestClient, admin_user, db_session):
+    book = BookModel(
+        id="blob-book",
+        title="Blob Book",
+        author_id=None,
+        category_id=None,
+        description="",
+        rating=0,
+        publication_year=2024,
+        copies_owned=1,
+        image="",
+    )
+    db_session.add(book)
+    db_session.commit()
+
+    upload_res = client.put(
+        "/books/blob-book/image",
+        content=VALID_PNG_BYTES,
+        headers={"Content-Type": "image/png"},
+    )
+
+    assert upload_res.status_code == 200
+    assert upload_res.json()["image"] == "/books/blob-book/image"
+
+    db_session.refresh(book)
+    assert bytes(book.image_blob) == VALID_PNG_BYTES
+    assert book.image_mime_type == "image/png"
+
+    image_res = client.get("/books/blob-book/image")
+    assert image_res.status_code == 200
+    assert image_res.headers["content-type"] == "image/png"
+    assert image_res.content == VALID_PNG_BYTES

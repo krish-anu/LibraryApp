@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
+import 'package:libraryapp/core/utils/image_helper.dart';
 
 /// Profile avatar with border decoration.
 class ProfileAvatar extends StatelessWidget {
@@ -13,7 +14,7 @@ class ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final diameter = radius * 2;
-    final normalizedUrl = imageUrl.trim();
+    final imageProvider = imageProviderFromPath(imageUrl);
 
     return Container(
       padding: const EdgeInsets.all(4),
@@ -25,15 +26,13 @@ class ProfileAvatar extends StatelessWidget {
         child: SizedBox(
           width: diameter,
           height: diameter,
-          child: normalizedUrl.isEmpty
-              ? Image.asset(_fallbackAsset, fit: BoxFit.cover)
-              : Image.network(
-                  normalizedUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) {
-                    return Image.asset(_fallbackAsset, fit: BoxFit.cover);
-                  },
-                ),
+          child: Image(
+            image: imageProvider,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) {
+              return Image.asset(_fallbackAsset, fit: BoxFit.cover);
+            },
+          ),
         ),
       ),
     );

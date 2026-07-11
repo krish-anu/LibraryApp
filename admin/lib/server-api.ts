@@ -12,7 +12,7 @@ export class LibraryApiError extends Error {
   }
 }
 
-function apiBaseUrl() {
+export function apiBaseUrl() {
   const url = (
     process.env.LIBRARY_API_BASE_URL ||
     process.env.SERVER_API_URL ||
@@ -29,12 +29,46 @@ function apiBaseUrl() {
   return url;
 }
 
+export function libraryApiUrl(path: string) {
+  return `${apiBaseUrl()}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 async function readResponseBody(response: Response) {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     return response.json().catch(() => null);
   }
   return response.text().catch(() => "");
+}
+
+function formatApiDetail(detail: unknown): string | null {
+  if (typeof detail === "string") return detail;
+
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((entry) => {
+        if (typeof entry === "string") return entry;
+        if (!entry || typeof entry !== "object") return null;
+
+        const issue = entry as { loc?: unknown; msg?: unknown };
+        const location = Array.isArray(issue.loc)
+          ? issue.loc.filter((part) => part !== "body").join(".")
+          : "";
+        const message = typeof issue.msg === "string" ? issue.msg : "";
+
+        if (location && message) return `${location}: ${message}`;
+        return message || null;
+      })
+      .filter(Boolean);
+
+    return messages.length > 0 ? messages.join("; ") : null;
+  }
+
+  if (detail && typeof detail === "object") {
+    return JSON.stringify(detail);
+  }
+
+  return null;
 }
 
 export async function libraryApi<T>(
@@ -53,7 +87,7 @@ export async function libraryApi<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${apiBaseUrl()}${path}`, {
+  const response = await fetch(libraryApiUrl(path), {
     ...init,
     headers,
     cache: "no-store",
@@ -66,10 +100,13 @@ export async function libraryApi<T>(
   const body = await readResponseBody(response);
 
   if (!response.ok) {
-    const message =
+    const detail =
       typeof body === "object" && body && "detail" in body
-        ? String((body as { detail?: unknown }).detail)
-        : `Library API request failed with status ${response.status}`;
+        ? (body as { detail?: unknown }).detail
+        : null;
+    const message =
+      formatApiDetail(detail) ||
+      `Library API request failed with status ${response.status}`;
     throw new LibraryApiError(message, response.status, body);
   }
 

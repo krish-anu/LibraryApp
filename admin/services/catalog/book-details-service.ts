@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/verify-admin";
-import { handleLibraryApiError, libraryApi } from "@/lib/server-api";
+import { handleLibraryApiError, libraryApi, libraryApiUrl } from "@/lib/server-api";
 import type { Book, Category } from "@/lib/types";
 
 type ApiBook = {
@@ -25,6 +25,11 @@ function toNumber(value: unknown, fallback: number) {
 
 function adminCoverUrl(value?: string) {
   const image = (value || "").trim();
+  const bookImagePath = image.match(/^\/books\/([^/]+)\/image$/);
+  if (bookImagePath) {
+    return `/api/books/${encodeURIComponent(bookImagePath[1])}/image`;
+  }
+  if (image.startsWith("/")) return libraryApiUrl(image);
   return /^(https?:\/\/|data:|blob:|\/)/.test(image) ? image : "";
 }
 

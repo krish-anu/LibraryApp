@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:libraryapp/core/constants/server_constant.dart';
 
 const String _defaultBookCoverAsset = 'assets/book/book_cover.webp';
 const String _defaultProfileAsset = 'assets/person.webp';
@@ -18,6 +19,12 @@ ImageProvider imageProviderFromPath(String? path) {
       return const AssetImage(_defaultBookCoverAsset);
     }
     return NetworkImage(p);
+  }
+
+  if (p.startsWith('/books/') ||
+      p.startsWith('/users/') ||
+      p.startsWith('/assets/')) {
+    return NetworkImage('${ServerConstant.serverURL}$p');
   }
 
   // Normalize possible `client/` prefix produced by server seed data

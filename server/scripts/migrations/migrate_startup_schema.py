@@ -13,6 +13,8 @@ MIGRATION_STATEMENTS = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20)",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image_blob BYTEA",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image_mime_type TEXT",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS joined_date DATE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
@@ -32,6 +34,8 @@ MIGRATION_STATEMENTS = [
     "ALTER TABLE loans ADD COLUMN IF NOT EXISTS returned_at DATE",
     "ALTER TABLE loans ADD COLUMN IF NOT EXISTS returned_by TEXT",
     "UPDATE loans SET status = 'active' WHERE status IS NULL OR TRIM(status) = ''",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS image_blob BYTEA",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS image_mime_type TEXT",
     """
     CREATE TABLE IF NOT EXISTS fine_payments (
         id TEXT PRIMARY KEY,
