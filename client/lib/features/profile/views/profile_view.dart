@@ -7,6 +7,7 @@ import 'package:libraryapp/features/profile/viewmodels/profile_viewmodel.dart';
 import 'package:libraryapp/features/profile/widgets/widgets.dart';
 import 'package:libraryapp/features/profile/views/edit_profile_view.dart';
 import 'package:libraryapp/features/profile/views/help_support_view.dart';
+import 'package:libraryapp/features/wishlist/views/wishlist_view.dart';
 
 /// User profile page with settings and preferences.
 class ProfileView extends ConsumerWidget {
@@ -57,6 +58,7 @@ class ProfileView extends ConsumerWidget {
                     const SizedBox(height: 24),
                     ProfileAccountSection(
                       onEditProfile: () => _navigateToEditProfile(context, ref),
+                      onWishlist: () => _navigateToWishlist(context),
                     ),
                     const SizedBox(height: 16),
                     ProfilePreferencesSection(
@@ -134,6 +136,13 @@ class ProfileView extends ConsumerWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const HelpSupportView()),
+    );
+  }
+
+  void _navigateToWishlist(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const WishlistView()),
     );
   }
 

@@ -11,4 +11,5 @@ from . import (
     fine_payment,
     settings,
     notification,
+    content,
 )

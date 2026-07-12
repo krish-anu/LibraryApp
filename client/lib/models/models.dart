@@ -4,6 +4,7 @@ export 'app_notification.dart';
 export 'book.dart';
 export 'book_author.dart';
 export 'category.dart';
+export 'content.dart';
 export 'fine.dart';
 export 'loan.dart';
 export 'member.dart';

@@ -75,7 +75,7 @@ class WishlistView extends ConsumerWidget {
     if (state.isEmpty) {
       return FavoritesEmptyState(
         onBrowseBooks: () {
-          ref.read(bottomNavIndexProvider.notifier).state = 1;
+          ref.read(bottomNavIndexProvider.notifier).state = 0;
         },
       );
     }

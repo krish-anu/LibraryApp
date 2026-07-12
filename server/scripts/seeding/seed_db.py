@@ -11,20 +11,25 @@ from app.models.author import Author
 from app.models.base import Base
 from app.models.book import Book
 from app.models.category import Category
+from app.models.content import BlogPost, VideoPost
 from app.models.loan import Loan
 from app.models.users import User
 from scripts.seeding.data import (
     authors_data,
     books_data,
+    blog_posts_data,
     categories_data,
     loans_data,
     users_data,
+    video_posts_data,
 )
 
 
 TABLES_TO_RESET = (
     "interactions",
     "loans",
+    "video_posts",
+    "blog_posts",
     "book_author",
     "books",
     "authors",
@@ -132,6 +137,16 @@ def seed_loans(db) -> None:
         db.add(Loan(**loan_data))
 
 
+def seed_content(db) -> None:
+    print(f"Seeding {len(blog_posts_data)} blog posts...")
+    for blog_data in blog_posts_data:
+        db.add(BlogPost(**blog_data))
+
+    print(f"Seeding {len(video_posts_data)} videos...")
+    for video_data in video_posts_data:
+        db.add(VideoPost(**video_data))
+
+
 def seed() -> None:
     reset_tables()
     db = SessionLocal()
@@ -142,6 +157,7 @@ def seed() -> None:
         seed_books(db, name_to_id, author_name_to_id)
         seed_users(db)
         seed_loans(db)
+        seed_content(db)
         db.commit()
         print("Seeded successfully!")
     except Exception as exc:

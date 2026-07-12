@@ -8,10 +8,10 @@ import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
 import 'package:libraryapp/features/notifications/viewmodels/notifications_controller.dart';
 import 'package:libraryapp/features/home/views/home_view.dart';
-import 'package:libraryapp/features/search/views/search_view.dart';
+import 'package:libraryapp/features/blogs/views/blogs_view.dart';
 import 'package:libraryapp/features/borrowed/views/borrowed_view.dart';
-import 'package:libraryapp/features/wishlist/views/wishlist_view.dart';
 import 'package:libraryapp/features/profile/views/profile_view.dart';
+import 'package:libraryapp/features/videos/views/videos_view.dart';
 
 class BottomNav extends ConsumerStatefulWidget {
   const BottomNav({super.key});
@@ -54,7 +54,7 @@ class _BottomNavState extends ConsumerState<BottomNav> {
             _LazyTabNavigator(
               isLoaded: _visitedTabs.contains(1),
               navigatorKey: BottomNav._tabNavigatorKeys[1],
-              child: const SearchView(),
+              child: const BlogsView(),
             ),
             _LazyTabNavigator(
               isLoaded: _visitedTabs.contains(2),
@@ -64,7 +64,7 @@ class _BottomNavState extends ConsumerState<BottomNav> {
             _LazyTabNavigator(
               isLoaded: _visitedTabs.contains(3),
               navigatorKey: BottomNav._tabNavigatorKeys[3],
-              child: const WishlistView(),
+              child: const VideosView(),
             ),
             _LazyTabNavigator(
               isLoaded: _visitedTabs.contains(4),
@@ -92,16 +92,16 @@ class _BottomNavState extends ConsumerState<BottomNav> {
               label: "Home",
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.search),
-              label: "Search",
+              icon: Icon(Icons.article_outlined),
+              label: "Blogs",
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.menu_book),
               label: "Borrowed",
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border),
-              label: "WishList",
+              icon: Icon(Icons.video_library_outlined),
+              label: "Videos",
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.person),

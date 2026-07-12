@@ -37,6 +37,38 @@ MIGRATION_STATEMENTS = [
     "ALTER TABLE books ADD COLUMN IF NOT EXISTS image_blob BYTEA",
     "ALTER TABLE books ADD COLUMN IF NOT EXISTS image_mime_type TEXT",
     """
+    CREATE TABLE IF NOT EXISTS blog_posts (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        excerpt TEXT NOT NULL DEFAULT '',
+        content TEXT NOT NULL DEFAULT '',
+        author TEXT NOT NULL DEFAULT 'Library Team',
+        category TEXT NOT NULL DEFAULT 'Library',
+        cover_image TEXT,
+        read_minutes INTEGER NOT NULL DEFAULT 3,
+        published BOOLEAN NOT NULL DEFAULT TRUE,
+        published_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS video_posts (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        youtube_video_id TEXT NOT NULL,
+        speaker TEXT NOT NULL DEFAULT 'Library Team',
+        category TEXT NOT NULL DEFAULT 'Learning',
+        duration TEXT NOT NULL DEFAULT '',
+        thumbnail_url TEXT,
+        published BOOLEAN NOT NULL DEFAULT TRUE,
+        published_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS fine_payments (
         id TEXT PRIMARY KEY,
         member_id TEXT REFERENCES users(id),

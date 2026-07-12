@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
-import 'package:libraryapp/core/widgets/BottomNavigator/bottom_nav_provider.dart';
 import 'package:libraryapp/features/search/viewmodels/search_viewmodel.dart';
 import 'package:libraryapp/features/search/widgets/filter_chip_button.dart';
 import 'package:libraryapp/features/search/widgets/sort_dropdown.dart';
@@ -22,7 +21,12 @@ class SearchView extends ConsumerStatefulWidget {
 class _SearchViewState extends ConsumerState<SearchView> {
   final TextEditingController searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  bool _didAutoFocusForCurrentTabVisit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusSearchAfterOpen();
+  }
 
   @override
   void dispose() {
@@ -33,9 +37,6 @@ class _SearchViewState extends ConsumerState<SearchView> {
 
   @override
   Widget build(BuildContext context) {
-    final isSearchTabActive = ref.watch(bottomNavIndexProvider) == 1;
-    _handleSearchTabActivation(isSearchTabActive);
-
     final searchState = ref.watch(
       searchViewModelProvider(initialCategory: widget.currentCategory),
     );
@@ -199,21 +200,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
     );
   }
 
-  void _handleSearchTabActivation(bool isSearchTabActive) {
-    if (!isSearchTabActive) {
-      _didAutoFocusForCurrentTabVisit = false;
-      if (_searchFocusNode.hasFocus) {
-        _searchFocusNode.unfocus();
-      }
-      return;
-    }
-
-    if (_didAutoFocusForCurrentTabVisit) {
-      return;
-    }
-
-    _didAutoFocusForCurrentTabVisit = true;
-
+  void _focusSearchAfterOpen() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 

@@ -131,7 +131,7 @@ class SearchViewModel extends _$SearchViewModel {
     return SearchState(
       isLoading: true,
       selectedCategory: initialCategory,
-      showSearchResults: initialCategory != null,
+      showSearchResults: true,
     );
   }
 

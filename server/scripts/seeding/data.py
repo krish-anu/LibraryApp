@@ -861,3 +861,57 @@ users_data = [
         "email": "maria.garcia@example.com",
     },
 ]
+
+blog_posts_data = [
+    {
+        "id": "blog_reading_habits",
+        "title": "Build a Reading Habit That Actually Lasts",
+        "excerpt": "Simple ways to make daily reading feel natural, even when your schedule is full.",
+        "content": "Start small, keep the book visible, and choose a consistent reading trigger. Ten focused minutes every day is easier to protect than one large block on the weekend. Track what you finish, but also track what you abandon so your shelf starts matching your curiosity.",
+        "author": "Library Team",
+        "category": "Reading",
+        "cover_image": "https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=1200&q=80",
+        "read_minutes": 4,
+    },
+    {
+        "id": "blog_research_notes",
+        "title": "Better Notes for Better Research",
+        "excerpt": "A compact note-taking workflow for assignments, projects, and personal study.",
+        "content": "Good research notes separate source facts from your own thinking. Capture the citation first, summarize the useful idea in your own words, then add a short reflection about why it matters. This keeps your writing cleaner when you return later.",
+        "author": "Library Team",
+        "category": "Study",
+        "cover_image": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80",
+        "read_minutes": 5,
+    },
+    {
+        "id": "blog_new_arrivals",
+        "title": "How We Choose New Arrivals",
+        "excerpt": "A quick look at how recommendations, demand, and collection gaps shape the shelf.",
+        "content": "New arrivals are selected by balancing member requests, circulation patterns, subject coverage, and replacement needs. A healthy library collection should feel current without losing the durable books readers keep coming back to.",
+        "author": "Library Team",
+        "category": "Library",
+        "cover_image": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1200&q=80",
+        "read_minutes": 3,
+    },
+]
+
+video_posts_data = [
+    {
+        "id": "video_library_tour",
+        "title": "How to Get the Most Out of Your Library",
+        "description": "A short guide to finding books, saving favorites, and managing borrowed items.",
+        "youtube_video_id": "dQw4w9WgXcQ",
+        "speaker": "Library Team",
+        "category": "Guide",
+        "duration": "3:32",
+    },
+    {
+        "id": "video_study_skills",
+        "title": "Study Skills: Read, Recall, Review",
+        "description": "A practical study loop for turning reading time into long-term understanding.",
+        "youtube_video_id": "ysz5S6PUM-U",
+        "speaker": "Learning Desk",
+        "category": "Study",
+        "duration": "2:50",
+    },
+]
