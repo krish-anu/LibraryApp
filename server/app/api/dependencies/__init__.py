@@ -5,7 +5,7 @@ from .authorization import (
     require_scope,
     require_subject_or_admin,
 )
-from .database import get_db
+from app.api.dependencies.database import get_db
 from .identity import (
     identity_admin_matches,
     identity_has_any_scope,
