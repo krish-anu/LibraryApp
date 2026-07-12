@@ -32,7 +32,7 @@
 
 1. Create an account at [asgardeo.io](https://asgardeo.io)
 2. Create a new application (Traditional Web Application)
-3. Configure the callback URL: `http://localhost:3000/api/auth/callback`
+3. Configure the callback URL: `http://localhost:3000/api/auth/callback/asgardeo`
 4. Copy the Client ID and Client Secret
 
 ### 2. Configure Environment Variables
@@ -62,6 +62,8 @@ ASGARDEO_AUTHORIZE_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oauth2
 ASGARDEO_TOKEN_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oauth2/token
 ASGARDEO_USERINFO_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oauth2/userinfo
 ASGARDEO_LOGOUT_ENDPOINT=https://api.<region>.asgardeo.io/t/<org-name>/oidc/logout
+ASGARDEO_SCOPE="openid profile email groups roles dashboard_read books_read books_manage categories_read categories_manage loans_read loans_manage reservations_read reservations_manage favorites_read favorites_manage users_read users_manage fines_read fines_manage notifications_read notifications_manage settings_read settings_manage"
+ADMIN_GROUPS=admin
 ```
 
 ### 3. Install Dependencies
@@ -129,7 +131,8 @@ Default settings and categories are created automatically by the server when nee
 
 ### Authentication
 
-- `GET /api/auth/callback` - OAuth callback handler
+- `GET /api/auth/login` - Start the Asgardeo PKCE login flow
+- `GET /api/auth/callback/asgardeo` - OAuth callback handler
 - `GET /api/auth/logout` - Logout and clear session
 - `GET /api/auth/me` - Get current user info
 

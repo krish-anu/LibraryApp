@@ -30,6 +30,12 @@ flutter run \
 `ASGARDEO_BASE_URL` must be the tenant base URL only. Do not include
 `/oauth2/token`, `/oauth2/authorize`, or any other endpoint suffix.
 
+Authorize the mobile application to request these user scopes in Asgardeo:
+
+```text
+openid profile email groups roles books_read categories_read loans_read loans_manage reservations_read reservations_manage favorites_read favorites_manage users_read users_manage notifications_read notifications_manage settings_read
+```
+
 If you prefer not to retype them each time:
 
 ```bash

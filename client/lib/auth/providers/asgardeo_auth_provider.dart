@@ -13,30 +13,7 @@ class AsgardeoConfig {
   static String get redirectUrl => AsgardeoRuntimeConfig.redirectUrl;
   static String get discoveryUrl => AsgardeoRuntimeConfig.discoveryUrl;
   static String get userInfoEndpoint => AsgardeoRuntimeConfig.userInfoEndpoint;
-  static const List<String> scopes = [
-    'openid',
-    'profile',
-    'email',
-    'dashboard_read',
-    'books_read',
-    'books_manage',
-    'categories_read',
-    'categories_manage',
-    'loans_read',
-    'loans_manage',
-    'reservations_read',
-    'reservations_manage',
-    'favorites_read',
-    'favorites_manage',
-    'users_read',
-    'users_manage',
-    'fines_read',
-    'fines_manage',
-    'notifications_read',
-    'notifications_manage',
-    'settings_read',
-    'settings_manage',
-  ];
+  static const List<String> scopes = AsgardeoUserScopes.values;
 }
 
 /// State class for Asgardeo authentication

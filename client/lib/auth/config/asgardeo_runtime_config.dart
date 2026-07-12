@@ -146,3 +146,26 @@ class AsgardeoRuntimeConfig {
     ).toString();
   }
 }
+
+class AsgardeoUserScopes {
+  static const List<String> values = [
+    'openid',
+    'profile',
+    'email',
+    'groups',
+    'roles',
+    'books_read',
+    'categories_read',
+    'loans_read',
+    'loans_manage',
+    'reservations_read',
+    'reservations_manage',
+    'favorites_read',
+    'favorites_manage',
+    'users_read',
+    'users_manage',
+    'notifications_read',
+    'notifications_manage',
+    'settings_read',
+  ];
+}

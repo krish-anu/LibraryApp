@@ -40,6 +40,10 @@ ASGARDEO_INTROSPECTION_CLIENT_ID=<asgardeo-client-id>
 ASGARDEO_INTROSPECTION_CLIENT_SECRET=<asgardeo-client-secret>
 ```
 
+Create the Library API scopes in Asgardeo and authorize the correct application
+to request them. Admin-only API endpoints require both the matching scope and an
+admin role/group claim listed in `ADMIN_GROUPS`.
+
 ## 2. Seed the database
 
 ```bash

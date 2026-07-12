@@ -48,6 +48,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   }
 
   Future<void> _handleSignup() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     final asgardeoAuth = ref.read(asgardeoDirectAuthProvider.notifier);
 
     // Browser-based registration will be used
@@ -56,6 +60,27 @@ class _SignupPageState extends ConsumerState<SignupPage> {
       password: _passwordController.text,
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
+      username: _usernameController.text.trim().isEmpty
+          ? null
+          : _usernameController.text.trim(),
+      phoneNumber: _phoneController.text.trim().isEmpty
+          ? null
+          : _phoneController.text.trim(),
+      streetAddress: _streetAddressController.text.trim().isEmpty
+          ? null
+          : _streetAddressController.text.trim(),
+      locality: _cityController.text.trim().isEmpty
+          ? null
+          : _cityController.text.trim(),
+      region: _stateController.text.trim().isEmpty
+          ? null
+          : _stateController.text.trim(),
+      postalCode: _postalCodeController.text.trim().isEmpty
+          ? null
+          : _postalCodeController.text.trim(),
+      country: _countryController.text.trim().isEmpty
+          ? null
+          : _countryController.text.trim(),
     );
 
     if (success && mounted) {

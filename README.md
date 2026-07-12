@@ -77,8 +77,8 @@ Run on Android emulator:
 ```bash
 flutter run \
   --dart-define=SERVER_URL=http://10.0.2.2:8000 \
-  --dart-define=ASGARDEO_CLIENT_ID=1O70sZaVwlin70uGYeJlfKhvv2sa \
-  --dart-define=ASGARDEO_BASE_URL=https://api.eu.asgardeo.io/t/orgd2ib6
+  --dart-define=ASGARDEO_CLIENT_ID=your-public-client-id \
+  --dart-define=ASGARDEO_BASE_URL=https://api.<region>.asgardeo.io/t/<org-name>
 ```
 
 Run on a physical Android device using USB:
@@ -87,8 +87,8 @@ Run on a physical Android device using USB:
 adb reverse tcp:8000 tcp:8000
 flutter run \
   --dart-define=SERVER_URL=http://127.0.0.1:8000 \
-  --dart-define=ASGARDEO_CLIENT_ID=1O70sZaVwlin70uGYeJlfKhvv2sa \
-  --dart-define=ASGARDEO_BASE_URL=https://api.eu.asgardeo.io/t/orgd2ib6
+  --dart-define=ASGARDEO_CLIENT_ID=your-public-client-id \
+  --dart-define=ASGARDEO_BASE_URL=https://api.<region>.asgardeo.io/t/<org-name>
 ```
 
 Run on a physical device over the same Wi-Fi network:
@@ -96,8 +96,8 @@ Run on a physical device over the same Wi-Fi network:
 ```bash
 flutter run \
   --dart-define=SERVER_URL=http://YOUR_COMPUTER_IP:8000 \
-  --dart-define=ASGARDEO_CLIENT_ID=1O70sZaVwlin70uGYeJlfKhvv2sa \
-  --dart-define=ASGARDEO_BASE_URL=https://api.eu.asgardeo.io/t/orgd2ib6
+  --dart-define=ASGARDEO_CLIENT_ID=your-public-client-id \
+  --dart-define=ASGARDEO_BASE_URL=https://api.<region>.asgardeo.io/t/<org-name>
 ```
 
 Replace `YOUR_COMPUTER_IP` with your computer's local IP address, for example `192.168.1.20`.
@@ -170,8 +170,8 @@ flutter analyze
 flutter test
 flutter build apk \
   --dart-define=SERVER_URL=http://YOUR_API_HOST:8000 \
-  --dart-define=ASGARDEO_CLIENT_ID=1O70sZaVwlin70uGYeJlfKhvv2sa \
-  --dart-define=ASGARDEO_BASE_URL=https://api.eu.asgardeo.io/t/orgd2ib6
+  --dart-define=ASGARDEO_CLIENT_ID=your-public-client-id \
+  --dart-define=ASGARDEO_BASE_URL=https://api.<region>.asgardeo.io/t/<org-name>
 ```
 
 Admin:
@@ -285,8 +285,8 @@ Run on Android emulator:
 ```bash
 flutter run \
   --dart-define=SERVER_URL=http://10.0.2.2:8000 \
-  --dart-define=ASGARDEO_CLIENT_ID=1O70sZaVwlin70uGYeJlfKhvv2sa \
-  --dart-define=ASGARDEO_BASE_URL=https://api.eu.asgardeo.io/t/orgd2ib6
+  --dart-define=ASGARDEO_CLIENT_ID=your-public-client-id \
+  --dart-define=ASGARDEO_BASE_URL=https://api.<region>.asgardeo.io/t/<org-name>
 ```
 
 Run on a physical Android device using USB:
@@ -295,8 +295,8 @@ Run on a physical Android device using USB:
 adb reverse tcp:8000 tcp:8000
 flutter run \
   --dart-define=SERVER_URL=http://127.0.0.1:8000 \
-  --dart-define=ASGARDEO_CLIENT_ID=1O70sZaVwlin70uGYeJlfKhvv2sa \
-  --dart-define=ASGARDEO_BASE_URL=https://api.eu.asgardeo.io/t/orgd2ib6
+  --dart-define=ASGARDEO_CLIENT_ID=your-public-client-id \
+  --dart-define=ASGARDEO_BASE_URL=https://api.<region>.asgardeo.io/t/<org-name>
 ```
 
 Run on a physical device over the same Wi-Fi network:
@@ -304,8 +304,8 @@ Run on a physical device over the same Wi-Fi network:
 ```bash
 flutter run \
   --dart-define=SERVER_URL=http://YOUR_COMPUTER_IP:8000 \
-  --dart-define=ASGARDEO_CLIENT_ID=1O70sZaVwlin70uGYeJlfKhvv2sa \
-  --dart-define=ASGARDEO_BASE_URL=https://api.eu.asgardeo.io/t/orgd2ib6
+  --dart-define=ASGARDEO_CLIENT_ID=your-public-client-id \
+  --dart-define=ASGARDEO_BASE_URL=https://api.<region>.asgardeo.io/t/<org-name>
 ```
 
 Replace `YOUR_COMPUTER_IP` with your computer's local IP address, for example `192.168.1.20`.
@@ -378,8 +378,8 @@ flutter analyze
 flutter test
 flutter build apk \
   --dart-define=SERVER_URL=http://YOUR_API_HOST:8000 \
-  --dart-define=ASGARDEO_CLIENT_ID=1O70sZaVwlin70uGYeJlfKhvv2sa \
-  --dart-define=ASGARDEO_BASE_URL=https://api.eu.asgardeo.io/t/orgd2ib6
+  --dart-define=ASGARDEO_CLIENT_ID=your-public-client-id \
+  --dart-define=ASGARDEO_BASE_URL=https://api.<region>.asgardeo.io/t/<org-name>
 ```
 
 Admin:

@@ -332,6 +332,16 @@ def require_scope(*required_scopes: str) -> Callable:
 
 def require_admin_scope(*required_scopes: str) -> Callable:
     async def checker(identity: dict = Depends(verify_access_token)) -> dict:
+        if not identity_is_admin(identity):
+            logger.info(
+                "Authenticated user is missing admin role; role_claim_keys=%s scopes=%s",
+                identity_role_claim_keys(identity),
+                sorted(identity_scopes(identity)),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administrator privileges are required",
+            )
         _ensure_any_scope(identity, required_scopes)
         return identity
 
