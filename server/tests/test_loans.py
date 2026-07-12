@@ -70,6 +70,7 @@ def user_headers(app):
             "username": "stduser",
             "email": "user@example.com",
             "groups": [],
+            "scope": "loans_read loans_manage",
         }
 
     app.dependency_overrides[verify_access_token] = mock_user_token

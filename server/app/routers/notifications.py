@@ -9,7 +9,7 @@ from ..dependencies import (
     get_db,
     identity_is_admin,
     identity_subject,
-    verify_access_token,
+    require_scope,
 )
 from ..notification_center import (
     list_notifications,
@@ -38,7 +38,7 @@ def _recipient(identity: dict[str, Any]) -> tuple[str, str | None]:
 @router.get("", response_model=list[Notification])
 def get_notifications(
     limit: int = Query(default=50, ge=1, le=100),
-    identity: dict[str, Any] = Depends(verify_access_token),
+    identity: dict[str, Any] = Depends(require_scope("notifications_read")),
     db: Session = Depends(get_db),
 ):
     recipient_type, recipient_id = _recipient(identity)
@@ -47,7 +47,7 @@ def get_notifications(
 
 @router.get("/unread-count", response_model=NotificationCount)
 def get_unread_count(
-    identity: dict[str, Any] = Depends(verify_access_token),
+    identity: dict[str, Any] = Depends(require_scope("notifications_read")),
     db: Session = Depends(get_db),
 ):
     recipient_type, recipient_id = _recipient(identity)
@@ -60,7 +60,7 @@ def get_unread_count(
 
 @router.post("/read-all", response_model=NotificationReadResult)
 def read_all_notifications(
-    identity: dict[str, Any] = Depends(verify_access_token),
+    identity: dict[str, Any] = Depends(require_scope("notifications_manage")),
     db: Session = Depends(get_db),
 ):
     recipient_type, recipient_id = _recipient(identity)
@@ -75,7 +75,7 @@ def read_all_notifications(
 @router.post("/device-token")
 def upsert_device_token(
     payload: DeviceTokenPayload,
-    identity: dict[str, Any] = Depends(verify_access_token),
+    identity: dict[str, Any] = Depends(require_scope("notifications_manage")),
     db: Session = Depends(get_db),
 ):
     return register_device_token(
@@ -89,7 +89,7 @@ def upsert_device_token(
 @router.delete("/device-token", response_model=NotificationReadResult)
 def delete_device_token(
     payload: DeviceTokenPayload,
-    identity: dict[str, Any] = Depends(verify_access_token),
+    identity: dict[str, Any] = Depends(require_scope("notifications_manage")),
     db: Session = Depends(get_db),
 ):
     deleted = unregister_device_token(
@@ -101,7 +101,7 @@ def delete_device_token(
 @router.post("/{notification_id}/read", response_model=Notification)
 def read_notification(
     notification_id: str,
-    identity: dict[str, Any] = Depends(verify_access_token),
+    identity: dict[str, Any] = Depends(require_scope("notifications_manage")),
     db: Session = Depends(get_db),
 ):
     recipient_type, recipient_id = _recipient(identity)

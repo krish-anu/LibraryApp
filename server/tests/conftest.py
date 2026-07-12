@@ -10,6 +10,19 @@ from app.models.base import Base
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+ALL_TEST_SCOPES = (
+    "openid profile email "
+    "dashboard_read "
+    "books_read books_manage "
+    "categories_read categories_manage "
+    "loans_read loans_manage "
+    "reservations_read reservations_manage "
+    "favorites_read favorites_manage "
+    "users_read users_manage "
+    "fines_read fines_manage "
+    "notifications_read notifications_manage "
+    "settings_read settings_manage"
+)
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -72,7 +85,7 @@ def override_auth_dependency(client):
             "sub": "test-user-id",
             "username": "testuser",
             "email": "test@example.com",
-            "scope": "openid profile email",
+            "scope": ALL_TEST_SCOPES,
         }
 
     main_app.dependency_overrides[verify_access_token] = mock_verify_token
@@ -87,6 +100,7 @@ def admin_user(app):
             "username": "admin",
             "email": "admin@example.com",
             "groups": ["admin"],
+            "scope": ALL_TEST_SCOPES,
         }
 
     app.dependency_overrides[verify_access_token] = mock_admin_token

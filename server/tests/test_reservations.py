@@ -28,6 +28,7 @@ def user_headers(app):
             "sub": "res-user-id",
             "username": "resuser",
             "groups": [],
+            "scope": "reservations_read reservations_manage",
         }
 
     app.dependency_overrides[verify_access_token] = mock_user_token

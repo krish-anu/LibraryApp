@@ -19,8 +19,33 @@ function escapeHtml(value: string) {
 // Environment variables:
 // ASGARDEO_AUTHORIZE_ENDPOINT – e.g. https://<org>.asgardeo.io/oauth2/authorize
 // ASGARDEO_CLIENT_ID          – public OAuth2 client ID (PKCE-enabled app)
-// ASGARDEO_SCOPE              – (optional) defaults to "openid profile email"
+// ASGARDEO_SCOPE              – optional; defaults to all backend API scopes
 // NEXT_PUBLIC_APP_URL          – e.g. http://localhost:3000
+
+const DEFAULT_SCOPE = [
+  "openid",
+  "profile",
+  "email",
+  "dashboard_read",
+  "books_read",
+  "books_manage",
+  "categories_read",
+  "categories_manage",
+  "loans_read",
+  "loans_manage",
+  "reservations_read",
+  "reservations_manage",
+  "favorites_read",
+  "favorites_manage",
+  "users_read",
+  "users_manage",
+  "fines_read",
+  "fines_manage",
+  "notifications_read",
+  "notifications_manage",
+  "settings_read",
+  "settings_manage",
+].join(" ");
 
 export async function GET(request: NextRequest) {
   const authorizeEndpoint = sanitizeEnvValue(
@@ -28,7 +53,7 @@ export async function GET(request: NextRequest) {
   );
   const clientId = sanitizeEnvValue(process.env.ASGARDEO_CLIENT_ID);
   const appUrl = resolveAppUrl(request);
-  const scope = sanitizeEnvValue(process.env.ASGARDEO_SCOPE) || "openid profile email";
+  const scope = sanitizeEnvValue(process.env.ASGARDEO_SCOPE) || DEFAULT_SCOPE;
   const prompt = sanitizeEnvValue(process.env.ASGARDEO_PROMPT) || "login";
 
   if (!authorizeEndpoint || !clientId) {

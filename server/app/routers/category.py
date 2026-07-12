@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, require_admin, verify_access_token
+from ..dependencies import get_db, require_admin_scope, require_scope
 from ..models import category
 from ..pydantic_schemas import category as category_schema
 
@@ -12,7 +12,8 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 
 @router.get("", response_model=List[category_schema.Category])
 def get_categories(
-    _identity: dict = Depends(verify_access_token), db: Session = Depends(get_db)
+    _identity: dict = Depends(require_scope("categories_read")),
+    db: Session = Depends(get_db),
 ):
     return db.query(category.Category).all()
 
@@ -20,7 +21,7 @@ def get_categories(
 @router.post("", response_model=category_schema.Category, status_code=201)
 def create_category(
     data: category_schema.CategoryCreate,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("categories_manage")),
     db: Session = Depends(get_db),
 ):
     existing = (
@@ -43,7 +44,7 @@ def create_category(
 @router.get("/{category_id}", response_model=category_schema.Category)
 def get_category(
     category_id: str,
-    _identity: dict = Depends(verify_access_token),
+    _identity: dict = Depends(require_scope("categories_read")),
     db: Session = Depends(get_db),
 ):
     cat = (
@@ -58,7 +59,7 @@ def get_category(
 def update_category(
     category_id: str,
     data: category_schema.CategoryCreate,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("categories_manage")),
     db: Session = Depends(get_db),
 ):
     cat = (
@@ -77,7 +78,7 @@ def update_category(
 @router.delete("/{category_id}", status_code=204)
 def delete_category(
     category_id: str,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("categories_manage")),
     db: Session = Depends(get_db),
 ):
     cat = (

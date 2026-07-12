@@ -8,7 +8,6 @@ from app.routers.users import list_users
 
 
 def test_admin_policy_requires_admin_role_by_default(monkeypatch):
-    monkeypatch.delenv("ADMIN_EMAILS", raising=False)
     monkeypatch.delenv("ADMIN_GROUPS", raising=False)
     assert identity_is_admin({"sub": "portal-user"}) is False
     assert identity_is_admin({"sub": "member", "groups": ["user"]}) is False
@@ -30,9 +29,9 @@ def test_admin_policy_requires_admin_role_by_default(monkeypatch):
     assert identity_is_admin({"sub": "admin", "applicationRoles": ["admin"]}) is True
     assert identity_is_admin({"sub": "admin", "roles": ["Next.js/admin"]}) is True
     assert identity_is_admin({"sub": "admin", "roles": [{"display": "admin"}]}) is True
-
-    monkeypatch.setenv("ADMIN_EMAILS", "admin@gmail.com")
-    assert identity_is_admin({"sub": "admin", "username": "admin@gmail.com"}) is True
+    assert (
+        identity_is_admin({"sub": "admin", "roles": {"Next.js": ["admin"]}}) is True
+    )
 
 
 def test_user_collection_is_paginated_and_searchable(db_session):

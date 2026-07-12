@@ -5,7 +5,12 @@ from fastapi import APIRouter, Body, Depends, Header, HTTPException
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session, selectinload
 
-from ..dependencies import get_db, require_admin, require_subject_or_admin, verify_access_token
+from ..dependencies import (
+    get_db,
+    require_admin_scope,
+    require_scope,
+    require_subject_or_admin,
+)
 from ..image_blob import image_response, validate_image_body
 from ..models import book as book_model
 from ..models import category as category_model
@@ -60,7 +65,8 @@ def _book_query(db: Session):
 
 @router.get("", response_model=List[book_schema.Book])
 def get_books(
-    _identity: dict = Depends(verify_access_token), db: Session = Depends(get_db)
+    _identity: dict = Depends(require_scope("books_read")),
+    db: Session = Depends(get_db),
 ):
     books = _book_query(db).all()
     return [_book_to_response(book) for book in books]
@@ -69,7 +75,7 @@ def get_books(
 @router.post("", response_model=book_schema.Book, status_code=201)
 def create_book(
     book_data: book_schema.BookCreate,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("books_manage")),
     db: Session = Depends(get_db),
 ):
     existing_category = (
@@ -107,10 +113,7 @@ def create_book(
     return _book_to_response(new_book)
 
 
-@router.get("/trending", response_model=List[book_schema.Book])
-def get_trending_books(
-    _identity: dict = Depends(verify_access_token), db: Session = Depends(get_db)
-):
+def _trending_books(db: Session) -> list[book_schema.Book]:
     time_threshold = datetime.now(timezone.utc) - timedelta(days=7)
 
     trending_books = (
@@ -129,10 +132,18 @@ def get_trending_books(
     return [_book_to_response(book[0]) for book in trending_books]
 
 
+@router.get("/trending", response_model=List[book_schema.Book])
+def get_trending_books(
+    _identity: dict = Depends(require_scope("books_read")),
+    db: Session = Depends(get_db),
+):
+    return _trending_books(db)
+
+
 @router.get("/recommended/{user_id}", response_model=List[book_schema.Book])
 def get_recommended_books(
     user_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("books_read")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, user_id)
@@ -147,7 +158,7 @@ def get_recommended_books(
     )
 
     if not user_categories:
-        return get_trending_books(db)
+        return _trending_books(db)
 
     categories = [category[0] for category in user_categories]
 
@@ -180,7 +191,7 @@ async def upload_book_image(
     book_id: str,
     body: bytes = Body(...),
     content_type: str | None = Header(default=None),
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("books_manage")),
     db: Session = Depends(get_db),
 ):
     book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
@@ -199,7 +210,7 @@ async def upload_book_image(
 @router.delete("/{book_id}/image", response_model=book_schema.Book)
 def delete_book_image(
     book_id: str,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("books_manage")),
     db: Session = Depends(get_db),
 ):
     book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
@@ -218,7 +229,7 @@ def delete_book_image(
 @router.get("/{book_id}", response_model=book_schema.Book)
 def get_book(
     book_id: str,
-    _identity: dict = Depends(verify_access_token),
+    _identity: dict = Depends(require_scope("books_read")),
     db: Session = Depends(get_db),
 ):
     book_obj = _book_query(db).filter(book_model.Book.id == book_id).first()
@@ -231,7 +242,7 @@ def get_book(
 def update_book(
     book_id: str,
     book_data: book_schema.BookCreate,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("books_manage")),
     db: Session = Depends(get_db),
 ):
     book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
@@ -271,7 +282,9 @@ def update_book(
 
 @router.delete("/{book_id}", status_code=204)
 def delete_book(
-    book_id: str, _admin: dict = Depends(require_admin), db: Session = Depends(get_db)
+    book_id: str,
+    _admin: dict = Depends(require_admin_scope("books_manage")),
+    db: Session = Depends(get_db),
 ):
     book_obj = db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
     if not book_obj:

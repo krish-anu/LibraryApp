@@ -31,6 +31,15 @@ You can connect in either of these ways:
 
 You still need to fill in the actual database name, user, and password before starting the API or running `seed_db.py`.
 
+Scope-protected endpoints use Asgardeo access-token introspection when tokens
+are opaque. Set these to the application client that requests the Library API
+scopes:
+
+```env
+ASGARDEO_INTROSPECTION_CLIENT_ID=<asgardeo-client-id>
+ASGARDEO_INTROSPECTION_CLIENT_SECRET=<asgardeo-client-secret>
+```
+
 ## 2. Seed the database
 
 ```bash

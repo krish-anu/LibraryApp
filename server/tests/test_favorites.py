@@ -28,6 +28,7 @@ def user_headers(app):
             "sub": "fav-user-id",
             "username": "favuser",
             "groups": [],
+            "scope": "favorites_read favorites_manage",
         }
 
     app.dependency_overrides[verify_access_token] = mock_user_token

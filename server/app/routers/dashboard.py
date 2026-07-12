@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, require_admin
+from ..dependencies import get_db, require_admin_scope
 from ..models.book import Book
 from ..models.fine import Fine
 from ..models.loan import Loan
@@ -34,7 +34,7 @@ def _growth(current: int, previous: int) -> float:
 
 @router.get("")
 def get_dashboard(
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("dashboard_read")),
     db: Session = Depends(get_db),
 ):
     today = date.today()

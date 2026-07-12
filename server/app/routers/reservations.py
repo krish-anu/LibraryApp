@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 
 from ..dependencies import (
     get_db,
-    require_admin,
+    require_admin_scope,
+    require_scope,
     require_subject_or_admin,
-    verify_access_token,
 )
 from ..models import loan as loan_model
 from ..models import reservation as reservation_model
@@ -30,7 +30,8 @@ def _safe_notify(callback) -> None:
 
 @router.get("/reservations", response_model=List[reservation_schema.Reservation])
 def list_reservations(
-    _admin: dict = Depends(require_admin), db: Session = Depends(get_db)
+    _admin: dict = Depends(require_admin_scope("reservations_read")),
+    db: Session = Depends(get_db),
 ):
     return db.query(reservation_model.Reservation).all()
 
@@ -40,7 +41,7 @@ def list_reservations(
 )
 def get_reservation(
     reservation_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("reservations_read")),
     db: Session = Depends(get_db),
 ):
     reservation = (
@@ -60,7 +61,7 @@ def get_reservation(
 )
 def get_reservations_for_member(
     member_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("reservations_read")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, member_id)
@@ -76,7 +77,7 @@ def get_reservations_for_member(
 )
 def create_reservation(
     res_in: reservation_schema.ReservationCreate,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("reservations_manage")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, res_in.member_id)
@@ -201,7 +202,7 @@ def create_reservation(
 )
 def cancel_reservation(
     reservation_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("reservations_manage")),
     db: Session = Depends(get_db),
 ):
     reservation = (

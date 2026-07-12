@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import (
     get_db,
-    require_admin,
+    require_admin_scope,
+    require_scope,
     require_subject_or_admin,
-    verify_access_token,
 )
 from app.image_blob import image_response, validate_image_body
 from app.models.fine import Fine as FineModel
@@ -46,7 +46,7 @@ def list_users(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=10, ge=1, le=100),
     search: str = "",
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("users_read")),
     db: Session = Depends(get_db),
 ):
     query = db.query(UserModel)
@@ -74,7 +74,7 @@ def list_users(
 @router.post("", response_model=user_schema.User, status_code=201)
 def create_user(
     payload: user_schema.UserAdminCreate,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("users_manage")),
     db: Session = Depends(get_db),
 ):
     email = payload.email.strip().lower()
@@ -115,7 +115,7 @@ async def upload_profile_image(
     user_id: str,
     body: bytes = Body(...),
     content_type: str | None = Header(default=None),
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("users_manage")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, user_id)
@@ -136,7 +136,7 @@ async def upload_profile_image(
 @router.delete("/{user_id}/profile-image", response_model=user_schema.User)
 def delete_profile_image(
     user_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("users_manage")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, user_id)
@@ -157,7 +157,7 @@ def delete_profile_image(
 @router.get("/{user_id}", response_model=user_schema.User)
 def get_user(
     user_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("users_read")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, user_id)
@@ -170,7 +170,7 @@ def get_user(
 @router.get("/by-member/{member_id}", response_model=user_schema.User)
 def get_user_by_member(
     member_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("users_read")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, member_id)
@@ -184,7 +184,7 @@ def get_user_by_member(
 def update_user(
     user_id: str,
     user_update: user_schema.UserUpdate,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("users_manage")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, user_id)
@@ -205,7 +205,7 @@ def update_user(
 @router.delete("/{user_id}")
 def delete_user(
     user_id: str,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("users_manage")),
     db: Session = Depends(get_db),
 ):
     user = db.query(UserModel).filter(UserModel.id == user_id).first()
@@ -233,7 +233,7 @@ def delete_user(
 @router.get("/{user_id}/stats", response_model=user_schema.ProfileStats)
 def get_user_stats(
     user_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("users_read")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, user_id)

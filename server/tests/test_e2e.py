@@ -14,6 +14,10 @@ BOOK_PAYLOAD = {
     "rating_count": 10,
     "author": "E2E Author",
 }
+ALL_TEST_SCOPES = (
+    "books_read books_manage loans_read loans_manage "
+    "favorites_read favorites_manage"
+)
 
 
 @pytest.fixture
@@ -21,7 +25,12 @@ def admin_auth(app):
     from app.dependencies import verify_access_token
 
     async def mock_token(authorization: str = None):  # type: ignore
-        return {"sub": "admin-id", "username": "admin", "groups": ["admin"]}
+        return {
+            "sub": "admin-id",
+            "username": "admin",
+            "groups": ["admin"],
+            "scope": ALL_TEST_SCOPES,
+        }
 
     app.dependency_overrides[verify_access_token] = mock_token
     yield
@@ -33,7 +42,12 @@ def user_auth(app):
     from app.dependencies import verify_access_token
 
     async def mock_token(authorization: str = None):  # type: ignore
-        return {"sub": "user-id", "username": "user", "groups": []}
+        return {
+            "sub": "user-id",
+            "username": "user",
+            "groups": [],
+            "scope": ALL_TEST_SCOPES,
+        }
 
     app.dependency_overrides[verify_access_token] = mock_token
     yield
@@ -48,10 +62,20 @@ def test_successful_borrow_flow(client: TestClient):
 
     # helper override functions
     async def mock_admin_token(authorization: str = None):  # type: ignore
-        return {"sub": "admin-id", "username": "admin", "groups": ["admin"]}
+        return {
+            "sub": "admin-id",
+            "username": "admin",
+            "groups": ["admin"],
+            "scope": ALL_TEST_SCOPES,
+        }
 
     async def mock_user_token(authorization: str = None):  # type: ignore
-        return {"sub": "user-id", "username": "user", "groups": []}
+        return {
+            "sub": "user-id",
+            "username": "user",
+            "groups": [],
+            "scope": ALL_TEST_SCOPES,
+        }
 
     # 1. Admin creates book
     client.app.dependency_overrides[verify_access_token] = mock_admin_token  # type: ignore
@@ -87,7 +111,12 @@ def test_favorites_lifecycle(client: TestClient):
     from app.dependencies import verify_access_token
 
     async def mock_user_token(authorization: str = None):  # type: ignore
-        return {"sub": "user-id", "username": "user", "groups": []}
+        return {
+            "sub": "user-id",
+            "username": "user",
+            "groups": [],
+            "scope": ALL_TEST_SCOPES,
+        }
 
     client.app.dependency_overrides[verify_access_token] = mock_user_token  # type: ignore
 

@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Optional
+from typing import Callable, Iterable, Optional
 
 from fastapi import Depends, Header, HTTPException, status
 
@@ -11,6 +11,18 @@ from .env import load_app_env
 load_app_env()
 
 ASGARDEO_BASE_URL = os.getenv("ASGARDEO_BASE_URL", "")
+ASGARDEO_INTROSPECTION_CLIENT_ID = (
+    os.getenv("ASGARDEO_INTROSPECTION_CLIENT_ID")
+    or os.getenv("ASGARDEO_PUBLIC_CLIENT_ID")
+    or os.getenv("ASGARDEO_CLIENT_ID")
+    or ""
+)
+ASGARDEO_INTROSPECTION_CLIENT_SECRET = (
+    os.getenv("ASGARDEO_INTROSPECTION_CLIENT_SECRET")
+    or os.getenv("ASGARDEO_PUBLIC_CLIENT_SECRET")
+    or os.getenv("ASGARDEO_CLIENT_SECRET")
+    or ""
+)
 logger = logging.getLogger(__name__)
 DEFAULT_ADMIN_GROUPS = "admin,library-admin,library_admin,Library Administrator"
 ROLE_CLAIMS = (
@@ -23,13 +35,24 @@ ROLE_CLAIMS = (
     "applicationRoles",
     "assigned_roles",
     "assignedRoles",
-    "permissions",
-    "scope",
+    "groups_display",
+    "groupsDisplay",
+    "member_of",
+    "memberOf",
     "http://wso2.org/claims/role",
     "http://wso2.org/claims/roles",
     "http://wso2.org/claims/groups",
     "http://wso2.org/claims/applicationRoles",
     "http://wso2.org/claims/application_roles",
+)
+SCOPE_CLAIMS = (
+    "scope",
+    "scp",
+    "scopes",
+    "permissions",
+    "permission",
+    "http://wso2.org/claims/permissions",
+    "http://wso2.org/claims/scope",
 )
 
 
@@ -60,10 +83,22 @@ def _claim_values(value) -> set[str]:
         return values
     if isinstance(value, dict):
         values = set()
-        for key in ("value", "name", "display", "displayName"):
+        for item in value.values():
+            values.update(_claim_values(item))
+        for key in (
+            "value",
+            "name",
+            "display",
+            "displayName",
+            "role",
+            "roles",
+            "roleName",
+            "group",
+            "groups",
+            "groupName",
+        ):
             item = value.get(key)
-            if isinstance(item, str) and item.strip():
-                values.update(normalize(item))
+            values.update(_claim_values(item))
         return values
     if isinstance(value, (list, tuple, set)):
         values = set()
@@ -71,6 +106,84 @@ def _claim_values(value) -> set[str]:
             values.update(_claim_values(item))
         return values
     return set()
+
+
+def _normalize_scope(raw: str) -> set[str]:
+    normalized = raw.strip().lower()
+    if not normalized:
+        return set()
+    return {
+        normalized,
+        normalized.replace(":", "_"),
+    }
+
+
+def _scope_values(value) -> set[str]:
+    if value is None:
+        return set()
+    if isinstance(value, str):
+        values = set()
+        for part in value.replace(",", " ").split():
+            values.update(_normalize_scope(part))
+        return values
+    if isinstance(value, dict):
+        values = set()
+        for key in ("value", "name", "display", "displayName"):
+            item = value.get(key)
+            if isinstance(item, str) and item.strip():
+                values.update(_scope_values(item))
+        return values
+    if isinstance(value, (list, tuple, set)):
+        values = set()
+        for item in value:
+            values.update(_scope_values(item))
+        return values
+    return set()
+
+
+def identity_scopes(identity: dict) -> set[str]:
+    scopes = set()
+    for claim in SCOPE_CLAIMS:
+        scopes.update(_scope_values(identity.get(claim)))
+    return scopes
+
+
+async def _token_metadata(token: str, client) -> dict:
+    if not ASGARDEO_INTROSPECTION_CLIENT_ID or not ASGARDEO_INTROSPECTION_CLIENT_SECRET:
+        return {}
+
+    response = await client.post(
+        f"{ASGARDEO_BASE_URL}/oauth2/introspect",
+        data={"token": token},
+        auth=(
+            ASGARDEO_INTROSPECTION_CLIENT_ID,
+            ASGARDEO_INTROSPECTION_CLIENT_SECRET,
+        ),
+        headers={"Accept": "application/json"},
+    )
+    if response.status_code != 200:
+        logger.warning(
+            "Failed to introspect token with Asgardeo: status %s",
+            response.status_code,
+        )
+        return {}
+
+    metadata = response.json() if response.content else {}
+    if metadata.get("active") is False:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired access token",
+        )
+    return metadata
+
+
+def _merge_token_metadata(identity: dict, metadata: dict) -> dict:
+    for claim in (*SCOPE_CLAIMS, *ROLE_CLAIMS):
+        if claim in metadata and claim not in identity:
+            identity[claim] = metadata[claim]
+    if metadata:
+        identity["_token_metadata"] = metadata
+    return identity
 
 
 def identity_subject(identity: dict) -> str:
@@ -84,15 +197,6 @@ def identity_subject(identity: dict) -> str:
 
 
 def identity_is_admin(identity: dict) -> bool:
-    admin_emails = _csv_env("ADMIN_EMAILS")
-    user_identifiers = {
-        str(identity.get(claim) or "").strip().lower()
-        for claim in ("email", "username", "preferred_username")
-        if str(identity.get(claim) or "").strip()
-    }
-    if user_identifiers.intersection(admin_emails):
-        return True
-
     allowed_roles = _csv_env("ADMIN_GROUPS", DEFAULT_ADMIN_GROUPS)
     claim_values = set()
     for claim in ROLE_CLAIMS:
@@ -153,13 +257,17 @@ async def verify_access_token(
                 headers={"Authorization": f"Bearer {token}"},
             )
 
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid or expired access token",
-            )
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Invalid or expired access token",
+                )
 
-        return response.json()
+            identity = response.json()
+            identity["_access_token"] = token
+            metadata = await _token_metadata(token, client)
+            _merge_token_metadata(identity, metadata)
+            return identity
     except httpx.RequestError as exc:
         logger.warning(
             "Failed to verify token with Asgardeo userinfo endpoint %s/oauth2/userinfo: %s",
@@ -179,3 +287,33 @@ async def require_admin(identity: dict = Depends(verify_access_token)) -> dict:
             detail="Administrator privileges are required",
         )
     return identity
+
+
+def _ensure_any_scope(identity: dict, required_scopes: Iterable[str]) -> None:
+    required = set()
+    for scope in required_scopes:
+        required.update(_normalize_scope(scope))
+
+    granted = identity_scopes(identity)
+    if not granted.intersection(required):
+        display = ", ".join(sorted(required_scopes))
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Missing required scope: {display}",
+        )
+
+
+def require_scope(*required_scopes: str) -> Callable:
+    async def checker(identity: dict = Depends(verify_access_token)) -> dict:
+        _ensure_any_scope(identity, required_scopes)
+        return identity
+
+    return checker
+
+
+def require_admin_scope(*required_scopes: str) -> Callable:
+    async def checker(identity: dict = Depends(require_admin)) -> dict:
+        _ensure_any_scope(identity, required_scopes)
+        return identity
+
+    return checker

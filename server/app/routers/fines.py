@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, identity_subject, require_admin
+from ..dependencies import get_db, identity_subject, require_admin_scope
 from ..models.book import Book
 from ..models.fine import Fine
 from ..models.fine_payment import FinePayment
@@ -82,7 +82,7 @@ def list_fines(
     limit: int = Query(default=10, ge=1, le=100),
     search: str = "",
     status: str = "",
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("fines_read")),
     db: Session = Depends(get_db),
 ):
     query = (
@@ -124,7 +124,7 @@ def list_fines(
 @router.post("", status_code=201)
 def create_fine(
     payload: FineCreate,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("fines_manage")),
     db: Session = Depends(get_db),
 ):
     if not db.query(User).filter(User.id == payload.member_id).first():
@@ -158,7 +158,7 @@ def create_fine(
 @router.get("/{fine_id}")
 def get_fine(
     fine_id: str,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("fines_read")),
     db: Session = Depends(get_db),
 ):
     return {"data": _serialize_fine(db, _find_fine(db, fine_id))}
@@ -168,7 +168,7 @@ def get_fine(
 def update_fine(
     fine_id: str,
     payload: FineUpdate,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_scope("fines_manage")),
     db: Session = Depends(get_db),
 ):
     fine = _find_fine(db, fine_id)
@@ -231,7 +231,7 @@ def update_fine(
 @router.delete("/{fine_id}")
 def delete_fine(
     fine_id: str,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("fines_manage")),
     db: Session = Depends(get_db),
 ):
     fine = _find_fine(db, fine_id)

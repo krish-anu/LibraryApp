@@ -4,7 +4,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, require_subject_or_admin, verify_access_token
+from ..dependencies import get_db, require_scope, require_subject_or_admin
 from ..models.book import Book
 from ..models.interactions import Interaction
 from ..pydantic_schemas import book as book_schema
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/favorites", tags=["favorites"])
 @router.get("/{member_id}", response_model=List[book_schema.Book])
 def get_favorites(
     member_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("favorites_read")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, member_id)
@@ -35,7 +35,7 @@ def get_favorites(
 @router.get("/{member_id}/ids")
 def get_favorite_ids(
     member_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("favorites_read")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, member_id)
@@ -54,7 +54,7 @@ def get_favorite_ids(
 def add_favorite(
     member_id: str,
     book_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("favorites_manage")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, member_id)
@@ -91,7 +91,7 @@ def add_favorite(
 def remove_favorite(
     member_id: str,
     book_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("favorites_manage")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, member_id)
@@ -118,7 +118,7 @@ def remove_favorite(
 def check_favorite(
     member_id: str,
     book_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("favorites_read")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, member_id)

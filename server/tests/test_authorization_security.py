@@ -56,6 +56,7 @@ def test_normal_user_cannot_create_book(client: TestClient, app):
             "sub": "member-a",
             "email": "member-a@example.com",
             "groups": [],
+            "scope": "books_manage",
         },
     )
 
@@ -86,6 +87,7 @@ def test_admin_can_create_book(client: TestClient, app):
             "sub": "admin-a",
             "email": "admin@example.com",
             "groups": ["admin"],
+            "scope": "books_manage",
         },
     )
 
@@ -109,6 +111,69 @@ def test_admin_can_create_book(client: TestClient, app):
     assert response.status_code == 201
 
 
+def test_admin_without_scope_cannot_create_book(client: TestClient, app):
+    _override_identity(
+        app,
+        {
+            "sub": "admin-a",
+            "email": "admin@example.com",
+            "groups": ["admin"],
+        },
+    )
+
+    response = client.post(
+        "/books",
+        json={
+            "title": "Blocked Book",
+            "author": "Blocked Author",
+            "category": "Blocked",
+            "description": "",
+            "rating": 0,
+            "publication_year": 2024,
+            "copies_owned": 1,
+            "image": "",
+            "language": "English",
+            "pages": 100,
+            "rating_count": 0,
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Missing required scope: books_manage"
+
+
+def test_missing_scope_blocks_protected_route(client: TestClient, app):
+    _override_identity(
+        app,
+        {
+            "sub": "member-a",
+            "email": "member-a@example.com",
+            "groups": [],
+        },
+    )
+
+    response = client.get("/books")
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Missing required scope: books_read"
+
+
+def test_colon_scope_alias_allows_book_read(client: TestClient, app):
+    _override_identity(
+        app,
+        {
+            "sub": "member-a",
+            "email": "member-a@example.com",
+            "groups": [],
+            "scope": "books:read",
+        },
+    )
+
+    response = client.get("/books")
+
+    assert response.status_code == 200
+
+
 def test_user_cannot_read_another_user_profile(client: TestClient, app, db_session):
     _seed_user(db_session, "member-a")
     _seed_user(db_session, "member-b")
@@ -118,6 +183,7 @@ def test_user_cannot_read_another_user_profile(client: TestClient, app, db_sessi
             "sub": "member-a",
             "email": "member-a@example.com",
             "groups": [],
+            "scope": "users_read",
         },
     )
 
@@ -144,6 +210,7 @@ def test_user_cannot_read_another_user_favorites(client: TestClient, app, db_ses
             "sub": "member-a",
             "email": "member-a@example.com",
             "groups": [],
+            "scope": "favorites_read",
         },
     )
 

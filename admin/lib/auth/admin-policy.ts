@@ -12,8 +12,10 @@ const ROLE_CLAIMS = [
   "applicationRoles",
   "assigned_roles",
   "assignedRoles",
-  "permissions",
-  "scope",
+  "groups_display",
+  "groupsDisplay",
+  "member_of",
+  "memberOf",
   "http://wso2.org/claims/role",
   "http://wso2.org/claims/roles",
   "http://wso2.org/claims/groups",
@@ -60,27 +62,28 @@ export function claimValues(value: unknown): Set<string> {
   }
   if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
-    ["value", "name", "display", "displayName"].forEach((key) => {
-      const item = record[key];
-      if (typeof item === "string" && item.trim()) {
-        addValue(item);
-      }
+    Object.values(record).forEach((item) => {
+      claimValues(item).forEach((part) => values.add(part));
+    });
+    [
+      "value",
+      "name",
+      "display",
+      "displayName",
+      "role",
+      "roles",
+      "roleName",
+      "group",
+      "groups",
+      "groupName",
+    ].forEach((key) => {
+      claimValues(record[key]).forEach((part) => values.add(part));
     });
   }
   return values;
 }
 
 export function isAdminUser(info: UserInfo) {
-  const allowedEmails = csvEnv("ADMIN_EMAILS");
-  const userIdentifiers = ["email", "username", "preferred_username"]
-    .map((claim) => info[claim])
-    .filter((value): value is string => typeof value === "string")
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-  if (userIdentifiers.some((identifier) => allowedEmails.has(identifier))) {
-    return true;
-  }
-
   const allowedGroups = csvEnv("ADMIN_GROUPS", DEFAULT_ADMIN_GROUPS);
   const claims = new Set<string>();
   ROLE_CLAIMS.forEach((claim) => {

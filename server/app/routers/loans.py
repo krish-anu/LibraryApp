@@ -11,9 +11,9 @@ from sqlalchemy.orm import Session
 from ..dependencies import (
     get_db,
     identity_is_admin,
-    require_admin,
+    require_admin_scope,
+    require_scope,
     require_subject_or_admin,
-    verify_access_token,
 )
 from ..models import (
     book as book_model,
@@ -72,14 +72,17 @@ def _loan_detail(db_loan: Any, book: Any, user: Any) -> dict[str, Any]:
 
 
 @router.get("", response_model=List[loan_schema.Loan])
-def get_loans(_admin: dict = Depends(require_admin), db: Session = Depends(get_db)):
+def get_loans(
+    _admin: dict = Depends(require_admin_scope("loans_read")),
+    db: Session = Depends(get_db),
+):
     return db.query(loan.Loan).all()
 
 
 @router.get("/active", response_model=List[loan_schema.Loan])
 def get_active_loans(
     member_id: Optional[str] = None,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("loans_read")),
     db: Session = Depends(get_db),
 ):
     query = db.query(loan.Loan).filter(_active_loan_filter())
@@ -96,7 +99,7 @@ def get_active_loans(
 
 @router.get("/active/details")
 def get_active_loan_details(
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("loans_read")),
     db: Session = Depends(get_db),
 ):
     rows = (
@@ -115,7 +118,7 @@ def get_active_loan_details(
 @router.get("/history")
 def get_loan_history(
     status: Optional[str] = None,
-    _admin: dict = Depends(require_admin),
+    _admin: dict = Depends(require_admin_scope("loans_read")),
     db: Session = Depends(get_db),
 ):
     query = (
@@ -183,7 +186,7 @@ def _is_blank(value: str | None) -> bool:
 def borrow_book(
     book_id: str,
     member_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("loans_manage")),
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, member_id)
@@ -333,7 +336,7 @@ def borrow_book(
 def return_book(
     loan_id: str,
     payload: ReturnBookPayload | None = None,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("loans_manage")),
     db: Session = Depends(get_db),
 ):
     db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
@@ -416,7 +419,7 @@ def return_book(
 @router.post("/renew/{loan_id}", response_model=loan_schema.Loan)
 def renew_loan(
     loan_id: str,
-    identity: dict = Depends(verify_access_token),
+    identity: dict = Depends(require_scope("loans_manage")),
     db: Session = Depends(get_db),
 ):
     db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
