@@ -2,10 +2,15 @@ from datetime import datetime
 from typing import List
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, require_admin_scope, require_scope
+from app.api.dependencies import (
+    get_db,
+    identity_is_admin,
+    require_admin_scope,
+    require_scope,
+)
 from ..models.content import BlogPost, VideoPost
 from ..pydantic_schemas import content as content_schema
 
@@ -30,19 +35,33 @@ def _published_video_query(db: Session):
 
 @router.get("/blogs", response_model=List[content_schema.BlogPost])
 def get_blogs(
-    _identity: dict = Depends(require_scope("books_read")),
+    include_unpublished: bool = Query(default=False),
+    identity: dict = Depends(require_scope("books_read")),
     db: Session = Depends(get_db),
 ):
+    if include_unpublished:
+        if not identity_is_admin(identity):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administrator privileges are required",
+            )
+        return db.query(BlogPost).order_by(BlogPost.published_at.desc()).all()
     return _published_blog_query(db).all()
 
 
 @router.get("/blogs/{blog_id}", response_model=content_schema.BlogPost)
 def get_blog(
     blog_id: str,
-    _identity: dict = Depends(require_scope("books_read")),
+    include_unpublished: bool = Query(default=False),
+    identity: dict = Depends(require_scope("books_read")),
     db: Session = Depends(get_db),
 ):
-    blog = _published_blog_query(db).filter(BlogPost.id == blog_id).first()
+    query = (
+        db.query(BlogPost)
+        if include_unpublished and identity_is_admin(identity)
+        else _published_blog_query(db)
+    )
+    blog = query.filter(BlogPost.id == blog_id).first()
     if not blog:
         raise HTTPException(status_code=404, detail="Blog not found")
     return blog
@@ -117,19 +136,33 @@ def delete_blog(
 
 @router.get("/videos", response_model=List[content_schema.VideoPost])
 def get_videos(
-    _identity: dict = Depends(require_scope("books_read")),
+    include_unpublished: bool = Query(default=False),
+    identity: dict = Depends(require_scope("books_read")),
     db: Session = Depends(get_db),
 ):
+    if include_unpublished:
+        if not identity_is_admin(identity):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administrator privileges are required",
+            )
+        return db.query(VideoPost).order_by(VideoPost.published_at.desc()).all()
     return _published_video_query(db).all()
 
 
 @router.get("/videos/{video_id}", response_model=content_schema.VideoPost)
 def get_video(
     video_id: str,
-    _identity: dict = Depends(require_scope("books_read")),
+    include_unpublished: bool = Query(default=False),
+    identity: dict = Depends(require_scope("books_read")),
     db: Session = Depends(get_db),
 ):
-    video = _published_video_query(db).filter(VideoPost.id == video_id).first()
+    query = (
+        db.query(VideoPost)
+        if include_unpublished and identity_is_admin(identity)
+        else _published_video_query(db)
+    )
+    video = query.filter(VideoPost.id == video_id).first()
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
     return video

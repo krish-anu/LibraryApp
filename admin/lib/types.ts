@@ -132,3 +132,29 @@ export interface LibraryNotification {
   created_at: string;
   updated_at: string;
 }
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  category: string;
+  cover_image?: string | null;
+  read_minutes: number;
+  published: boolean;
+  published_at: string;
+}
+
+export interface VideoPost {
+  id: string;
+  title: string;
+  description: string;
+  youtube_video_id: string;
+  speaker: string;
+  category: string;
+  duration: string;
+  thumbnail_url?: string | null;
+  published: boolean;
+  published_at: string;
+}

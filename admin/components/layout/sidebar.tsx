@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   Bell,
+  FileText,
   LayoutDashboard,
   Menu,
   BookOpen,
@@ -15,12 +16,15 @@ import {
   RotateCcw,
   Settings,
   Library,
+  Video,
   X,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Book Inventory", href: "/books", icon: BookOpen },
+  { name: "Blogs", href: "/blogs", icon: FileText },
+  { name: "Videos", href: "/videos", icon: Video },
   { name: "Book Returns", href: "/returns", icon: RotateCcw },
   { name: "Loan History", href: "/loan-history", icon: History },
   { name: "User Management", href: "/users", icon: Users },
