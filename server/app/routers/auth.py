@@ -197,7 +197,7 @@ async def debug_identity(identity: dict = Depends(verify_access_token)):
 
 @router.post("/register", response_model=RegisterResponse)
 @limiter.limit(AUTH_REGISTER_RATE_LIMIT)
-async def register_user(payload: RegisterRequest, request: Request = None):
+async def register_user(payload: RegisterRequest, request: Optional[Request] = None):
     """
     Register a new user via Asgardeo API.
 
