@@ -148,6 +148,29 @@ def identity_scopes(identity: dict) -> set[str]:
     return scopes
 
 
+def identity_has_any_scope(identity: dict, required_scopes: Iterable[str]) -> bool:
+    required = set()
+    for scope in required_scopes:
+        required.update(_normalize_scope(scope))
+    return bool(identity_scopes(identity).intersection(required))
+
+
+def identity_role_values(identity: dict) -> set[str]:
+    values = set()
+    for claim in ROLE_CLAIMS:
+        values.update(_claim_values(identity.get(claim)))
+    return values
+
+
+def identity_role_claim_keys(identity: dict) -> list[str]:
+    return sorted(claim for claim in ROLE_CLAIMS if identity.get(claim) is not None)
+
+
+def identity_admin_matches(identity: dict) -> set[str]:
+    allowed_roles = _csv_env("ADMIN_GROUPS", DEFAULT_ADMIN_GROUPS)
+    return identity_role_values(identity).intersection(allowed_roles)
+
+
 async def _token_metadata(token: str, client) -> dict:
     if not ASGARDEO_INTROSPECTION_CLIENT_ID or not ASGARDEO_INTROSPECTION_CLIENT_SECRET:
         return {}
@@ -197,11 +220,7 @@ def identity_subject(identity: dict) -> str:
 
 
 def identity_is_admin(identity: dict) -> bool:
-    allowed_roles = _csv_env("ADMIN_GROUPS", DEFAULT_ADMIN_GROUPS)
-    claim_values = set()
-    for claim in ROLE_CLAIMS:
-        claim_values.update(_claim_values(identity.get(claim)))
-    return bool(claim_values.intersection(allowed_roles))
+    return bool(identity_admin_matches(identity))
 
 
 def require_subject_or_admin(identity: dict, requested_subject: str) -> None:
@@ -282,6 +301,11 @@ async def verify_access_token(
 
 async def require_admin(identity: dict = Depends(verify_access_token)) -> dict:
     if not identity_is_admin(identity):
+        logger.info(
+            "Authenticated user is missing admin role; role_claim_keys=%s scopes=%s",
+            identity_role_claim_keys(identity),
+            sorted(identity_scopes(identity)),
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Administrator privileges are required",
@@ -290,12 +314,7 @@ async def require_admin(identity: dict = Depends(verify_access_token)) -> dict:
 
 
 def _ensure_any_scope(identity: dict, required_scopes: Iterable[str]) -> None:
-    required = set()
-    for scope in required_scopes:
-        required.update(_normalize_scope(scope))
-
-    granted = identity_scopes(identity)
-    if not granted.intersection(required):
+    if not identity_has_any_scope(identity, required_scopes):
         display = ", ".join(sorted(required_scopes))
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -312,7 +331,7 @@ def require_scope(*required_scopes: str) -> Callable:
 
 
 def require_admin_scope(*required_scopes: str) -> Callable:
-    async def checker(identity: dict = Depends(require_admin)) -> dict:
+    async def checker(identity: dict = Depends(verify_access_token)) -> dict:
         _ensure_any_scope(identity, required_scopes)
         return identity
 

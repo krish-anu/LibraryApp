@@ -1,8 +1,12 @@
 from datetime import date
 
-from app.dependencies import identity_is_admin
+import pytest
+from fastapi import HTTPException
+
+from app.dependencies import identity_is_admin, require_admin_scope
 from app.models.users import User
 from app.pydantic_schemas.fine import FineCreate, FineUpdate
+from app.routers.auth import debug_identity
 from app.routers.fines import create_fine, list_fines, update_fine
 from app.routers.users import list_users
 
@@ -32,6 +36,52 @@ def test_admin_policy_requires_admin_role_by_default(monkeypatch):
     assert (
         identity_is_admin({"sub": "admin", "roles": {"Next.js": ["admin"]}}) is True
     )
+
+
+@pytest.mark.asyncio
+async def test_auth_debug_identity_reports_safe_admin_claims(monkeypatch):
+    monkeypatch.setenv("ADMIN_GROUPS", "admin")
+    response = await debug_identity(
+        {
+            "sub": "admin-user-id",
+            "email": "admin@example.com",
+            "groups": ["admin"],
+            "scope": "openid profile books:manage",
+            "_access_token": "secret-token",
+        }
+    )
+
+    body = response.model_dump()
+    assert body["is_admin"] is True
+    assert body["subject_present"] is True
+    assert body["matched_admin_values"] == ["admin"]
+    assert "groups" in body["role_claim_keys_present"]
+    assert "books:manage" in body["scopes_seen"]
+    assert "books_manage" in body["scopes_seen"]
+    assert "secret-token" not in response.model_dump_json()
+    assert "admin@example.com" not in response.model_dump_json()
+
+
+@pytest.mark.asyncio
+async def test_admin_scope_allows_scope_without_role_claim(monkeypatch):
+    monkeypatch.setenv("ADMIN_GROUPS", "admin")
+    checker = require_admin_scope("books_manage")
+
+    identity = await checker({"sub": "admin-user-id", "scope": "books_manage"})
+
+    assert identity["sub"] == "admin-user-id"
+
+
+@pytest.mark.asyncio
+async def test_admin_scope_rejects_missing_scope_before_role_claim(monkeypatch):
+    monkeypatch.setenv("ADMIN_GROUPS", "admin")
+    checker = require_admin_scope("books_manage")
+
+    with pytest.raises(HTTPException) as exc_info:
+        await checker({"sub": "admin-user-id", "scope": "books_read"})
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "Missing required scope: books_manage"
 
 
 def test_user_collection_is_paginated_and_searchable(db_session):

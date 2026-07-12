@@ -15,7 +15,15 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from datetime import date
 
-from app.dependencies import get_db
+from app.dependencies import (
+    get_db,
+    identity_admin_matches,
+    identity_is_admin,
+    identity_role_claim_keys,
+    identity_role_values,
+    identity_scopes,
+    verify_access_token,
+)
 from app.env import load_app_env
 from app.models.users import User as UserModel
 from app.pydantic_schemas import user as user_schema
@@ -46,6 +54,12 @@ ASGARDEO_M2M_CLIENT_ID = os.getenv("ASGARDEO_M2M_CLIENT_ID", "")
 ASGARDEO_M2M_CLIENT_SECRET = os.getenv("ASGARDEO_M2M_CLIENT_SECRET", "")
 # Public client id used by mobile apps (for token revocation)
 ASGARDEO_PUBLIC_CLIENT_ID = os.getenv("ASGARDEO_PUBLIC_CLIENT_ID", "")
+DEFAULT_ADMIN_GROUPS = "admin,library-admin,library_admin,Library Administrator"
+
+
+def _configured_admin_groups() -> list[str]:
+    raw = os.getenv("ADMIN_GROUPS", DEFAULT_ADMIN_GROUPS)
+    return sorted({part.strip().lower() for part in raw.split(",") if part.strip()})
 
 
 class RegisterRequest(BaseModel):
@@ -124,6 +138,18 @@ class CredentialLoginResponse(BaseModel):
     refresh_token: Optional[str] = None
 
 
+class IdentityDebugResponse(BaseModel):
+    """Safe auth diagnostic response. Never includes access tokens or secrets."""
+
+    subject_present: bool
+    is_admin: bool
+    configured_admin_groups: list[str]
+    matched_admin_values: list[str]
+    role_claim_keys_present: list[str]
+    role_values_seen: list[str]
+    scopes_seen: list[str]
+
+
 async def get_client_credentials_token() -> Optional[str]:
     """Get an access token using client credentials grant from M2M app."""
     if not ASGARDEO_M2M_CLIENT_ID or not ASGARDEO_M2M_CLIENT_SECRET:
@@ -152,6 +178,21 @@ async def get_client_credentials_token() -> Optional[str]:
             return data.get("access_token")
 
         return None
+
+
+@router.get("/debug/identity", response_model=IdentityDebugResponse)
+async def debug_identity(identity: dict = Depends(verify_access_token)):
+    """Return non-secret auth claim details for local Postman troubleshooting."""
+
+    return IdentityDebugResponse(
+        subject_present=bool(str(identity.get("sub") or "").strip()),
+        is_admin=identity_is_admin(identity),
+        configured_admin_groups=_configured_admin_groups(),
+        matched_admin_values=sorted(identity_admin_matches(identity)),
+        role_claim_keys_present=identity_role_claim_keys(identity),
+        role_values_seen=sorted(identity_role_values(identity)),
+        scopes_seen=sorted(identity_scopes(identity)),
+    )
 
 
 @router.post("/register", response_model=RegisterResponse)
