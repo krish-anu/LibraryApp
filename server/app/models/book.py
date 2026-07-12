@@ -1,28 +1,39 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, LargeBinary, NUMERIC, TEXT
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from .base import Base
-from sqlalchemy import Column, LargeBinary, TEXT, NUMERIC, ForeignKey
-from sqlalchemy.orm import relationship
+
+if TYPE_CHECKING:
+    from .author import Author
+    from .category import Category
 
 
 class Book(Base):
     __tablename__ = "books"
 
-    id = Column(TEXT, primary_key=True)
-    title = Column(TEXT)
-    author_id = Column(TEXT, ForeignKey("authors.id"))
-    category_id = Column(TEXT, ForeignKey("categories.id"))
-    description = Column(TEXT)
-    rating = Column(NUMERIC)
-    publication_year = Column(NUMERIC)
-    copies_owned = Column(NUMERIC)
-    image = Column(TEXT)
-    image_blob = Column(LargeBinary, nullable=True)
-    image_mime_type = Column(TEXT, nullable=True)
-    language = Column(TEXT, default="English")
-    pages = Column(NUMERIC, default=200)
-    rating_count = Column(NUMERIC, default=0)
+    id: Mapped[str] = mapped_column(TEXT, primary_key=True)
+    title: Mapped[str | None] = mapped_column(TEXT)
+    author_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("authors.id"))
+    category_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("categories.id"))
+    description: Mapped[str | None] = mapped_column(TEXT)
+    rating: Mapped[float | None] = mapped_column(NUMERIC)
+    publication_year: Mapped[int | None] = mapped_column(NUMERIC)
+    copies_owned: Mapped[int | None] = mapped_column(NUMERIC)
+    image: Mapped[str | None] = mapped_column(TEXT)
+    image_blob: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    image_mime_type: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    language: Mapped[str | None] = mapped_column(TEXT, default="English")
+    pages: Mapped[int | None] = mapped_column(NUMERIC, default=200)
+    rating_count: Mapped[int | None] = mapped_column(NUMERIC, default=0)
 
-    category_rel = relationship("Category", back_populates="books")
-    author_rel = relationship("Author", back_populates="books")
+    category_rel: Mapped[Category | None] = relationship(
+        "Category", back_populates="books"
+    )
+    author_rel: Mapped[Author | None] = relationship("Author", back_populates="books")
 
     @property
     def category(self):

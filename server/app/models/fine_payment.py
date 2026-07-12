@@ -1,20 +1,30 @@
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Date, DateTime, ForeignKey, Numeric, TEXT
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from .base import Base
-from sqlalchemy import Column, TEXT, Date, DateTime, ForeignKey, Numeric
-from sqlalchemy.orm import relationship
+
+if TYPE_CHECKING:
+    from .fine import Fine
+    from .users import User
 
 
 class FinePayment(Base):
     __tablename__ = "fine_payments"
 
-    id = Column(TEXT, primary_key=True)
-    fine_id = Column(TEXT, ForeignKey("fines.id"))
-    member_id = Column(TEXT, ForeignKey("users.id"))
-    payment_date = Column(Date)
-    payment_amount = Column(Numeric)
-    payment_method = Column(TEXT)
-    handled_by = Column(TEXT)
-    notes = Column(TEXT)
-    created_at = Column(DateTime)
+    id: Mapped[str] = mapped_column(TEXT, primary_key=True)
+    fine_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("fines.id"))
+    member_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("users.id"))
+    payment_date: Mapped[date | None] = mapped_column(Date)
+    payment_amount: Mapped[float | None] = mapped_column(Numeric)
+    payment_method: Mapped[str | None] = mapped_column(TEXT)
+    handled_by: Mapped[str | None] = mapped_column(TEXT)
+    notes: Mapped[str | None] = mapped_column(TEXT)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
 
-    fine = relationship("Fine")
-    member = relationship("User")
+    fine: Mapped[Fine | None] = relationship("Fine")
+    member: Mapped[User | None] = relationship("User")

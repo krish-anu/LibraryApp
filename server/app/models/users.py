@@ -1,22 +1,32 @@
-from sqlalchemy import LargeBinary, VARCHAR, TEXT, Column, Date, DateTime
-from .base import Base
-from sqlalchemy.orm import relationship
 from datetime import datetime
+from datetime import date
+
+from sqlalchemy import Date, DateTime, LargeBinary, TEXT, VARCHAR
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .base import Base
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(TEXT, primary_key=True)
-    member_id = Column(TEXT)
-    name = Column(VARCHAR(100))
-    email = Column(VARCHAR(100))
-    password = Column(LargeBinary)
-    phone = Column(VARCHAR(20), nullable=True)
-    address = Column(TEXT, nullable=True)
-    profile_image = Column(TEXT, nullable=True)
-    profile_image_blob = Column(LargeBinary, nullable=True)
-    profile_image_mime_type = Column(TEXT, nullable=True)
-    joined_date = Column(Date, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[str] = mapped_column(TEXT, primary_key=True)
+    member_id: Mapped[str | None] = mapped_column(TEXT)
+    name: Mapped[str | None] = mapped_column(VARCHAR(100))
+    email: Mapped[str | None] = mapped_column(VARCHAR(100))
+    password: Mapped[bytes | None] = mapped_column(LargeBinary)
+    phone: Mapped[str | None] = mapped_column(VARCHAR(20), nullable=True)
+    address: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    profile_image: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    profile_image_blob: Mapped[bytes | None] = mapped_column(
+        LargeBinary,
+        nullable=True,
+    )
+    profile_image_mime_type: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    joined_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )

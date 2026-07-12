@@ -1,15 +1,18 @@
-from .base import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, DateTime, TEXT
 from datetime import datetime, timezone
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String, TEXT
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .base import Base
 
 
 # models/interactions.py
 class Interaction(Base):
     __tablename__ = "interactions"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(TEXT, ForeignKey("users.id"))
-    book_id = Column(TEXT, ForeignKey("books.id"))
-    interaction_type = Column(String)  # 'view', 'checkout', 'like'
-    created_at = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("users.id"))
+    book_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("books.id"))
+    interaction_type: Mapped[str | None] = mapped_column(String)
+    created_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

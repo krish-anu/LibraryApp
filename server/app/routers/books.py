@@ -219,8 +219,8 @@ def delete_book_image(
 
     book_obj.image_blob = None
     book_obj.image_mime_type = None
-    if str(book_obj.image or "") == f"/books/{book_id}/image":
-        book_obj.image = ""
+    if book_obj.image == f"/books/{book_id}/image":
+        book_obj.image = None
     db.commit()
     db.refresh(book_obj)
     return _book_to_response(book_obj)

@@ -1,21 +1,29 @@
+from __future__ import annotations
+
+from datetime import date
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Date, ForeignKey, TEXT
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from .base import Base
-from sqlalchemy import Column, TEXT, Date, ForeignKey
-from sqlalchemy.orm import relationship
-from .book import Book
-from .users import User
+
+if TYPE_CHECKING:
+    from .book import Book
+    from .users import User
 
 
 class Loan(Base):
     __tablename__ = "loans"
 
-    id = Column(TEXT, primary_key=True)
-    book_id = Column(TEXT, ForeignKey("books.id"))
-    member_id = Column(TEXT, ForeignKey("users.id"))
-    loan_date = Column(Date)
-    returned_date = Column(Date)
-    status = Column(TEXT, default="active")
-    returned_at = Column(Date, nullable=True)
-    returned_by = Column(TEXT, nullable=True)
+    id: Mapped[str] = mapped_column(TEXT, primary_key=True)
+    book_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("books.id"))
+    member_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("users.id"))
+    loan_date: Mapped[date | None] = mapped_column(Date)
+    returned_date: Mapped[date | None] = mapped_column(Date)
+    status: Mapped[str | None] = mapped_column(TEXT, default="active")
+    returned_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    returned_by: Mapped[str | None] = mapped_column(TEXT, nullable=True)
 
-    book = relationship(Book)
-    member = relationship(User)
+    book: Mapped[Book | None] = relationship("Book")
+    member: Mapped[User | None] = relationship("User")
