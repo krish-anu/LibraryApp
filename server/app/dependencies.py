@@ -24,7 +24,7 @@ ASGARDEO_INTROSPECTION_CLIENT_SECRET = (
     or ""
 )
 logger = logging.getLogger(__name__)
-DEFAULT_ADMIN_GROUPS = "admin,library-admin,library_admin,Library Administrator"
+DEFAULT_ADMIN_GROUPS = "admin"
 ROLE_CLAIMS = (
     "groups",
     "roles",
