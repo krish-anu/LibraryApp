@@ -62,7 +62,7 @@ def book_id(db_session: Session):
 @pytest.fixture
 def user_headers(app):
     """Standard user headers"""
-    from app.dependencies import verify_access_token
+    from app.api.dependencies import verify_access_token
 
     async def mock_user_token(authorization: str = None):  # type: ignore
         return {

@@ -41,7 +41,7 @@ pip install -r requirements.txt
 Seed the database:
 
 ```bash
-python seed_db.py
+python scripts/seeding/seed_db.py
 ```
 
 Start the API:
@@ -203,7 +203,7 @@ If the server cannot start:
 
 - Check the database values in `server/.env.local`.
 - Make sure PostgreSQL is running and reachable.
-- Run `python seed_db.py` after database setup.
+- Run `python scripts/seeding/seed_db.py` after database setup.
 
 
 # LibraryApp
@@ -249,7 +249,7 @@ pip install -r requirements.txt
 Seed the database:
 
 ```bash
-python seed_db.py
+python scripts/seeding/seed_db.py
 ```
 
 Start the API:
@@ -411,4 +411,4 @@ If the server cannot start:
 
 - Check the database values in `server/.env.local`.
 - Make sure PostgreSQL is running and reachable.
-- Run `python seed_db.py` after database setup.
+- Run `python scripts/seeding/seed_db.py` after database setup.

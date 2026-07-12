@@ -16,7 +16,7 @@ from .security import (
     env_int,
     parse_allowed_origins,
 )
-from .routers import (
+from app.routers import (
     auth,
     books,
     category,
@@ -30,7 +30,7 @@ from .routers import (
     settings,
     users,
 )
-from .startup import lifespan
+from .lifespan import lifespan
 
 
 class MaxBodySizeExceeded(Exception):
@@ -173,7 +173,7 @@ def create_app(
         return response
 
     # Serve Flutter client assets (book covers etc.) at /assets when available.
-    server_root = Path(__file__).resolve().parents[1]
+    server_root = Path(__file__).resolve().parents[2]
     repo_root = server_root.parent
     project_root = repo_root if (repo_root / "client").exists() else server_root
     client_assets = project_root / "client" / "assets"

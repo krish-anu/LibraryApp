@@ -29,7 +29,7 @@ You can connect in either of these ways:
 1. `DATABASE_URL`
 2. `DB_HOST` + `DB_PORT` + `DB_USER` + `DB_PASSWORD` + `DB_NAME`
 
-You still need to fill in the actual database name, user, and password before starting the API or running `seed_db.py`.
+You still need to fill in the actual database name, user, and password before starting the API or running the seed script.
 
 Scope-protected endpoints use Asgardeo access-token introspection when tokens
 are opaque. Set these to the application client that requests the Library API
@@ -47,7 +47,7 @@ admin role/group claim listed in `ADMIN_GROUPS`.
 ## 2. Seed the database
 
 ```bash
-python seed_db.py
+python scripts/seeding/seed_db.py
 ```
 
 ## 3. Run locally

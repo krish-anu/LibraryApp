@@ -4,7 +4,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, require_scope, require_subject_or_admin
+from app.api.dependencies import get_db, require_scope, require_subject_or_admin
 from ..models.book import Book
 from ..models.interactions import Interaction
 from ..pydantic_schemas import book as book_schema

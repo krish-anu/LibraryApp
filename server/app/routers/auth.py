@@ -15,7 +15,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from datetime import date
 
-from app.dependencies import (
+from app.api.dependencies import (
     get_db,
     identity_admin_matches,
     identity_is_admin,
@@ -24,10 +24,10 @@ from app.dependencies import (
     identity_scopes,
     verify_access_token,
 )
-from app.env import load_app_env
+from app.core.env import load_app_env
 from app.models.users import User as UserModel
 from app.pydantic_schemas import user as user_schema
-from app.security import create_limiter
+from app.core.security import create_limiter
 
 load_app_env()
 

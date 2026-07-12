@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..dependencies import (
+from app.api.dependencies import (
     get_db,
     require_admin_scope,
     require_scope,
@@ -14,7 +14,7 @@ from ..dependencies import (
 from ..models import loan as loan_model
 from ..models import reservation as reservation_model
 from ..models import book as book_model
-from ..notification_center import create_admin_notification, create_user_notification
+from app.services.notifications import create_admin_notification, create_user_notification
 from ..pydantic_schemas import reservation as reservation_schema
 
 router = APIRouter(prefix="", tags=["reservations"])

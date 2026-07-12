@@ -7,16 +7,14 @@ from typing import Any, Iterator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .database import SessionLocal
-from .models.notification import DeviceToken, Notification
+from app.db import SessionLocal
+from app.models.notification import Notification
 
-
-class NotificationMigrationError(RuntimeError):
-    """Kept for compatibility with older callers of this module."""
+from .push import send_push_notification_to_user
 
 
 @contextmanager
-def _session(db: Session | None = None) -> Iterator[Session]:
+def session_scope(db: Session | None = None) -> Iterator[Session]:
     if db is not None:
         yield db
         return
@@ -28,7 +26,7 @@ def _session(db: Session | None = None) -> Iterator[Session]:
         owned.close()
 
 
-def _notification_dict(row: Notification) -> dict[str, Any]:
+def notification_dict(row: Notification) -> dict[str, Any]:
     return {
         "id": row.id,
         "title": row.title,
@@ -46,7 +44,7 @@ def _notification_dict(row: Notification) -> dict[str, Any]:
     }
 
 
-def _recipient_query(
+def recipient_query(
     db: Session,
     recipient_type: str,
     recipient_id: str | None,
@@ -66,14 +64,14 @@ def list_notifications(
     limit: int = 50,
     db: Session | None = None,
 ) -> list[dict[str, Any]]:
-    with _session(db) as session:
+    with session_scope(db) as session:
         rows = (
-            _recipient_query(session, recipient_type, recipient_id)
+            recipient_query(session, recipient_type, recipient_id)
             .order_by(Notification.created_at.desc())
             .limit(max(1, min(limit, 100)))
             .all()
         )
-        return [_notification_dict(row) for row in rows]
+        return [notification_dict(row) for row in rows]
 
 
 def unread_notification_count(
@@ -82,9 +80,9 @@ def unread_notification_count(
     *,
     db: Session | None = None,
 ) -> int:
-    with _session(db) as session:
+    with session_scope(db) as session:
         return int(
-            _recipient_query(session, recipient_type, recipient_id)
+            recipient_query(session, recipient_type, recipient_id)
             .filter(Notification.read.is_(False))
             .count()
         )
@@ -105,7 +103,7 @@ def create_notification(
     push_data: dict[str, Any] | None = None,
     db: Session | None = None,
 ) -> dict[str, Any]:
-    with _session(db) as session:
+    with session_scope(db) as session:
         if dedupe_key:
             existing = (
                 session.query(Notification)
@@ -113,7 +111,7 @@ def create_notification(
                 .first()
             )
             if existing:
-                return _notification_dict(existing)
+                return notification_dict(existing)
 
         row = Notification(
             recipient_type=recipient_type,
@@ -138,7 +136,7 @@ def create_notification(
                     .first()
                 )
                 if existing:
-                    return _notification_dict(existing)
+                    return notification_dict(existing)
             raise
         session.refresh(row)
 
@@ -149,7 +147,7 @@ def create_notification(
                 body=body,
                 data=push_data,
             )
-        return _notification_dict(row)
+        return notification_dict(row)
 
 
 def create_user_notification(
@@ -209,9 +207,9 @@ def mark_notification_read(
     *,
     db: Session | None = None,
 ) -> dict[str, Any] | None:
-    with _session(db) as session:
+    with session_scope(db) as session:
         row = (
-            _recipient_query(session, recipient_type, recipient_id)
+            recipient_query(session, recipient_type, recipient_id)
             .filter(Notification.id == notification_id)
             .first()
         )
@@ -223,7 +221,7 @@ def mark_notification_read(
             row.updated_at = datetime.utcnow()
             session.commit()
             session.refresh(row)
-        return _notification_dict(row)
+        return notification_dict(row)
 
 
 def mark_all_notifications_read(
@@ -232,10 +230,10 @@ def mark_all_notifications_read(
     *,
     db: Session | None = None,
 ) -> int:
-    with _session(db) as session:
+    with session_scope(db) as session:
         now = datetime.utcnow()
         marked = (
-            _recipient_query(session, recipient_type, recipient_id)
+            recipient_query(session, recipient_type, recipient_id)
             .filter(Notification.read.is_(False))
             .update(
                 {
@@ -248,62 +246,3 @@ def mark_all_notifications_read(
         )
         session.commit()
         return int(marked)
-
-
-def register_device_token(
-    *,
-    user_id: str,
-    token: str,
-    platform: str,
-    db: Session | None = None,
-) -> dict[str, Any]:
-    with _session(db) as session:
-        row = session.query(DeviceToken).filter(DeviceToken.token == token).first()
-        if row:
-            row.user_id = user_id
-            row.platform = platform
-            row.updated_at = datetime.utcnow()
-        else:
-            row = DeviceToken(user_id=user_id, token=token, platform=platform)
-            session.add(row)
-        session.commit()
-        session.refresh(row)
-        return {
-            "id": row.id,
-            "user_id": row.user_id,
-            "token": row.token,
-            "platform": row.platform,
-        }
-
-
-def unregister_device_token(
-    *, user_id: str, token: str, db: Session | None = None
-) -> bool:
-    with _session(db) as session:
-        deleted = (
-            session.query(DeviceToken)
-            .filter(DeviceToken.user_id == user_id, DeviceToken.token == token)
-            .delete(synchronize_session=False)
-        )
-        session.commit()
-        return bool(deleted)
-
-
-def list_device_tokens_for_user(
-    user_id: str, *, db: Session | None = None
-) -> list[str]:
-    with _session(db) as session:
-        rows = session.query(DeviceToken.token).filter(DeviceToken.user_id == user_id)
-        return [str(token) for (token,) in rows.all()]
-
-
-def send_push_notification_to_user(
-    user_id: str,
-    *,
-    title: str,
-    body: str,
-    data: dict[str, Any] | None = None,
-) -> None:
-    # Push transport is optional. Notifications remain available in-app even when
-    # no Firebase/APNs provider has been configured.
-    return None

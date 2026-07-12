@@ -5,13 +5,13 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from ..dependencies import (
+from app.api.dependencies import (
     get_db,
     identity_is_admin,
     identity_subject,
     require_scope,
 )
-from ..notification_center import (
+from app.services.notifications import (
     list_notifications,
     mark_all_notifications_read,
     mark_notification_read,

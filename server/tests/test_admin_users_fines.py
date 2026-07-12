@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 from fastapi import HTTPException
 
-from app.dependencies import identity_is_admin, require_admin_scope
+from app.api.dependencies import identity_is_admin, require_admin_scope
 from app.models.users import User
 from app.pydantic_schemas.fine import FineCreate, FineUpdate
 from app.routers.auth import debug_identity

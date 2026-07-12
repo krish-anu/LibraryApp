@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.dependencies import get_db, verify_access_token
+from app.api.dependencies import get_db, verify_access_token
 from app.main import app as main_app
 from app.models.base import Base
 

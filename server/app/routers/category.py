@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, require_admin_scope, require_scope
+from app.api.dependencies import get_db, require_admin_scope, require_scope
 from ..models import category
 from ..pydantic_schemas import category as category_schema
 

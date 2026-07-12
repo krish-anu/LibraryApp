@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from urllib.parse import quote_plus
 
-from .env import load_app_env
+from app.core.env import load_app_env
 
 
 load_app_env()

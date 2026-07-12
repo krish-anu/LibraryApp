@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi.testclient import TestClient
 
-from app.dependencies import verify_access_token
+from app.api.dependencies import verify_access_token
 from app.models.book import Book
 from app.models.category import Category
 from app.models.interactions import Interaction

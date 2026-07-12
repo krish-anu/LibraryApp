@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, require_admin_scope, require_scope
+from app.api.dependencies import get_db, require_admin_scope, require_scope
 from ..models import settings as settings_model
 from ..pydantic_schemas import settings as settings_schema
 

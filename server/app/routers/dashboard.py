@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, require_admin_scope
+from app.api.dependencies import get_db, require_admin_scope
 from ..models.book import Book
 from ..models.fine import Fine
 from ..models.loan import Loan

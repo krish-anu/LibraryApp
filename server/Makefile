@@ -4,7 +4,7 @@ ENV_FILE ?= .env.local
 HOST_PORT ?= 8000
 CONTAINER_PORT ?= 8000
 
-.PHONY: build run run-detached stop logs remove-all-containers remove-container dev migrate
+.PHONY: build run run-detached stop logs remove-all-containers remove-container dev migrate seed
 
 build:
 	docker build -t $(IMAGE) .
@@ -40,3 +40,6 @@ dev:
 
 migrate:
 	ENV_FILE=$(ENV_FILE) python scripts/migrations/migrate_startup_schema.py
+
+seed:
+	ENV_FILE=$(ENV_FILE) python scripts/seeding/seed_db.py

@@ -1,4 +1,4 @@
-from app.app_factory import create_app
+from app.core.factory import create_app
 from app.routers import favorites, general, loans, reservations
 
 app = create_app(

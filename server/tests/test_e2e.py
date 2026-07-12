@@ -22,7 +22,7 @@ ALL_TEST_SCOPES = (
 
 @pytest.fixture
 def admin_auth(app):
-    from app.dependencies import verify_access_token
+    from app.api.dependencies import verify_access_token
 
     async def mock_token(authorization: str = None):  # type: ignore
         return {
@@ -39,7 +39,7 @@ def admin_auth(app):
 
 @pytest.fixture
 def user_auth(app):
-    from app.dependencies import verify_access_token
+    from app.api.dependencies import verify_access_token
 
     async def mock_token(authorization: str = None):  # type: ignore
         return {
@@ -58,7 +58,7 @@ def test_successful_borrow_flow(client: TestClient):
     """E2E-01: Successful borrow flow"""
     pytest.skip("Requires user with phone and address - complex setup")
 
-    from app.dependencies import verify_access_token
+    from app.api.dependencies import verify_access_token
 
     # helper override functions
     async def mock_admin_token(authorization: str = None):  # type: ignore
@@ -108,7 +108,7 @@ def test_successful_borrow_flow(client: TestClient):
 
 def test_favorites_lifecycle(client: TestClient):
     """E2E-05: Favorites lifecycle"""
-    from app.dependencies import verify_access_token
+    from app.api.dependencies import verify_access_token
 
     async def mock_user_token(authorization: str = None):  # type: ignore
         return {

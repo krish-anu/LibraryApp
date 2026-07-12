@@ -5,13 +5,13 @@ from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.dependencies import (
+from app.api.dependencies import (
     get_db,
     require_admin_scope,
     require_scope,
     require_subject_or_admin,
 )
-from app.image_blob import image_response, validate_image_body
+from app.services.images import image_response, validate_image_body
 from app.models.fine import Fine as FineModel
 from app.models.loan import Loan as LoanModel
 from app.models.reservation import Reservation as ReservationModel

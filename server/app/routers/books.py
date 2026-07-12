@@ -5,13 +5,13 @@ from fastapi import APIRouter, Body, Depends, Header, HTTPException
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session, selectinload
 
-from ..dependencies import (
+from app.api.dependencies import (
     get_db,
     require_admin_scope,
     require_scope,
     require_subject_or_admin,
 )
-from ..image_blob import image_response, validate_image_body
+from app.services.images import image_response, validate_image_body
 from ..models import book as book_model
 from ..models import category as category_model
 from ..models.interactions import Interaction

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db
-from ..dependencies import require_admin_scope
+from app.api.dependencies import get_db
+from app.api.dependencies import require_admin_scope
 
 router = APIRouter(tags=["general"])
 

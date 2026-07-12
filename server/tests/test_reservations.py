@@ -21,7 +21,7 @@ def book_id(client, admin_user):
 
 @pytest.fixture
 def user_headers(app):
-    from app.dependencies import verify_access_token
+    from app.api.dependencies import verify_access_token
 
     async def mock_user_token(authorization: str = None): # type: ignore
         return {

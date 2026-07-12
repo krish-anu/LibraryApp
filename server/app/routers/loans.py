@@ -8,7 +8,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from ..dependencies import (
+from app.api.dependencies import (
     get_db,
     identity_is_admin,
     require_admin_scope,
@@ -22,7 +22,7 @@ from ..models import (
     settings as settings_model,
     users as user_model,
 )
-from ..notification_center import create_admin_notification, create_user_notification
+from app.services.notifications import create_admin_notification, create_user_notification
 from ..pydantic_schemas import loan as loan_schema
 
 router = APIRouter(prefix="/loans", tags=["loans"])

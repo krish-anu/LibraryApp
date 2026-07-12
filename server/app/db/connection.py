@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import os
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .db_config import build_host_database_url, get_database_config
+from .config import build_host_database_url, get_database_config
 
 
 config = get_database_config()

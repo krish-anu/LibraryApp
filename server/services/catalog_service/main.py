@@ -1,4 +1,4 @@
-from app.app_factory import create_app
+from app.core.factory import create_app
 from app.routers import books, category, general
 
 app = create_app(

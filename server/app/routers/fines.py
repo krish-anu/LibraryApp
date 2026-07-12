@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_db, identity_subject, require_admin_scope
+from app.api.dependencies import get_db, identity_subject, require_admin_scope
 from ..models.book import Book
 from ..models.fine import Fine
 from ..models.fine_payment import FinePayment
