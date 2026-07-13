@@ -82,8 +82,15 @@ def create_blog(
         title=data.title,
         excerpt=data.excerpt,
         content=data.content,
+        url=data.url,
         author=data.author,
+        source=data.source,
         category=data.category,
+        tags=data.tags,
+        language=data.language,
+        featured=data.featured,
+        status=data.status,
+        sort_order=data.sort_order,
         cover_image=data.cover_image,
         read_minutes=data.read_minutes,
         published=data.published,
@@ -109,8 +116,15 @@ def update_blog(
     blog.title = data.title
     blog.excerpt = data.excerpt
     blog.content = data.content
+    blog.url = data.url
     blog.author = data.author
+    blog.source = data.source
     blog.category = data.category
+    blog.tags = data.tags
+    blog.language = data.language
+    blog.featured = data.featured
+    blog.status = data.status
+    blog.sort_order = data.sort_order
     blog.cover_image = data.cover_image
     blog.read_minutes = data.read_minutes
     blog.published = data.published
@@ -183,10 +197,17 @@ def create_video(
         title=data.title,
         description=data.description,
         youtube_video_id=data.youtube_video_id,
+        youtube_url=data.youtube_url,
         speaker=data.speaker,
+        channel_name=data.channel_name,
         category=data.category,
+        tags=data.tags,
         duration=data.duration,
         thumbnail_url=data.thumbnail_url,
+        language=data.language,
+        featured=data.featured,
+        status=data.status,
+        sort_order=data.sort_order,
         published=data.published,
         published_at=data.published_at or datetime.utcnow(),
     )
@@ -210,10 +231,17 @@ def update_video(
     video.title = data.title
     video.description = data.description
     video.youtube_video_id = data.youtube_video_id
+    video.youtube_url = data.youtube_url
     video.speaker = data.speaker
+    video.channel_name = data.channel_name
     video.category = data.category
+    video.tags = data.tags
     video.duration = data.duration
     video.thumbnail_url = data.thumbnail_url
+    video.language = data.language
+    video.featured = data.featured
+    video.status = data.status
+    video.sort_order = data.sort_order
     video.published = data.published
     video.published_at = data.published_at or video.published_at
     db.commit()

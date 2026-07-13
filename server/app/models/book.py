@@ -17,9 +17,13 @@ class Book(Base):
 
     id: Mapped[str] = mapped_column(TEXT, primary_key=True)
     title: Mapped[str | None] = mapped_column(TEXT)
+    subtitle: Mapped[str | None] = mapped_column(TEXT, nullable=True)
     author_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("authors.id"))
     category_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("categories.id"))
     description: Mapped[str | None] = mapped_column(TEXT)
+    publisher: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    isbn_10: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    isbn_13: Mapped[str | None] = mapped_column(TEXT, nullable=True)
     rating: Mapped[float | None] = mapped_column(NUMERIC)
     publication_year: Mapped[int | None] = mapped_column(NUMERIC)
     copies_owned: Mapped[int | None] = mapped_column(NUMERIC)
@@ -29,6 +33,13 @@ class Book(Base):
     language: Mapped[str | None] = mapped_column(TEXT, default="English")
     pages: Mapped[int | None] = mapped_column(NUMERIC, default=200)
     rating_count: Mapped[int | None] = mapped_column(NUMERIC, default=0)
+    tags: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    published_date: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    edition: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    book_url: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    featured: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    sort_order: Mapped[int | None] = mapped_column(NUMERIC, nullable=True)
+    sheet_created_at: Mapped[str | None] = mapped_column(TEXT, nullable=True)
 
     category_rel: Mapped[Category | None] = relationship(
         "Category", back_populates="books"

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Save, BookOpen, Building, User } from "lucide-react";
+import { Save, BookOpen, Building, User, RefreshCw } from "lucide-react";
 
 interface SettingsFormData {
   loan_period_days: number;
@@ -16,6 +16,15 @@ interface SettingsFormData {
   fine_threshold: number;
   send_notifications: boolean;
   notification_days_before_due: number;
+  sheet_sync_enabled: boolean;
+  sheet_sync_interval_days: number;
+  sheet_spreadsheet_id: string;
+  sheet_books_tab: string;
+  sheet_blogs_tab: string;
+  sheet_videos_tab: string;
+  sheet_last_sync_at?: string | null;
+  sheet_last_sync_status?: string | null;
+  sheet_last_sync_message?: string | null;
 }
 
 export default function SettingsPage() {
@@ -29,12 +38,19 @@ export default function SettingsPage() {
     fine_threshold: 10.0,
     send_notifications: true,
     notification_days_before_due: 3,
+    sheet_sync_enabled: false,
+    sheet_sync_interval_days: 30,
+    sheet_spreadsheet_id: "",
+    sheet_books_tab: "Books",
+    sheet_blogs_tab: "Blogs",
+    sheet_videos_tab: "Videos",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"fines" | "library" | "profile">(
-    "fines",
-  );
+  const [syncing, setSyncing] = useState(false);
+  const [activeTab, setActiveTab] = useState<
+    "fines" | "library" | "sync" | "profile"
+  >("fines");
 
   useEffect(() => {
     fetchSettings();
@@ -45,12 +61,45 @@ export default function SettingsPage() {
       const res = await fetch("/api/settings");
       const json = await res.json();
       if (json.data) {
-        setSettings(json.data);
+        setSettings((current) => ({ ...current, ...json.data }));
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleManualSync = async () => {
+    setSyncing(true);
+    try {
+      const saveRes = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      if (!saveRes.ok) {
+        const error = await saveRes
+          .json()
+          .catch(() => ({ error: "Failed to save sync settings" }));
+        alert(error.error || "Failed to save sync settings");
+        return;
+      }
+
+      const res = await fetch("/api/content-sync/run", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "Failed to run sheet sync");
+        await fetchSettings();
+        return;
+      }
+      alert(json.data?.message || "Sheet sync completed");
+      await fetchSettings();
+    } catch (error) {
+      console.error("Error running sheet sync:", error);
+      alert("Failed to run sheet sync");
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -82,6 +131,7 @@ export default function SettingsPage() {
   const tabs = [
     { key: "fines", label: "Fine Rules", icon: BookOpen },
     { key: "library", label: "Library Info", icon: Building },
+    { key: "sync", label: "Sheet Sync", icon: RefreshCw },
     { key: "profile", label: "Admin Profile", icon: User },
   ] as const;
 
@@ -314,6 +364,148 @@ export default function SettingsPage() {
                       defaultValue="Monday - Friday: 9:00 AM - 8:00 PM&#10;Saturday: 10:00 AM - 6:00 PM&#10;Sunday: Closed"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "sync" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="mb-2 text-lg font-semibold text-gray-900">
+                      Google Sheet Sync
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      Import and update books, blogs, and YouTube videos from
+                      three tabs in one Google Sheet.
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
+                    The spreadsheet must be published or shared so the API can
+                    read CSV exports. Use tab names exactly as they appear in
+                    Google Sheets.
+                  </div>
+
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={settings.sheet_sync_enabled}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          sheet_sync_enabled: e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4 rounded border-gray-300 text-[#1E3A5F] focus:ring-blue-500"
+                    />
+                    <span className="text-gray-700">
+                      Enable automatic scheduled sync
+                    </span>
+                  </label>
+
+                  <Input
+                    label="Google Spreadsheet ID"
+                    value={settings.sheet_spreadsheet_id || ""}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        sheet_spreadsheet_id: e.target.value,
+                      })
+                    }
+                    placeholder="1AbC..."
+                  />
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <Input
+                      label="Books Tab Name"
+                      value={settings.sheet_books_tab || ""}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          sheet_books_tab: e.target.value,
+                        })
+                      }
+                      placeholder="Books"
+                    />
+                    <Input
+                      label="Blogs Tab Name"
+                      value={settings.sheet_blogs_tab || ""}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          sheet_blogs_tab: e.target.value,
+                        })
+                      }
+                      placeholder="Blogs"
+                    />
+                    <Input
+                      label="Videos Tab Name"
+                      value={settings.sheet_videos_tab || ""}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          sheet_videos_tab: e.target.value,
+                        })
+                      }
+                      placeholder="Videos"
+                    />
+                  </div>
+
+                  <Input
+                    label="Automatic Sync Interval (days)"
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={settings.sheet_sync_interval_days}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        sheet_sync_interval_days: parseInt(e.target.value) || 30,
+                      })
+                    }
+                    className="max-w-xs"
+                  />
+
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <h3 className="mb-3 font-semibold text-gray-900">
+                      Last Sync
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
+                      <div>
+                        <p className="font-medium text-gray-500">Time</p>
+                        <p className="text-gray-900">
+                          {settings.sheet_last_sync_at
+                            ? new Date(
+                                settings.sheet_last_sync_at,
+                              ).toLocaleString()
+                            : "Never"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-500">Status</p>
+                        <p className="capitalize text-gray-900">
+                          {settings.sheet_last_sync_status || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-500">Message</p>
+                        <p className="text-gray-900">
+                          {settings.sheet_last_sync_message || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button
+                      type="button"
+                      onClick={handleManualSync}
+                      isLoading={syncing}
+                      className="w-full sm:w-auto"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Run Manual Sync
+                    </Button>
                   </div>
                 </div>
               )}

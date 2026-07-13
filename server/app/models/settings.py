@@ -31,6 +31,15 @@ class Settings(Base):
     notification_days_before_due: Mapped[int] = mapped_column(
         INTEGER, nullable=False, default=3
     )
+    sheet_sync_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    sheet_sync_interval_days: Mapped[int] = mapped_column(INTEGER, nullable=False, default=30)
+    sheet_spreadsheet_id: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    sheet_books_tab: Mapped[str | None] = mapped_column(TEXT, nullable=True, default="Books")
+    sheet_blogs_tab: Mapped[str | None] = mapped_column(TEXT, nullable=True, default="Blogs")
+    sheet_videos_tab: Mapped[str | None] = mapped_column(TEXT, nullable=True, default="Videos")
+    sheet_last_sync_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    sheet_last_sync_status: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    sheet_last_sync_message: Mapped[str | None] = mapped_column(TEXT, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )

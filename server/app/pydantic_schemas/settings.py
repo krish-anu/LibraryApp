@@ -14,6 +14,12 @@ class SettingsBase(BaseModel):
     fine_threshold: float = Field(default=10.00, ge=0)
     send_notifications: bool = True
     notification_days_before_due: int = Field(default=3, ge=0)
+    sheet_sync_enabled: bool = False
+    sheet_sync_interval_days: int = Field(default=30, ge=1, le=365)
+    sheet_spreadsheet_id: str | None = Field(default=None, max_length=256)
+    sheet_books_tab: str | None = Field(default="Books", max_length=128)
+    sheet_blogs_tab: str | None = Field(default="Blogs", max_length=128)
+    sheet_videos_tab: str | None = Field(default="Videos", max_length=128)
 
 
 class SettingsUpdate(BaseModel):
@@ -26,11 +32,20 @@ class SettingsUpdate(BaseModel):
     fine_threshold: Optional[float] = Field(default=None, ge=0)
     send_notifications: Optional[bool] = None
     notification_days_before_due: Optional[int] = Field(default=None, ge=0)
+    sheet_sync_enabled: Optional[bool] = None
+    sheet_sync_interval_days: Optional[int] = Field(default=None, ge=1, le=365)
+    sheet_spreadsheet_id: Optional[str] = Field(default=None, max_length=256)
+    sheet_books_tab: Optional[str] = Field(default=None, max_length=128)
+    sheet_blogs_tab: Optional[str] = Field(default=None, max_length=128)
+    sheet_videos_tab: Optional[str] = Field(default=None, max_length=128)
 
 
 class Settings(SettingsBase):
     id: str
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    sheet_last_sync_at: datetime | None = None
+    sheet_last_sync_status: str | None = None
+    sheet_last_sync_message: str | None = None
 
     model_config = ConfigDict(from_attributes=True)

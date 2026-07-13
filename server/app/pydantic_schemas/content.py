@@ -7,8 +7,15 @@ class BlogPostBase(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     excerpt: str = Field(default="", max_length=600)
     content: str = Field(default="", max_length=20000)
+    url: str | None = Field(default=None, max_length=2048)
     author: str = Field(default="Library Team", min_length=1, max_length=120)
+    source: str | None = Field(default=None, max_length=120)
     category: str = Field(default="Library", min_length=1, max_length=80)
+    tags: str | None = Field(default=None, max_length=1000)
+    language: str | None = Field(default=None, max_length=80)
+    featured: bool = False
+    status: str | None = Field(default=None, max_length=40)
+    sort_order: int | None = Field(default=None, ge=0)
     cover_image: str | None = Field(default=None, max_length=2048)
     read_minutes: int = Field(default=3, ge=1, le=180)
     published: bool = True
@@ -30,10 +37,17 @@ class VideoPostBase(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(default="", max_length=3000)
     youtube_video_id: str = Field(min_length=6, max_length=32)
+    youtube_url: str | None = Field(default=None, max_length=2048)
     speaker: str = Field(default="Library Team", min_length=1, max_length=120)
+    channel_name: str | None = Field(default=None, max_length=120)
     category: str = Field(default="Learning", min_length=1, max_length=80)
+    tags: str | None = Field(default=None, max_length=1000)
     duration: str = Field(default="", max_length=40)
     thumbnail_url: str | None = Field(default=None, max_length=2048)
+    language: str | None = Field(default=None, max_length=80)
+    featured: bool = False
+    status: str | None = Field(default=None, max_length=40)
+    sort_order: int | None = Field(default=None, ge=0)
     published: bool = True
     published_at: datetime | None = None
 

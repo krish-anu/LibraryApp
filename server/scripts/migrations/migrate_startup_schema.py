@@ -36,6 +36,26 @@ MIGRATION_STATEMENTS = [
     "UPDATE loans SET status = 'active' WHERE status IS NULL OR TRIM(status) = ''",
     "ALTER TABLE books ADD COLUMN IF NOT EXISTS image_blob BYTEA",
     "ALTER TABLE books ADD COLUMN IF NOT EXISTS image_mime_type TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS subtitle TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS publisher TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS isbn_10 TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS isbn_13 TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS tags TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS published_date TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS edition TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS book_url TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS featured TEXT",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS sort_order NUMERIC",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS sheet_created_at TEXT",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sheet_sync_enabled BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sheet_sync_interval_days INTEGER NOT NULL DEFAULT 30",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sheet_spreadsheet_id TEXT",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sheet_books_tab TEXT DEFAULT 'Books'",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sheet_blogs_tab TEXT DEFAULT 'Blogs'",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sheet_videos_tab TEXT DEFAULT 'Videos'",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sheet_last_sync_at TIMESTAMP",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sheet_last_sync_status TEXT",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sheet_last_sync_message TEXT",
     """
     CREATE TABLE IF NOT EXISTS blog_posts (
         id TEXT PRIMARY KEY,
@@ -52,6 +72,13 @@ MIGRATION_STATEMENTS = [
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
     )
     """,
+    "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS url TEXT",
+    "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS source TEXT",
+    "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS tags TEXT",
+    "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS language TEXT",
+    "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS status TEXT",
+    "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS sort_order INTEGER",
     """
     CREATE TABLE IF NOT EXISTS video_posts (
         id TEXT PRIMARY KEY,
@@ -68,6 +95,13 @@ MIGRATION_STATEMENTS = [
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
     )
     """,
+    "ALTER TABLE video_posts ADD COLUMN IF NOT EXISTS youtube_url TEXT",
+    "ALTER TABLE video_posts ADD COLUMN IF NOT EXISTS channel_name TEXT",
+    "ALTER TABLE video_posts ADD COLUMN IF NOT EXISTS tags TEXT",
+    "ALTER TABLE video_posts ADD COLUMN IF NOT EXISTS language TEXT",
+    "ALTER TABLE video_posts ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE video_posts ADD COLUMN IF NOT EXISTS status TEXT",
+    "ALTER TABLE video_posts ADD COLUMN IF NOT EXISTS sort_order INTEGER",
     """
     CREATE TABLE IF NOT EXISTS fine_payments (
         id TEXT PRIMARY KEY,
