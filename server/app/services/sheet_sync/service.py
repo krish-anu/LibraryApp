@@ -4,7 +4,7 @@ import csv
 import io
 from dataclasses import dataclass
 from datetime import datetime
-from urllib.parse import quote
+from urllib.parse import quote, unquote, urlparse
 
 import httpx
 from sqlalchemy.orm import Session
@@ -52,6 +52,24 @@ def _clean(value: object) -> str:
     return str(value or "").strip()
 
 
+def normalize_spreadsheet_id(value: object) -> str:
+    cleaned = _clean(value)
+    if not cleaned:
+        return ""
+
+    parsed = urlparse(cleaned)
+    if parsed.netloc and "docs.google.com" in parsed.netloc:
+        parts = [unquote(part) for part in parsed.path.split("/") if part]
+        try:
+            spreadsheets_index = parts.index("spreadsheets")
+            if parts[spreadsheets_index + 1] == "d":
+                return parts[spreadsheets_index + 2].strip()
+        except (ValueError, IndexError):
+            return cleaned
+
+    return cleaned
+
+
 def _bool(value: object, default: bool = False) -> bool:
     cleaned = _clean(value).lower()
     if cleaned in {"true", "1", "yes", "y", "published"}:
@@ -88,7 +106,8 @@ def _publication_year(value: object) -> int:
 def _sheet_csv_url(spreadsheet_id: str, tab_name: str) -> str:
     return (
         "https://docs.google.com/spreadsheets/d/"
-        f"{quote(spreadsheet_id)}/gviz/tq?tqx=out:csv&sheet={quote(tab_name)}"
+        f"{quote(spreadsheet_id, safe='')}/gviz/tq?"
+        f"tqx=out:csv&sheet={quote(tab_name, safe='')}"
     )
 
 
@@ -232,7 +251,7 @@ def _sync_videos(db: Session, rows: list[dict[str, str]], result: SheetSyncResul
 
 
 def run_sheet_sync(db: Session, settings: Settings) -> SheetSyncResult:
-    spreadsheet_id = _clean(settings.sheet_spreadsheet_id)
+    spreadsheet_id = normalize_spreadsheet_id(settings.sheet_spreadsheet_id)
     if not spreadsheet_id:
         raise ValueError("Google Spreadsheet ID is required")
 

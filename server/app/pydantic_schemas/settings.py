@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.services.sheet_sync.service import normalize_spreadsheet_id
 
 
 class SettingsBase(BaseModel):
@@ -21,6 +23,12 @@ class SettingsBase(BaseModel):
     sheet_blogs_tab: str | None = Field(default="Blogs", max_length=128)
     sheet_videos_tab: str | None = Field(default="Videos", max_length=128)
 
+    @field_validator("sheet_spreadsheet_id", mode="before")
+    @classmethod
+    def normalize_sheet_spreadsheet_id(cls, value: object) -> str | None:
+        normalized = normalize_spreadsheet_id(value)
+        return normalized or None
+
 
 class SettingsUpdate(BaseModel):
     loan_period_days: Optional[int] = Field(default=None, gt=0)
@@ -38,6 +46,12 @@ class SettingsUpdate(BaseModel):
     sheet_books_tab: Optional[str] = Field(default=None, max_length=128)
     sheet_blogs_tab: Optional[str] = Field(default=None, max_length=128)
     sheet_videos_tab: Optional[str] = Field(default=None, max_length=128)
+
+    @field_validator("sheet_spreadsheet_id", mode="before")
+    @classmethod
+    def normalize_sheet_spreadsheet_id(cls, value: object) -> str | None:
+        normalized = normalize_spreadsheet_id(value)
+        return normalized or None
 
 
 class Settings(SettingsBase):
