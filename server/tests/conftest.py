@@ -67,10 +67,25 @@ def client(db_session):
             pass
 
     main_app.dependency_overrides[get_db] = override_get_db
+    from app.services.sheet_sync.scheduler import sheet_sync_scheduler
+
+    original_start = sheet_sync_scheduler.start
+    original_stop = sheet_sync_scheduler.stop
+
+    async def noop_scheduler_start():
+        return None
+
+    async def noop_scheduler_stop():
+        return None
+
+    sheet_sync_scheduler.start = noop_scheduler_start
+    sheet_sync_scheduler.stop = noop_scheduler_stop
 
     with TestClient(main_app) as client_instance:
         yield client_instance
 
+    sheet_sync_scheduler.start = original_start
+    sheet_sync_scheduler.stop = original_stop
     main_app.dependency_overrides.clear()
 
 
