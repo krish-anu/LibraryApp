@@ -163,6 +163,7 @@ class AsgardeoUserScopes {
     'reservations_manage',
     'favorites_read',
     'favorites_manage',
+    'fines_read',
     'users_read',
     'users_manage',
     'notifications_read',

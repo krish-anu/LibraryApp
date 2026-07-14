@@ -7,7 +7,14 @@ from app.api.dependencies import identity_is_admin, require_admin_scope
 from app.models.users import User
 from app.pydantic_schemas.fine import FineCreate, FineUpdate
 from app.routers.auth import debug_identity
-from app.routers.fines import create_fine, list_fines, update_fine
+from app.routers.fines import (
+    create_fine,
+    get_fine,
+    get_member_fine_summary,
+    list_fines,
+    list_member_fines,
+    update_fine,
+)
 from app.routers.users import list_users
 
 
@@ -143,3 +150,75 @@ def test_fine_collection_and_physical_payment(db_session):
     assert updated["payment"] == {"appliedAmount": 4.0, "remainingAmount": 6.0}
     assert updated["data"]["total_paid"] == 4
     assert updated["data"]["fine_amount"] == 6
+
+
+def test_member_can_read_own_fines_and_summary(db_session):
+    db_session.add_all(
+        [
+            User(id="u1", member_id="M001", name="Ada Reader", email="ada@example.com"),
+            User(id="u2", member_id="M002", name="Grace Hopper", email="grace@example.com"),
+        ]
+    )
+    db_session.commit()
+
+    create_fine(
+        FineCreate(
+            member_id="u1",
+            fine_amount=10,
+            fine_date=date.today(),
+            reason="Overdue",
+        ),
+        _admin={},
+        db=db_session,
+    )
+    create_fine(
+        FineCreate(
+            member_id="u2",
+            fine_amount=20,
+            fine_date=date.today(),
+            reason="Overdue",
+        ),
+        _admin={},
+        db=db_session,
+    )
+
+    identity = {"sub": "u1", "scope": "fines_read"}
+    summary = get_member_fine_summary("u1", identity=identity, db=db_session)
+    listed = list_member_fines(
+        "u1",
+        page=1,
+        limit=10,
+        identity=identity,
+        db=db_session,
+    )
+
+    assert summary == {"member_id": "u1", "total_due": 10.0, "unpaid_count": 1}
+    assert listed["total_due"] == 10.0
+    assert listed["totalCount"] == 1
+    assert listed["data"][0]["member_id"] == "u1"
+
+
+def test_member_cannot_read_another_members_fine(db_session):
+    db_session.add(
+        User(id="u2", member_id="M002", name="Grace Hopper", email="grace@example.com")
+    )
+    db_session.commit()
+    created = create_fine(
+        FineCreate(
+            member_id="u2",
+            fine_amount=20,
+            fine_date=date.today(),
+            reason="Overdue",
+        ),
+        _admin={},
+        db=db_session,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        get_fine(
+            created["data"]["id"],
+            identity={"sub": "u1", "scope": "fines_read"},
+            db=db_session,
+        )
+
+    assert exc_info.value.status_code == 403

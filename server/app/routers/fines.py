@@ -8,7 +8,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, identity_subject, require_admin_scope
+from app.api.dependencies import (
+    get_db,
+    identity_subject,
+    require_admin_scope,
+    require_scope,
+    require_subject_or_admin,
+)
 from ..models.book import Book
 from ..models.fine import Fine
 from ..models.fine_payment import FinePayment
@@ -76,6 +82,27 @@ def _find_fine(db: Session, fine_id: str) -> Fine:
     return fine
 
 
+def _fine_summary(db: Session, member_id: str) -> dict[str, Any]:
+    unpaid_filter = func.lower(func.coalesce(Fine.status, "unpaid")) == "unpaid"
+    total_due = (
+        db.query(func.coalesce(func.sum(Fine.fine_amount), 0))
+        .filter(Fine.member_id == member_id, unpaid_filter)
+        .scalar()
+        or 0
+    )
+    unpaid_count = (
+        db.query(func.count(Fine.id))
+        .filter(Fine.member_id == member_id, unpaid_filter)
+        .scalar()
+        or 0
+    )
+    return {
+        "member_id": member_id,
+        "total_due": float(total_due),
+        "unpaid_count": int(unpaid_count),
+    }
+
+
 @router.get("")
 def list_fines(
     page: int = Query(default=1, ge=1),
@@ -121,6 +148,46 @@ def list_fines(
     }
 
 
+@router.get("/member/{member_id}/summary")
+def get_member_fine_summary(
+    member_id: str,
+    identity: dict = Depends(require_scope("fines_read")),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, member_id)
+    return _fine_summary(db, member_id)
+
+
+@router.get("/member/{member_id}")
+def list_member_fines(
+    member_id: str,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1, le=100),
+    status: str = "",
+    identity: dict = Depends(require_scope("fines_read")),
+    db: Session = Depends(get_db),
+):
+    require_subject_or_admin(identity, member_id)
+    query = db.query(Fine).filter(Fine.member_id == member_id)
+    if status.strip():
+        query = query.filter(func.lower(Fine.status) == status.strip().lower())
+
+    total = query.count()
+    rows = (
+        query.order_by(Fine.created_at.desc(), Fine.fine_date.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    summary = _fine_summary(db, member_id)
+    return {
+        "data": [_serialize_fine(db, fine) for fine in rows],
+        "totalCount": total,
+        "pagination": {"page": page, "limit": limit, "total": total},
+        **summary,
+    }
+
+
 @router.post("", status_code=201)
 def create_fine(
     payload: FineCreate,
@@ -158,10 +225,12 @@ def create_fine(
 @router.get("/{fine_id}")
 def get_fine(
     fine_id: str,
-    _admin: dict = Depends(require_admin_scope("fines_read")),
+    identity: dict = Depends(require_scope("fines_read")),
     db: Session = Depends(get_db),
 ):
-    return {"data": _serialize_fine(db, _find_fine(db, fine_id))}
+    fine = _find_fine(db, fine_id)
+    require_subject_or_admin(identity, str(fine.member_id or ""))
+    return {"data": _serialize_fine(db, fine)}
 
 
 @router.put("/{fine_id}")
