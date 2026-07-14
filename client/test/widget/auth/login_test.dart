@@ -8,9 +8,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: Login()),
-      ),
+      const ProviderScope(child: MaterialApp(home: Login())),
     );
 
     expect(find.text('Username or email'), findsOneWidget);

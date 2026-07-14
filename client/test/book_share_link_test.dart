@@ -31,7 +31,10 @@ void main() {
   });
 
   test('parse returns null for unsupported links and links without title', () {
-    expect(BookShareLink.parse(Uri.parse('https://example.com/book?id=1')), isNull);
+    expect(
+      BookShareLink.parse(Uri.parse('https://example.com/book?id=1')),
+      isNull,
+    );
     expect(BookShareLink.parse(Uri.parse('libraryapp://book?id=1')), isNull);
   });
 
