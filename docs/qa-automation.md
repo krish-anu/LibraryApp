@@ -9,7 +9,7 @@ High-priority API/business-rule tests:
 
 ```bash
 cd server
-DATABASE_URL=sqlite:///:memory: python -m pytest tests/test_qa_critical_flows.py -q
+DATABASE_URL=sqlite:///:memory: python -m pytest tests/integration/critical_flows/test_qa_critical_flows.py tests/unit -q
 ```
 
 Current note: the existing `TestClient` fixture starts the FastAPI lifespan. In
