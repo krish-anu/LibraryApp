@@ -14,6 +14,7 @@ ALL_TEST_SCOPES = (
     "openid profile email "
     "dashboard_read "
     "books_read books_manage "
+    "content_read content_manage "
     "categories_read categories_manage "
     "loans_read loans_manage "
     "reservations_read reservations_manage "

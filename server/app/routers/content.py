@@ -36,7 +36,7 @@ def _published_video_query(db: Session):
 @router.get("/blogs", response_model=List[content_schema.BlogPost])
 def get_blogs(
     include_unpublished: bool = Query(default=False),
-    identity: dict = Depends(require_scope("books_read")),
+    identity: dict = Depends(require_scope("content_read")),
     db: Session = Depends(get_db),
 ):
     if include_unpublished:
@@ -53,7 +53,7 @@ def get_blogs(
 def get_blog(
     blog_id: str,
     include_unpublished: bool = Query(default=False),
-    identity: dict = Depends(require_scope("books_read")),
+    identity: dict = Depends(require_scope("content_read")),
     db: Session = Depends(get_db),
 ):
     query = (
@@ -74,7 +74,7 @@ def get_blog(
 )
 def create_blog(
     data: content_schema.BlogPostCreate,
-    _admin: dict = Depends(require_admin_scope("books_manage")),
+    _admin: dict = Depends(require_admin_scope("content_manage")),
     db: Session = Depends(get_db),
 ):
     blog = BlogPost(
@@ -106,7 +106,7 @@ def create_blog(
 def update_blog(
     blog_id: str,
     data: content_schema.BlogPostCreate,
-    _admin: dict = Depends(require_admin_scope("books_manage")),
+    _admin: dict = Depends(require_admin_scope("content_manage")),
     db: Session = Depends(get_db),
 ):
     blog = db.query(BlogPost).filter(BlogPost.id == blog_id).first()
@@ -137,7 +137,7 @@ def update_blog(
 @router.delete("/blogs/{blog_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_blog(
     blog_id: str,
-    _admin: dict = Depends(require_admin_scope("books_manage")),
+    _admin: dict = Depends(require_admin_scope("content_manage")),
     db: Session = Depends(get_db),
 ):
     blog = db.query(BlogPost).filter(BlogPost.id == blog_id).first()
@@ -151,7 +151,7 @@ def delete_blog(
 @router.get("/videos", response_model=List[content_schema.VideoPost])
 def get_videos(
     include_unpublished: bool = Query(default=False),
-    identity: dict = Depends(require_scope("books_read")),
+    identity: dict = Depends(require_scope("content_read")),
     db: Session = Depends(get_db),
 ):
     if include_unpublished:
@@ -168,7 +168,7 @@ def get_videos(
 def get_video(
     video_id: str,
     include_unpublished: bool = Query(default=False),
-    identity: dict = Depends(require_scope("books_read")),
+    identity: dict = Depends(require_scope("content_read")),
     db: Session = Depends(get_db),
 ):
     query = (
@@ -189,7 +189,7 @@ def get_video(
 )
 def create_video(
     data: content_schema.VideoPostCreate,
-    _admin: dict = Depends(require_admin_scope("books_manage")),
+    _admin: dict = Depends(require_admin_scope("content_manage")),
     db: Session = Depends(get_db),
 ):
     video = VideoPost(
@@ -221,7 +221,7 @@ def create_video(
 def update_video(
     video_id: str,
     data: content_schema.VideoPostCreate,
-    _admin: dict = Depends(require_admin_scope("books_manage")),
+    _admin: dict = Depends(require_admin_scope("content_manage")),
     db: Session = Depends(get_db),
 ):
     video = db.query(VideoPost).filter(VideoPost.id == video_id).first()
@@ -252,7 +252,7 @@ def update_video(
 @router.delete("/videos/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_video(
     video_id: str,
-    _admin: dict = Depends(require_admin_scope("books_manage")),
+    _admin: dict = Depends(require_admin_scope("content_manage")),
     db: Session = Depends(get_db),
 ):
     video = db.query(VideoPost).filter(VideoPost.id == video_id).first()

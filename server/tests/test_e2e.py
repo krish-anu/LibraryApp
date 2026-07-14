@@ -16,6 +16,7 @@ BOOK_PAYLOAD = {
 }
 ALL_TEST_SCOPES = (
     "books_read books_manage loans_read loans_manage "
+    "content_read content_manage "
     "favorites_read favorites_manage"
 )
 

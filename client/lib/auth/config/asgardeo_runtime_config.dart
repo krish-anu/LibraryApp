@@ -155,6 +155,7 @@ class AsgardeoUserScopes {
     'groups',
     'roles',
     'books_read',
+    'content_read',
     'categories_read',
     'loans_read',
     'loans_manage',

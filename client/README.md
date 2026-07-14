@@ -33,7 +33,7 @@ flutter run \
 Authorize the mobile application to request these user scopes in Asgardeo:
 
 ```text
-openid profile email groups roles books_read categories_read loans_read loans_manage reservations_read reservations_manage favorites_read favorites_manage users_read users_manage notifications_read notifications_manage settings_read
+openid profile email groups roles books_read content_read categories_read loans_read loans_manage reservations_read reservations_manage favorites_read favorites_manage users_read users_manage notifications_read notifications_manage settings_read
 ```
 
 If you prefer not to retype them each time:
