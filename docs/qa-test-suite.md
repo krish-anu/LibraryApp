@@ -365,7 +365,7 @@ Testable product areas:
 
 | Dependency | Requirement |
 |---|---|
-| Backend | Python 3.11+, PostgreSQL, FastAPI app env configured, seeded/migrated test DB, Asgardeo base URL or mocked IdP. |
+| Backend | Python 3.11+, PostgreSQL test database, FastAPI app env configured, seeded/migrated test DB, Asgardeo base URL or mocked IdP. |
 | Admin | Node.js 20+, npm dependencies, Next.js env vars, admin OAuth callback configured, browser automation test user. |
 | Mobile | Flutter SDK, Android/iOS emulator or devices, `SERVER_URL`, `ASGARDEO_CLIENT_ID`, `ASGARDEO_BASE_URL`, redirect URI configuration. |
 | Identity | Asgardeo test tenant with member/admin users, required scopes, admin groups, token introspection/client credentials where needed. |

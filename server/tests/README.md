@@ -12,8 +12,11 @@ All actual test modules are organized by purpose:
 Verified safe local command:
 
 ```bash
-DATABASE_URL=sqlite:///:memory: python -m pytest tests/integration/critical_flows tests/unit -q
+TEST_DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:15432/libraryapp_test python -m pytest tests/integration/critical_flows tests/unit -q
 ```
+
+The test harness uses PostgreSQL only. It refuses SQLite and refuses database
+names that do not contain `test`.
 
 Broader API/security suites include older `TestClient`-based tests and some
 scaffolds that require mocked auth/HTTP setup or a live test environment.

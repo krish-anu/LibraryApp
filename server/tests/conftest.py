@@ -1,15 +1,78 @@
+import os
+import re
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL, make_url
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+
+
+DEFAULT_TEST_DATABASE_URL = (
+    "postgresql+psycopg2://postgres:postgres@localhost:15432/libraryapp_test"
+)
+
+
+def _resolve_test_database_url() -> URL:
+    raw_url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
+    raw_url = raw_url or DEFAULT_TEST_DATABASE_URL
+    url = make_url(raw_url)
+
+    if url.get_backend_name() != "postgresql":
+        raise RuntimeError(
+            "Server tests must use PostgreSQL. Set TEST_DATABASE_URL to a "
+            "postgresql+psycopg2://... URL for a disposable test database."
+        )
+
+    database = url.database or ""
+    if "test" not in database.lower():
+        raise RuntimeError(
+            "Refusing to run tests against a non-test PostgreSQL database. "
+            "Use a database name containing 'test', for example libraryapp_test."
+        )
+
+    return url
+
+
+def _ensure_database_exists(url: URL) -> None:
+    database = url.database or ""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", database):
+        raise RuntimeError(
+            "Test database name may only contain letters, numbers, underscores, and hyphens."
+        )
+
+    admin_url = url.set(database="postgres")
+    admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
+    try:
+        try:
+            with admin_engine.connect() as connection:
+                exists = connection.execute(
+                    text("SELECT 1 FROM pg_database WHERE datname = :database"),
+                    {"database": database},
+                ).scalar()
+                if not exists:
+                    connection.execute(text(f'CREATE DATABASE "{database}"'))
+        except OperationalError as exc:
+            raise RuntimeError(
+                "Could not connect to PostgreSQL for tests. Start Postgres or set "
+                "TEST_DATABASE_URL to a reachable disposable PostgreSQL database. "
+                f"Current test URL: {url.render_as_string(hide_password=True)}"
+            ) from exc
+    finally:
+        admin_engine.dispose()
+
+
+TEST_DATABASE_URL = _resolve_test_database_url()
+_ensure_database_exists(TEST_DATABASE_URL)
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL.render_as_string(hide_password=False)
 
 from app.api.dependencies import get_db, verify_access_token
 from app.main import app as main_app
 from app.models.base import Base
 
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+SQLALCHEMY_DATABASE_URL = TEST_DATABASE_URL.render_as_string(hide_password=False)
 ALL_TEST_SCOPES = (
     "openid profile email "
     "dashboard_read "
@@ -25,20 +88,7 @@ ALL_TEST_SCOPES = (
     "settings_read settings_manage"
 )
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-
-
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
-
-
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

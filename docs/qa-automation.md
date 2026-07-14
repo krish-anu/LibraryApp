@@ -9,13 +9,12 @@ High-priority API/business-rule tests:
 
 ```bash
 cd server
-DATABASE_URL=sqlite:///:memory: python -m pytest tests/integration/critical_flows/test_qa_critical_flows.py tests/unit -q
+TEST_DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:15432/libraryapp_test python -m pytest tests/integration/critical_flows/test_qa_critical_flows.py tests/unit -q
 ```
 
-Current note: the existing `TestClient` fixture starts the FastAPI lifespan. In
-this local environment the suite can hang during app startup before executing
-tests; existing tests show the same behavior. If that happens, disable or mock
-the sheet-sync scheduler in the test fixture before running the full suite.
+The server tests use PostgreSQL only. The database name must contain `test`.
+The harness creates the test database if the PostgreSQL server is reachable and
+the configured user has permission.
 
 ## Admin E2E
 
