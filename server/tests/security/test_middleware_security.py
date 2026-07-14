@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -7,11 +6,10 @@ def test_security_headers_present(client: TestClient):
     response = client.get("/")
     headers = response.headers
 
-    # Check for common security headers (might need middleware config)
-    # verify if these are actually added by the app
-    # assert "x-content-type-options" in headers
-    # assert "x-frame-options" in headers
-    pass
+    assert headers["x-content-type-options"] == "nosniff"
+    assert headers["x-frame-options"] == "DENY"
+    assert headers["referrer-policy"] == "no-referrer"
+    assert "camera=()" in headers["permissions-policy"]
 
 
 def test_cors_preflight(client: TestClient):
@@ -21,8 +19,7 @@ def test_cors_preflight(client: TestClient):
         "Access-Control-Request-Method": "GET",
     }
     response = client.options("/", headers=headers)
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    if response.status_code in [404, 405, 500, 422, 401]: return
+
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
 

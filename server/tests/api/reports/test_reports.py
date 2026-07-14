@@ -1,7 +1,9 @@
-import pytest
-
-pytestmark = pytest.mark.skip(reason="Reports endpoints are not currently implemented.")
+from fastapi.testclient import TestClient
 
 
-def test_admin_can_generate_circulation_report():
-    pass
+def test_reports_routes_are_not_exposed_until_reporting_module_exists(
+    client: TestClient, admin_user
+):
+    response = client.get("/reports/circulation")
+
+    assert response.status_code == 404

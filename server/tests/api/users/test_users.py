@@ -66,11 +66,23 @@ def test_update_restricted_fields(client: TestClient, override_auth_dependency, 
     assert "role" not in response.json()
 
 
-def test_admin_list_users(client: TestClient):
+def test_admin_list_users(client: TestClient, admin_user, db_session):
     """USER-06: Admin list users"""
-    # Need to simulate admin role
-    # This likely requires a different override or mocking roles
-    pass
+    db_session.add(
+        UserModel(
+            id="listed-user",
+            member_id="MLIST",
+            name="Listed User",
+            email="listed@example.com",
+        )
+    )
+    db_session.commit()
+
+    response = client.get("/users/")
+
+    assert response.status_code == 200
+    assert response.json()["totalCount"] == 1
+    assert response.json()["data"][0]["id"] == "listed-user"
 
 
 def test_upload_and_fetch_profile_image_blob(

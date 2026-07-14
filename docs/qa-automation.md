@@ -19,7 +19,7 @@ the configured user has permission.
 Full local server suite, excluding external live-login checks:
 
 ```bash
-make test-server-all
+make test-server-local
 ```
 
 Live Asgardeo credential-login suite:
@@ -54,7 +54,7 @@ environments, prefer real Asgardeo admin group/role claims and configure
 Run local plus live server coverage:
 
 ```bash
-make test-server-complete
+make test-server-all
 ```
 
 ## Admin E2E
