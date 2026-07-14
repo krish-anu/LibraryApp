@@ -16,6 +16,47 @@ The server tests use PostgreSQL only. The database name must contain `test`.
 The harness creates the test database if the PostgreSQL server is reachable and
 the configured user has permission.
 
+Full local server suite, excluding external live-login checks:
+
+```bash
+make test-server-all
+```
+
+Live Asgardeo credential-login suite:
+
+```bash
+make test-server-live-auth
+```
+
+This logs in through `/auth/login/credentials`, obtains a real Asgardeo access
+token, verifies scopes through `/auth/debug/identity`, and uses that bearer
+token against protected API routes. It requires these values in environment,
+`server/.env.test`, `server/.env.local`, `admin/.env.local`, or
+`admin/.env.e2e.local`:
+
+```env
+ASGARDEO_BASE_URL=
+ASGARDEO_PUBLIC_CLIENT_ID=
+ASGARDEO_INTROSPECTION_CLIENT_ID=
+ASGARDEO_INTROSPECTION_CLIENT_SECRET=
+E2E_ADMIN_EMAIL=
+E2E_ADMIN_PASSWORD=
+E2E_ADMIN_SUBJECT=
+E2E_MEMBER_EMAIL=
+E2E_MEMBER_PASSWORD=
+```
+
+`E2E_ADMIN_SUBJECT` is optional. If it is not set, the live test uses the
+subject returned by `/auth/login/credentials` for that run. In production-like
+environments, prefer real Asgardeo admin group/role claims and configure
+`ADMIN_GROUPS`.
+
+Run local plus live server coverage:
+
+```bash
+make test-server-complete
+```
+
 ## Admin E2E
 
 Files:

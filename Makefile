@@ -3,7 +3,7 @@ SHELL := /bin/bash
 SERVER_TEST_DATABASE_URL ?= postgresql+psycopg2://postgres:postgres@localhost:15432/libraryapp_test
 ADMIN_E2E_AUTH_STATE ?= .auth/admin.json
 
-.PHONY: test test-server test-server-all test-client test-admin test-admin-unauth test-admin-auth-state test-admin-authenticated
+.PHONY: test test-server test-server-all test-server-live-auth test-server-complete test-client test-admin test-admin-unauth test-admin-auth-state test-admin-authenticated
 
 test: test-server test-client test-admin
 
@@ -11,7 +11,12 @@ test-server:
 	cd server && TEST_DATABASE_URL="$(SERVER_TEST_DATABASE_URL)" python -m pytest tests/integration/critical_flows tests/unit -q
 
 test-server-all:
-	cd server && TEST_DATABASE_URL="$(SERVER_TEST_DATABASE_URL)" python -m pytest tests -q
+	cd server && TEST_DATABASE_URL="$(SERVER_TEST_DATABASE_URL)" python -m pytest tests --ignore=tests/live_auth -q
+
+test-server-live-auth:
+	cd server && TEST_DATABASE_URL="$(SERVER_TEST_DATABASE_URL)" python -m pytest tests/live_auth -q -m live_auth
+
+test-server-complete: test-server-all test-server-live-auth
 
 test-client:
 	cd client && flutter test

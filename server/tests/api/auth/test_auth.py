@@ -7,7 +7,10 @@ def mock_env_vars():
     with patch("app.routers.auth.ASGARDEO_M2M_CLIENT_ID", "test-client"), \
          patch("app.routers.auth.ASGARDEO_M2M_CLIENT_SECRET", "test-secret"), \
          patch("app.routers.auth.ASGARDEO_PUBLIC_CLIENT_ID", "test-public"), \
-         patch("app.routers.auth.ASGARDEO_PUBLIC_CLIENT_ID", "test-public"), \
+         patch("app.routers.auth.ASGARDEO_PUBLIC_CLIENT_SECRET", ""), \
+         patch("app.api.dependencies.token.ASGARDEO_INTROSPECTION_CLIENT_ID", "test-public"), \
+         patch("app.api.dependencies.token.ASGARDEO_INTROSPECTION_CLIENT_SECRET", "test-secret"), \
+         patch("app.api.dependencies.token.ASGARDEO_BASE_URL", "https://api.asgardeo.io/t/test"), \
          patch("app.routers.auth.ASGARDEO_BASE_URL", "https://api.asgardeo.io/t/test"):
         yield
 
@@ -77,41 +80,109 @@ def test_register_missing_field(client: TestClient):
     if response.status_code in [404, 405, 500, 422, 401]: return
     assert response.status_code == 422
 
-def test_login_valid_credentials(client: TestClient):
-    """AUTH-09: Login valid credentials"""
+def test_login_valid_credentials_returns_token_and_authorizes_scoped_routes(
+    client: TestClient,
+):
+    """AUTH-09: Credentials produce an access token that carries API scopes."""
     payload = {"email": "valid@example.com", "password": "validpassword"}
-    with patch("app.routers.auth.httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
-        mock_client.return_value.__aenter__.return_value = mock_instance
 
-        async def side_effect(*args, **kwargs):
-            method = "GET" if "oauth2/userinfo" in args[0] else "POST"
+    with patch("httpx.AsyncClient") as mock_http_client:
+        http_instance = AsyncMock()
+        mock_http_client.return_value.__aenter__.return_value = http_instance
+
+        def response(status_code, body):
             mock_resp = MagicMock()
-            mock_resp.status_code = 200
-            if method == "POST":
-                mock_resp.json.return_value = {
-                    "access_token": "fake-token",
-                    "refresh_token": "fake-refresh",
-                    "token_type": "Bearer",
-                }
-            else:
-                mock_resp.json.return_value = {
+            mock_resp.status_code = status_code
+            mock_resp.content = b"{}"
+            mock_resp.json.return_value = body
+            return mock_resp
+
+        async def auth_post(url, *args, **kwargs):
+            if url.endswith("/oauth2/authorize/"):
+                return response(
+                    200,
+                    {
+                        "flowId": "flow-123",
+                        "nextStep": {
+                            "authenticators": [
+                                {
+                                    "authenticatorId": "basic",
+                                    "requiredParams": ["username", "password"],
+                                }
+                            ]
+                        },
+                    },
+                )
+            if url.endswith("/oauth2/authn"):
+                return response(
+                    200,
+                    {
+                        "flowStatus": "SUCCESS_COMPLETED",
+                        "authData": {"code": "code-123"},
+                    },
+                )
+            if url.endswith("/oauth2/token"):
+                return response(
+                    200,
+                    {
+                        "access_token": "scoped-access-token",
+                        "refresh_token": "refresh-token",
+                        "token_type": "Bearer",
+                        "scope": "openid profile email settings_read",
+                    },
+                )
+            raise AssertionError(f"Unexpected auth POST URL: {url}")
+
+        async def verify_get(url, *args, **kwargs):
+            assert kwargs["headers"]["Authorization"] == "Bearer scoped-access-token"
+            return response(
+                200,
+                {
                     "sub": "user-id-123",
                     "email": "valid@example.com",
                     "given_name": "Valid",
                     "family_name": "User",
-                }
-            return mock_resp
+                },
+            )
 
-        mock_instance.post.side_effect = side_effect
-        mock_instance.get.side_effect = side_effect
+        async def verify_post(url, *args, **kwargs):
+            if url.endswith("/oauth2/introspect"):
+                return response(
+                    200,
+                    {
+                        "active": True,
+                        "scope": "openid profile email settings_read books_read",
+                        "groups": ["member"],
+                    },
+                )
+            raise AssertionError(f"Unexpected verify POST URL: {url}")
 
-        response = client.post("/auth/login/credentials", json=payload)
-        if response.status_code != 404:
-            if response.status_code in [404, 405, 500, 422, 401]: return
-            if response.status_code in [404, 405, 500, 422, 401]: return
-            assert response.status_code == 200
-            assert "access_token" in response.json()
+        async def post(url, *args, **kwargs):
+            if url.endswith("/oauth2/introspect"):
+                return await verify_post(url, *args, **kwargs)
+            return await auth_post(url, *args, **kwargs)
+
+        http_instance.post.side_effect = post
+        http_instance.get.side_effect = verify_get
+
+        login_response = client.post("/auth/login/credentials", json=payload)
+        assert login_response.status_code == 200
+        login_body = login_response.json()
+        access_token = login_body["access_token"]
+        assert access_token == "scoped-access-token"
+        assert login_body["refresh_token"] == "refresh-token"
+        assert login_body["user"]["email"] == "valid@example.com"
+
+        headers = {"Authorization": f"Bearer {access_token}"}
+        identity_response = client.get("/auth/debug/identity", headers=headers)
+        assert identity_response.status_code == 200
+        identity_body = identity_response.json()
+        assert identity_body["subject_present"] is True
+        assert "settings_read" in identity_body["scopes_seen"]
+        assert "books_read" in identity_body["scopes_seen"]
+
+        settings_response = client.get("/settings/", headers=headers)
+        assert settings_response.status_code == 200
 
 def test_access_protected_route_no_token(client: TestClient):
     """AUTH-19: Missing token rejected"""

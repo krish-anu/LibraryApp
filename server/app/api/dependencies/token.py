@@ -92,7 +92,7 @@ async def verify_access_token(
     import httpx
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(
                 f"{ASGARDEO_BASE_URL}/oauth2/userinfo",
                 headers={"Authorization": f"Bearer {token}"},

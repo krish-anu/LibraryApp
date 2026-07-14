@@ -1,7 +1,9 @@
 import os
 import re
+from pathlib import Path
 
 import pytest
+from dotenv import dotenv_values
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL, make_url
@@ -12,6 +14,81 @@ from sqlalchemy.orm import sessionmaker
 DEFAULT_TEST_DATABASE_URL = (
     "postgresql+psycopg2://postgres:postgres@localhost:15432/libraryapp_test"
 )
+SERVER_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = SERVER_ROOT.parent
+AUTH_ENV_KEYS = {
+    "ADMIN_GROUPS",
+    "ADMIN_EMAILS",
+    "ADMIN_SUBJECTS",
+    "ASGARDEO_BASE_URL",
+    "ASGARDEO_CLIENT_ID",
+    "ASGARDEO_CLIENT_SECRET",
+    "ASGARDEO_INTROSPECTION_CLIENT_ID",
+    "ASGARDEO_INTROSPECTION_CLIENT_SECRET",
+    "ASGARDEO_M2M_CLIENT_ID",
+    "ASGARDEO_M2M_CLIENT_SECRET",
+    "ASGARDEO_PUBLIC_CLIENT_ID",
+    "ASGARDEO_PUBLIC_CLIENT_SECRET",
+    "ASGARDEO_REDIRECT_URL",
+    "ASGARDEO_SCOPE",
+    "ASGARDEO_TOKEN_ENDPOINT",
+    "ASGARDEO_USERINFO_ENDPOINT",
+    "E2E_ADMIN_EMAIL",
+    "E2E_ADMIN_PASSWORD",
+    "E2E_ADMIN_SUBJECT",
+    "E2E_MEMBER_EMAIL",
+    "E2E_MEMBER_PASSWORD",
+    "NEXT_PUBLIC_ASGARDEO_BASE_URL",
+    "NEXT_PUBLIC_ASGARDEO_CLIENT_ID",
+    "NEXT_PUBLIC_ASGARDEO_SCOPES",
+}
+
+
+def _load_auth_env_files() -> None:
+    for env_file in (
+        SERVER_ROOT / ".env.local",
+        PROJECT_ROOT / "admin" / ".env.local",
+        PROJECT_ROOT / "admin" / ".env.e2e.local",
+        SERVER_ROOT / ".env.test",
+    ):
+        if not env_file.exists():
+            continue
+        for key, value in dotenv_values(env_file).items():
+            if key in AUTH_ENV_KEYS and value is not None:
+                os.environ.setdefault(key, value)
+
+    def copy_if_present(target: str, *sources: str) -> None:
+        if os.getenv(target):
+            return
+        for source in sources:
+            value = os.getenv(source)
+            if value:
+                os.environ[target] = value
+                return
+
+    copy_if_present("ASGARDEO_BASE_URL", "NEXT_PUBLIC_ASGARDEO_BASE_URL")
+    copy_if_present(
+        "ASGARDEO_PUBLIC_CLIENT_ID",
+        "ASGARDEO_CLIENT_ID",
+        "NEXT_PUBLIC_ASGARDEO_CLIENT_ID",
+    )
+    copy_if_present(
+        "ASGARDEO_INTROSPECTION_CLIENT_ID",
+        "ASGARDEO_CLIENT_ID",
+        "ASGARDEO_PUBLIC_CLIENT_ID",
+    )
+    copy_if_present(
+        "ASGARDEO_INTROSPECTION_CLIENT_SECRET",
+        "ASGARDEO_CLIENT_SECRET",
+        "ASGARDEO_PUBLIC_CLIENT_SECRET",
+    )
+    copy_if_present("ASGARDEO_SCOPE", "NEXT_PUBLIC_ASGARDEO_SCOPES")
+    copy_if_present("ADMIN_EMAILS", "E2E_ADMIN_EMAIL")
+    copy_if_present("ADMIN_SUBJECTS", "E2E_ADMIN_SUBJECT")
+
+    token_endpoint = os.getenv("ASGARDEO_TOKEN_ENDPOINT", "").rstrip("/")
+    if token_endpoint.endswith("/oauth2/token") and not os.getenv("ASGARDEO_BASE_URL"):
+        os.environ["ASGARDEO_BASE_URL"] = token_endpoint[: -len("/oauth2/token")]
 
 
 def _resolve_test_database_url() -> URL:
@@ -62,6 +139,8 @@ def _ensure_database_exists(url: URL) -> None:
     finally:
         admin_engine.dispose()
 
+
+_load_auth_env_files()
 
 TEST_DATABASE_URL = _resolve_test_database_url()
 _ensure_database_exists(TEST_DATABASE_URL)

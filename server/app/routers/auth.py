@@ -6,7 +6,10 @@ For public mobile clients, registration must go through a backend service
 that has the necessary credentials to create users.
 """
 
+import base64
+import hashlib
 import os
+import secrets
 import httpx
 import logging
 from fastapi import APIRouter, HTTPException, Depends, Request
@@ -54,6 +57,19 @@ ASGARDEO_M2M_CLIENT_ID = os.getenv("ASGARDEO_M2M_CLIENT_ID", "")
 ASGARDEO_M2M_CLIENT_SECRET = os.getenv("ASGARDEO_M2M_CLIENT_SECRET", "")
 # Public client id used by mobile apps (for token revocation)
 ASGARDEO_PUBLIC_CLIENT_ID = os.getenv("ASGARDEO_PUBLIC_CLIENT_ID", "")
+ASGARDEO_PUBLIC_CLIENT_SECRET = os.getenv("ASGARDEO_PUBLIC_CLIENT_SECRET", "")
+ASGARDEO_REDIRECT_URL = os.getenv(
+    "ASGARDEO_REDIRECT_URL", "com.focus.libraryapp://callback"
+)
+ASGARDEO_SCOPE = os.getenv(
+    "ASGARDEO_SCOPE",
+    "openid profile email groups roles "
+    "dashboard_read books_read books_manage content_read content_manage "
+    "categories_read categories_manage loans_read loans_manage "
+    "reservations_read reservations_manage favorites_read favorites_manage "
+    "users_read users_manage fines_read fines_manage "
+    "notifications_read notifications_manage settings_read settings_manage",
+)
 DEFAULT_ADMIN_GROUPS = "admin,library-admin,library_admin,Library Administrator"
 
 
@@ -150,6 +166,194 @@ class IdentityDebugResponse(BaseModel):
     scopes_seen: list[str]
 
 
+def _pkce_verifier() -> str:
+    return secrets.token_urlsafe(64)
+
+
+def _pkce_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+
+def _flow_error(data: dict, fallback: str) -> str:
+    next_step = data.get("nextStep")
+    if isinstance(next_step, dict):
+        messages = next_step.get("messages")
+        if isinstance(messages, list):
+            for item in messages:
+                if isinstance(item, dict):
+                    message = str(item.get("message") or "").strip()
+                    if message:
+                        return message
+
+    return str(
+        data.get("error_description")
+        or data.get("description")
+        or data.get("message")
+        or data.get("error")
+        or fallback
+    )
+
+
+def _username_password_authenticator(data: dict) -> str | None:
+    next_step = data.get("nextStep")
+    if not isinstance(next_step, dict):
+        return None
+
+    authenticators = next_step.get("authenticators")
+    if not isinstance(authenticators, list):
+        return None
+
+    for item in authenticators:
+        if not isinstance(item, dict):
+            continue
+        required_params = item.get("requiredParams")
+        if (
+            isinstance(required_params, list)
+            and "username" in required_params
+            and "password" in required_params
+        ):
+            authenticator_id = str(item.get("authenticatorId") or "").strip()
+            if authenticator_id:
+                return authenticator_id
+
+    return None
+
+
+async def _credentials_to_asgardeo_token(payload: CredentialLoginRequest) -> dict:
+    if not ASGARDEO_BASE_URL:
+        raise HTTPException(
+            status_code=503,
+            detail="Identity provider not configured. Set ASGARDEO_BASE_URL in .env",
+        )
+    if not ASGARDEO_PUBLIC_CLIENT_ID:
+        raise HTTPException(
+            status_code=500,
+            detail="Server configuration error: ASGARDEO_PUBLIC_CLIENT_ID not configured.",
+        )
+
+    verifier = _pkce_verifier()
+    state = secrets.token_urlsafe(32)
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        initiation_response = await client.post(
+            f"{ASGARDEO_BASE_URL}/oauth2/authorize/",
+            data={
+                "client_id": ASGARDEO_PUBLIC_CLIENT_ID,
+                "response_type": "code",
+                "redirect_uri": ASGARDEO_REDIRECT_URL,
+                "scope": ASGARDEO_SCOPE,
+                "response_mode": "direct",
+                "state": state,
+                "code_challenge": _pkce_challenge(verifier),
+                "code_challenge_method": "S256",
+            },
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+
+        initiation = initiation_response.json() if initiation_response.content else {}
+        if initiation_response.status_code != 200 or not isinstance(initiation, dict):
+            raise HTTPException(
+                status_code=502,
+                detail=_flow_error(
+                    initiation if isinstance(initiation, dict) else {},
+                    "Unable to start Asgardeo credential login flow.",
+                ),
+            )
+
+        flow_id = str(initiation.get("flowId") or "").strip()
+        authenticator_id = _username_password_authenticator(initiation)
+        if not flow_id or not authenticator_id:
+            raise HTTPException(
+                status_code=400,
+                detail=_flow_error(
+                    initiation,
+                    "Username and password authentication is not available in the configured Asgardeo login flow.",
+                ),
+            )
+
+        authn_response = await client.post(
+            f"{ASGARDEO_BASE_URL}/oauth2/authn",
+            json={
+                "flowId": flow_id,
+                "selectedAuthenticator": {
+                    "authenticatorId": authenticator_id,
+                    "params": {
+                        "username": payload.email,
+                        "password": payload.password,
+                    },
+                },
+            },
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+        )
+
+        authn = authn_response.json() if authn_response.content else {}
+        if authn_response.status_code in (400, 401, 403):
+            raise HTTPException(
+                status_code=401,
+                detail=_flow_error(authn, "Invalid email or password."),
+            )
+        if authn_response.status_code != 200 or not isinstance(authn, dict):
+            raise HTTPException(
+                status_code=502,
+                detail=_flow_error(authn, "Asgardeo credential login failed."),
+            )
+
+        auth_data = authn.get("authData")
+        code = (
+            auth_data.get("code")
+            if isinstance(auth_data, dict)
+            else authn.get("code")
+        )
+        code = str(code or "").strip()
+        if authn.get("flowStatus") != "SUCCESS_COMPLETED" or not code:
+            raise HTTPException(
+                status_code=401,
+                detail=_flow_error(
+                    authn,
+                    "Sign in requires an additional authentication step that this endpoint does not support.",
+                ),
+            )
+
+        token_body = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": ASGARDEO_REDIRECT_URL,
+            "client_id": ASGARDEO_PUBLIC_CLIENT_ID,
+            "code_verifier": verifier,
+        }
+        if ASGARDEO_PUBLIC_CLIENT_SECRET:
+            token_body["client_secret"] = ASGARDEO_PUBLIC_CLIENT_SECRET
+
+        token_response = await client.post(
+            f"{ASGARDEO_BASE_URL}/oauth2/token",
+            data=token_body,
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+        token_data = token_response.json() if token_response.content else {}
+        if token_response.status_code != 200 or not isinstance(token_data, dict):
+            raise HTTPException(
+                status_code=502,
+                detail=_flow_error(token_data, "Unable to exchange Asgardeo login code for access token."),
+            )
+        if not token_data.get("access_token"):
+            raise HTTPException(
+                status_code=502,
+                detail="Asgardeo token response did not include an access token.",
+            )
+
+        return token_data
+
+
 async def get_client_credentials_token() -> Optional[str]:
     """Get an access token using client credentials grant from M2M app."""
     if not ASGARDEO_M2M_CLIENT_ID or not ASGARDEO_M2M_CLIENT_SECRET:
@@ -158,7 +362,7 @@ async def get_client_credentials_token() -> Optional[str]:
         )
         return None
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=20.0) as client:
         response = await client.post(
             f"{ASGARDEO_BASE_URL}/oauth2/token",
             data={
@@ -219,7 +423,7 @@ async def register_user(request: Request, payload: RegisterRequest):
             detail="Server configuration error: M2M credentials not configured or invalid.",
         )
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=20.0) as client:
         # Try 1: Asgardeo User Management API
         user_mgmt_body = {
             "userName": payload.email,
@@ -344,7 +548,7 @@ async def _ensure_user_from_access_token(
         )
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(
                 f"{ASGARDEO_BASE_URL}/oauth2/userinfo",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -454,23 +658,23 @@ async def asgardeo_login_sync(
 @router.post("/login/credentials", response_model=CredentialLoginResponse)
 @limiter.limit(AUTH_CREDENTIAL_LOGIN_RATE_LIMIT)
 async def login_with_credentials(
-    _payload: CredentialLoginRequest,
+    payload: CredentialLoginRequest,
     request: Request,
-    _db: Session = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
-    """Validate email/password with Asgardeo, then ensure local user exists.
+    """Validate credentials with Asgardeo App-Native Auth, then sync local user."""
 
-    This endpoint performs a resource-owner password token request against
-    Asgardeo and uses the returned access token to fetch userinfo and
-    create/sync the user in the local `users` table.
-    """
+    token_data = await _credentials_to_asgardeo_token(payload)
+    access_token = token_data["access_token"]
+    user, created = await _ensure_user_from_access_token(access_token, db)
 
-    raise HTTPException(
-        status_code=410,
-        detail=(
-            "Password-grant login is disabled. Use Authorization Code with PKCE "
-            "through the Asgardeo hosted sign-in flow."
-        ),
+    return CredentialLoginResponse(
+        success=True,
+        created=created,
+        user_id=str(user.id),
+        user=user_schema.User.model_validate(user),
+        access_token=access_token,
+        refresh_token=token_data.get("refresh_token"),
     )
 
 
@@ -486,7 +690,7 @@ async def logout_user_via_asgardeo(request: AsgardeoLogoutRequest):
             detail="Server configuration error: ASGARDEO_PUBLIC_CLIENT_ID not configured.",
         )
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=20.0) as client:
         response = await client.post(
             f"{ASGARDEO_BASE_URL}/oauth2/revoke",
             data={

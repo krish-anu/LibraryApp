@@ -1,3 +1,4 @@
+import asyncio
 from datetime import date
 
 import pytest
@@ -44,18 +45,25 @@ def test_admin_policy_requires_admin_role_by_default(monkeypatch):
         identity_is_admin({"sub": "admin", "roles": {"Next.js": ["admin"]}}) is True
     )
 
+    monkeypatch.setenv("ADMIN_EMAILS", "testadmin@example.com")
+    assert identity_is_admin({"sub": "admin", "email": "testadmin@example.com"}) is True
 
-@pytest.mark.asyncio
-async def test_auth_debug_identity_reports_safe_admin_claims(monkeypatch):
+    monkeypatch.setenv("ADMIN_SUBJECTS", "admin-subject-id")
+    assert identity_is_admin({"sub": "admin-subject-id"}) is True
+
+
+def test_auth_debug_identity_reports_safe_admin_claims(monkeypatch):
     monkeypatch.setenv("ADMIN_GROUPS", "admin")
-    response = await debug_identity(
-        {
-            "sub": "admin-user-id",
-            "email": "admin@example.com",
-            "groups": ["admin"],
-            "scope": "openid profile books:manage",
-            "_access_token": "secret-token",
-        }
+    response = asyncio.run(
+        debug_identity(
+            {
+                "sub": "admin-user-id",
+                "email": "admin@example.com",
+                "groups": ["admin"],
+                "scope": "openid profile books:manage",
+                "_access_token": "secret-token",
+            }
+        )
     )
 
     body = response.model_dump()
@@ -69,23 +77,37 @@ async def test_auth_debug_identity_reports_safe_admin_claims(monkeypatch):
     assert "admin@example.com" not in response.model_dump_json()
 
 
-@pytest.mark.asyncio
-async def test_admin_scope_allows_scope_without_role_claim(monkeypatch):
+def test_admin_scope_allows_scope_with_admin_role_claim(monkeypatch):
     monkeypatch.setenv("ADMIN_GROUPS", "admin")
     checker = require_admin_scope("books_manage")
 
-    identity = await checker({"sub": "admin-user-id", "scope": "books_manage"})
+    identity = asyncio.run(
+        checker(
+            {
+                "sub": "admin-user-id",
+                "groups": ["admin"],
+                "scope": "books_manage",
+            }
+        )
+    )
 
     assert identity["sub"] == "admin-user-id"
 
 
-@pytest.mark.asyncio
-async def test_admin_scope_rejects_missing_scope_before_role_claim(monkeypatch):
+def test_admin_scope_rejects_missing_scope_after_admin_role_claim(monkeypatch):
     monkeypatch.setenv("ADMIN_GROUPS", "admin")
     checker = require_admin_scope("books_manage")
 
     with pytest.raises(HTTPException) as exc_info:
-        await checker({"sub": "admin-user-id", "scope": "books_read"})
+        asyncio.run(
+            checker(
+                {
+                    "sub": "admin-user-id",
+                    "groups": ["admin"],
+                    "scope": "books_read",
+                }
+            )
+        )
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == "Missing required scope: books_manage"

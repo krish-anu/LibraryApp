@@ -143,7 +143,28 @@ def identity_role_claim_keys(identity: dict) -> list[str]:
 
 def identity_admin_matches(identity: dict) -> set[str]:
     allowed_roles = _csv_env("ADMIN_GROUPS", DEFAULT_ADMIN_GROUPS)
-    return identity_role_values(identity).intersection(allowed_roles)
+    matches = identity_role_values(identity).intersection(allowed_roles)
+
+    allowed_emails = _csv_env("ADMIN_EMAILS")
+    for claim in (
+        "email",
+        "username",
+        "preferred_username",
+        "userName",
+        "http://wso2.org/claims/emailaddress",
+        "http://wso2.org/claims/email",
+        "http://wso2.org/claims/username",
+    ):
+        value = str(identity.get(claim) or "").strip().lower()
+        if value and value in allowed_emails:
+            matches.add(value)
+
+    allowed_subjects = _csv_env("ADMIN_SUBJECTS")
+    subject = str(identity.get("sub") or "").strip().lower()
+    if subject and subject in allowed_subjects:
+        matches.add(subject)
+
+    return matches
 
 
 def identity_subject(identity: dict) -> str:

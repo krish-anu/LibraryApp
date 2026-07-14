@@ -15,49 +15,55 @@ VALID_PNG_BYTES = (
 )
 
 
-def test_get_own_profile(client: TestClient, override_auth_dependency):
+def _create_authenticated_test_user(db_session):
+    user = UserModel(
+        id="test-user-id",
+        member_id="MTEST001",
+        name="Test User",
+        email="test@example.com",
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+def test_get_own_profile(client: TestClient, override_auth_dependency, db_session):
     """USER-01: Get own profile"""
-    # Override auth to simulate logged in user
     override_auth_dependency()
+    _create_authenticated_test_user(db_session)
 
-    response = client.get("/users/me")
-    if response.status_code != 404:
-        if response.status_code in [404, 405, 500, 422, 401]: return
-        if response.status_code in [404, 405, 500, 422, 401]: return
-        assert response.status_code == 200
-        data = response.json()
-        assert data["username"] == "testuser"
+    response = client.get("/users/test-user-id")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "test-user-id"
+    assert data["name"] == "Test User"
+    assert data["email"] == "test@example.com"
 
 
-def test_update_profile_valid(client: TestClient, override_auth_dependency):
+def test_update_profile_valid(client: TestClient, override_auth_dependency, db_session):
     """USER-02: Update profile valid"""
     override_auth_dependency()
-    payload = {"firstName": "UpdatedName"}
+    _create_authenticated_test_user(db_session)
+    payload = {"name": "Updated Name"}
 
-    response = client.patch("/users/me", json=payload)
-    if response.status_code != 404:
-        if response.status_code in [404, 405, 500, 422, 401]: return
-        if response.status_code in [404, 405, 500, 422, 401]: return
-        assert response.status_code == 200
-        assert response.json().get("firstName", "dummy") == "UpdatedName"
+    response = client.put("/users/test-user-id", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Updated Name"
 
 
-def test_update_restricted_fields(client: TestClient, override_auth_dependency):
+def test_update_restricted_fields(client: TestClient, override_auth_dependency, db_session):
     """USER-04: Update restricted fields (e.g. role)"""
     override_auth_dependency()
+    _create_authenticated_test_user(db_session)
     # Try to become admin
     payload = {"role": "admin"}
 
-    response = client.patch("/users/me", json=payload)
-    # Should ignore the field or fail validation if strict
-    if response.status_code == 200:
-        # If successful, ensure role didn't change (would need to check DB or response)
-        pass
-    else:
-        # Or it might be 422 if schema forbids it
-        if response.status_code in [404, 405, 500, 422, 401]: return
-        if response.status_code in [404, 405, 500, 422, 401]: return
-        assert response.status_code in [200, 422]
+    response = client.put("/users/test-user-id", json=payload)
+
+    assert response.status_code == 200
+    assert "role" not in response.json()
 
 
 def test_admin_list_users(client: TestClient):
@@ -71,14 +77,7 @@ def test_upload_and_fetch_profile_image_blob(
     client: TestClient, override_auth_dependency, db_session
 ):
     override_auth_dependency()
-    user = UserModel(
-        id="test-user-id",
-        member_id="MTEST001",
-        name="Test User",
-        email="test@example.com",
-    )
-    db_session.add(user)
-    db_session.commit()
+    user = _create_authenticated_test_user(db_session)
 
     upload_res = client.put(
         "/users/test-user-id/profile-image",
