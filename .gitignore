@@ -75,6 +75,7 @@ tmp/
 
 # Local environment helpers
 .envrc
+.auth/
 
 # Client local run config
 client/Makefile

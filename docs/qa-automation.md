@@ -35,6 +35,22 @@ npx playwright test
 Authenticated checks require `ADMIN_E2E_AUTH_STATE` to point to a signed-in
 admin storage state file.
 
+Create local E2E credentials in `admin/.env.e2e.local`:
+
+```env
+E2E_ADMIN_EMAIL=your-admin-test-email
+E2E_ADMIN_PASSWORD=your-admin-test-password
+E2E_MEMBER_EMAIL=your-member-test-email
+E2E_MEMBER_PASSWORD=your-member-test-password
+```
+
+Generate admin auth state:
+
+```bash
+cd admin
+npx playwright test tests/e2e/auth/save-admin-auth-state.spec.ts --project=chromium
+```
+
 ## Flutter Mobile
 
 Files:

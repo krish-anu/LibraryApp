@@ -21,7 +21,17 @@ npx playwright test tests/e2e/admin-auth-and-smoke.spec.ts --grep unauthenticate
 
 ## Run Authenticated Checks
 
-Create a storage state file after signing in as an admin, then run:
+Create `admin/.env.e2e.local` from `admin/.env.e2e.example` and put the test
+admin/member credentials there. Do not commit that file.
+
+Generate a storage state file:
+
+```bash
+cd admin
+npx playwright test tests/e2e/auth/save-admin-auth-state.spec.ts --project=chromium
+```
+
+Then run:
 
 ```bash
 cd admin
