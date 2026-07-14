@@ -66,6 +66,7 @@ def _ensure_database_exists(url: URL) -> None:
 TEST_DATABASE_URL = _resolve_test_database_url()
 _ensure_database_exists(TEST_DATABASE_URL)
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL.render_as_string(hide_password=False)
+os.environ.setdefault("ASGARDEO_BASE_URL", "https://api.asgardeo.io/t/test")
 
 from app.api.dependencies import get_db, verify_access_token
 from app.main import app as main_app
