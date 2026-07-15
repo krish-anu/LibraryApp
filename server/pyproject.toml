@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libraryapp-server"
+version = "0.1.0"
+description = "FastAPI backend for the LibraryApp project."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "annotated-doc==0.0.4",
+  "annotated-types==0.7.0",
+  "anyio==4.12.0",
+  "click==8.3.1",
+  "fastapi==0.128.0",
+  "greenlet==3.3.0",
+  "h11==0.16.0",
+  "idna==3.11",
+  "psycopg2-binary==2.9.11",
+  "pydantic==2.12.5",
+  "pydantic_core==2.41.5",
+  "python-dotenv==1.2.1",
+  "SQLAlchemy==2.0.45",
+  "starlette==0.50.0",
+  "typing-inspection==0.4.2",
+  "typing_extensions==4.15.0",
+  "uvicorn==0.40.0",
+  "httpx==0.28.1",
+  "email-validator==2.3.0",
+  "slowapi==0.1.9",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*", "services*", "scripts*"]
