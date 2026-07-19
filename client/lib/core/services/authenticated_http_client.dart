@@ -51,6 +51,10 @@ class AuthenticatedHttpClient {
   }) async {
     final requestHeaders = await _authHeaders(headers);
     final response = await _sendWithTimeout(send(requestHeaders), url);
+    if (response.statusCode == 403) {
+      await _handleSessionExpired();
+      return response;
+    }
     if (response.statusCode != 401) {
       return response;
     }

@@ -22,6 +22,7 @@ from app.api.dependencies import (
     get_db,
     identity_admin_matches,
     identity_is_admin,
+    identity_member_matches,
     identity_role_claim_keys,
     identity_role_values,
     identity_scopes,
@@ -572,6 +573,25 @@ async def _ensure_user_from_access_token(
     if not sub:
         raise HTTPException(
             status_code=400, detail="Asgardeo user info missing subject"
+        )
+    if identity_is_admin(data):
+        logger.info(
+            "Rejected administrator account on member login; role_claim_keys=%s",
+            identity_role_claim_keys(data),
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Administrator accounts can only sign in to the admin portal.",
+        )
+    if not identity_member_matches(data):
+        logger.info(
+            "Rejected non-member account on member login; role_claim_keys=%s role_values=%s",
+            identity_role_claim_keys(data),
+            sorted(identity_role_values(data)),
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Member role is required to sign in to the mobile app.",
         )
 
     email = data.get("email")

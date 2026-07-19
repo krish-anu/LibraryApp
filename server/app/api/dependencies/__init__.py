@@ -9,6 +9,7 @@ from app.api.dependencies.database import get_db
 from .identity import (
     identity_admin_matches,
     identity_has_any_scope,
+    identity_member_matches,
     identity_role_claim_keys,
     identity_role_values,
     identity_scopes,
@@ -22,6 +23,7 @@ __all__ = [
     "identity_admin_matches",
     "identity_has_any_scope",
     "identity_is_admin",
+    "identity_member_matches",
     "identity_role_claim_keys",
     "identity_role_values",
     "identity_scopes",

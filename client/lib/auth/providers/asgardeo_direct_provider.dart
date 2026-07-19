@@ -80,7 +80,8 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
 
       if (accessToken != null) {
         state = state.copyWith(
-          isLoggedIn: true,
+          isLoggedIn: false,
+          isLoading: true,
           accessToken: accessToken,
           refreshToken: refreshToken,
           idToken: idToken,
@@ -88,17 +89,21 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
 
         // Fetch user info. If the stored access token expired while the app
         // was closed, renew it once and retry without forcing a new login.
-        final restored = await getUserInfo();
+        var restored = await getUserInfo();
         if (!restored) {
           if (refreshToken != null && await refreshAccessToken()) {
-            await getUserInfo();
+            restored = await getUserInfo();
           } else {
             await expireSession();
           }
         }
+        if (restored) {
+          state = state.copyWith(isLoggedIn: true, isLoading: false);
+        }
       }
     } catch (e) {
       debugPrint('Error restoring session: $e');
+      await expireSession();
     }
   }
 
@@ -151,8 +156,8 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
       await _saveTokens(tokens);
 
       state = state.copyWith(
-        isLoggedIn: true,
-        isLoading: false,
+        isLoggedIn: false,
+        isLoading: true,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         idToken: tokens.idToken,
@@ -162,13 +167,35 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
         accessToken: tokens.accessToken,
       );
       if (!syncResult.success) {
-        debugPrint(
-          'Backend user sync failed: ${syncResult.error ?? 'unknown error'}',
+        await _authService.revokeToken(tokens.accessToken);
+        await _clearTokens();
+        state = state.copyWith(
+          isLoggedIn: false,
+          isLoading: false,
+          error:
+              syncResult.error ?? 'This account cannot access the mobile app.',
+          clearTokens: true,
+          clearUser: true,
         );
+        return false;
       }
 
       // Fetch user info after login
-      await getUserInfo(syncWithBackend: false);
+      final loadedUserInfo = await getUserInfo(syncWithBackend: false);
+      if (!loadedUserInfo) {
+        await _authService.revokeToken(tokens.accessToken);
+        await _clearTokens();
+        state = state.copyWith(
+          isLoggedIn: false,
+          isLoading: false,
+          error: 'Unable to load your account. Please sign in again.',
+          clearTokens: true,
+          clearUser: true,
+        );
+        return false;
+      }
+
+      state = state.copyWith(isLoggedIn: true, isLoading: false);
       return true;
     } else {
       state = state.copyWith(
@@ -286,6 +313,12 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
           debugPrint(
             'Backend user sync failed: ${syncResult.error ?? 'unknown error'}',
           );
+          await expireSession(
+            message:
+                syncResult.error ??
+                'This account cannot access the mobile app.',
+          );
+          return false;
         }
       }
       return true;
@@ -322,12 +355,12 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
   }
 
   /// Clear the local session when the backend or IdP rejects stored tokens.
-  Future<void> expireSession() async {
+  Future<void> expireSession({
+    String message = 'Your session expired. Please sign in again.',
+  }) async {
     await _clearTokens();
     ref.read(currentUserProvider.notifier).clearUser();
-    state = const AsgardeoDirectState(
-      error: 'Your session expired. Please sign in again.',
-    );
+    state = AsgardeoDirectState(error: message);
   }
 
   /// Logout and clear session

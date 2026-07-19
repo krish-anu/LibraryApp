@@ -4,7 +4,11 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.dependencies import require_admin_scope, require_scope
-from app.api.dependencies.identity import identity_has_any_scope, identity_scopes
+from app.api.dependencies.identity import (
+    identity_has_any_scope,
+    identity_member_matches,
+    identity_scopes,
+)
 
 
 def test_scope_claims_accept_space_colon_and_underscore_formats():
@@ -47,3 +51,10 @@ def test_admin_endpoint_requires_role_and_scope(monkeypatch):
         checker({"sub": "admin-1", "groups": ["admin"], "scope": "settings_manage"})
     )
     assert identity["sub"] == "admin-1"
+
+
+def test_mobile_member_role_matching(monkeypatch):
+    monkeypatch.setenv("MEMBER_GROUPS", "user,member")
+
+    assert identity_member_matches({"groups": ["user"]}) == {"user"}
+    assert identity_member_matches({"groups": ["admin"]}) == set()

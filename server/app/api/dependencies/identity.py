@@ -4,7 +4,8 @@ from collections.abc import Iterable
 from fastapi import HTTPException, status
 
 
-DEFAULT_ADMIN_GROUPS = "admin"
+DEFAULT_ADMIN_GROUPS = "Admin"
+DEFAULT_MEMBER_GROUPS = "User"
 ROLE_CLAIMS = (
     "groups",
     "roles",
@@ -165,6 +166,11 @@ def identity_admin_matches(identity: dict) -> set[str]:
         matches.add(subject)
 
     return matches
+
+
+def identity_member_matches(identity: dict) -> set[str]:
+    allowed_roles = _csv_env("MEMBER_GROUPS", DEFAULT_MEMBER_GROUPS)
+    return identity_role_values(identity).intersection(allowed_roles)
 
 
 def identity_subject(identity: dict) -> str:
