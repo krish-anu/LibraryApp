@@ -1,5 +1,6 @@
 import logging
 import os
+from json import JSONDecodeError
 from typing import Optional
 
 from fastapi import Header, HTTPException
@@ -12,6 +13,7 @@ from .identity import ROLE_CLAIMS, SCOPE_CLAIMS
 load_app_env()
 
 ASGARDEO_BASE_URL = os.getenv("ASGARDEO_BASE_URL", "")
+ASGARDEO_INTROSPECTION_URL = os.getenv("ASGARDEO_INTROSPECTION_URL", "")
 ASGARDEO_INTROSPECTION_CLIENT_ID = (
     os.getenv("ASGARDEO_INTROSPECTION_CLIENT_ID")
     or os.getenv("ASGARDEO_PUBLIC_CLIENT_ID")
@@ -28,12 +30,23 @@ ASGARDEO_INTROSPECTION_CLIENT_SECRET = (
 logger = logging.getLogger(__name__)
 
 
+def _oauth_url(path: str) -> str:
+    return f"{ASGARDEO_BASE_URL.rstrip('/')}/{path.lstrip('/')}"
+
+
+def _introspection_url() -> str:
+    configured_url = ASGARDEO_INTROSPECTION_URL.strip()
+    if configured_url:
+        return configured_url
+    return _oauth_url("/oauth2/introspect")
+
+
 async def _token_metadata(token: str, client) -> dict:
     if not ASGARDEO_INTROSPECTION_CLIENT_ID or not ASGARDEO_INTROSPECTION_CLIENT_SECRET:
         return {}
 
     response = await client.post(
-        f"{ASGARDEO_BASE_URL}/oauth2/introspect",
+        _introspection_url(),
         data={"token": token},
         auth=(
             ASGARDEO_INTROSPECTION_CLIENT_ID,
@@ -46,10 +59,21 @@ async def _token_metadata(token: str, client) -> dict:
             "Failed to introspect token with Asgardeo: status %s",
             response.status_code,
         )
-        return {}
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to introspect token with identity provider",
+        )
 
-    metadata = response.json() if response.content else {}
-    if metadata.get("active") is False:
+    try:
+        metadata = response.json() if response.content else {}
+    except JSONDecodeError as exc:
+        logger.warning("Asgardeo introspection returned invalid JSON")
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to introspect token with identity provider",
+        ) from exc
+
+    if metadata.get("active") is not True:
         raise HTTPException(
             status_code=401,
             detail="Invalid or expired access token",
@@ -94,7 +118,7 @@ async def verify_access_token(
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(
-                f"{ASGARDEO_BASE_URL}/oauth2/userinfo",
+                _oauth_url("/oauth2/userinfo"),
                 headers={"Authorization": f"Bearer {token}"},
             )
 

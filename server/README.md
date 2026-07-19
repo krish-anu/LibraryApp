@@ -36,9 +36,14 @@ are opaque. Set these to the application client that requests the Library API
 scopes:
 
 ```env
+ASGARDEO_BASE_URL=https://api.asgardeo.io/t/gcfprojects
+ASGARDEO_INTROSPECTION_URL=https://api.asgardeo.io/t/gcfprojects/oauth2/introspect
 ASGARDEO_INTROSPECTION_CLIENT_ID=<asgardeo-client-id>
 ASGARDEO_INTROSPECTION_CLIENT_SECRET=<asgardeo-client-secret>
 ```
+
+When the introspection client ID and secret are configured, the API rejects
+tokens unless Asgardeo returns `active: true`.
 
 Create the Library API scopes in Asgardeo and authorize the correct application
 to request them. Admin-only API endpoints require both the matching scope and an
