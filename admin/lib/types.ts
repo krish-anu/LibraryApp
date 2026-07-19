@@ -117,10 +117,6 @@ export interface Settings {
   notification_days_before_due: number;
   sheet_sync_enabled: boolean;
   sheet_sync_interval_days: number;
-  sheet_spreadsheet_id?: string | null;
-  sheet_books_tab?: string | null;
-  sheet_blogs_tab?: string | null;
-  sheet_videos_tab?: string | null;
   sheet_last_sync_at?: string | null;
   sheet_last_sync_status?: string | null;
   sheet_last_sync_message?: string | null;

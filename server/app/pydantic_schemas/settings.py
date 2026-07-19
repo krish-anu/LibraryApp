@@ -1,9 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from app.services.sheet_sync.service import normalize_spreadsheet_id
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SettingsBase(BaseModel):
@@ -18,16 +16,6 @@ class SettingsBase(BaseModel):
     notification_days_before_due: int = Field(default=3, ge=0)
     sheet_sync_enabled: bool = False
     sheet_sync_interval_days: int = Field(default=30, ge=1, le=365)
-    sheet_spreadsheet_id: str | None = Field(default=None, max_length=256)
-    sheet_books_tab: str | None = Field(default="Books", max_length=128)
-    sheet_blogs_tab: str | None = Field(default="Blogs", max_length=128)
-    sheet_videos_tab: str | None = Field(default="Videos", max_length=128)
-
-    @field_validator("sheet_spreadsheet_id", mode="before")
-    @classmethod
-    def normalize_sheet_spreadsheet_id(cls, value: object) -> str | None:
-        normalized = normalize_spreadsheet_id(value)
-        return normalized or None
 
 
 class SettingsUpdate(BaseModel):
@@ -42,16 +30,6 @@ class SettingsUpdate(BaseModel):
     notification_days_before_due: Optional[int] = Field(default=None, ge=0)
     sheet_sync_enabled: Optional[bool] = None
     sheet_sync_interval_days: Optional[int] = Field(default=None, ge=1, le=365)
-    sheet_spreadsheet_id: Optional[str] = Field(default=None, max_length=256)
-    sheet_books_tab: Optional[str] = Field(default=None, max_length=128)
-    sheet_blogs_tab: Optional[str] = Field(default=None, max_length=128)
-    sheet_videos_tab: Optional[str] = Field(default=None, max_length=128)
-
-    @field_validator("sheet_spreadsheet_id", mode="before")
-    @classmethod
-    def normalize_sheet_spreadsheet_id(cls, value: object) -> str | None:
-        normalized = normalize_spreadsheet_id(value)
-        return normalized or None
 
 
 class Settings(SettingsBase):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from urllib.parse import quote, unquote, urlparse
@@ -14,6 +15,23 @@ from app.models.book import Book
 from app.models.category import Category
 from app.models.content import BlogPost, VideoPost
 from app.models.settings import Settings
+
+
+SPREADSHEET_ID_ENV_NAMES = (
+    "GOOGLE_SHEET_SPREADSHEET_ID",
+    "GOOGLE_SHEET_ID",
+    "SHEET_SPREADSHEET_ID",
+)
+SHEET_TAB_ENV_NAMES = {
+    "books": "GOOGLE_SHEET_BOOKS_TAB",
+    "blogs": "GOOGLE_SHEET_BLOGS_TAB",
+    "videos": "GOOGLE_SHEET_VIDEOS_TAB",
+}
+DEFAULT_SHEET_TABS = {
+    "books": "Books",
+    "blogs": "Blogs",
+    "videos": "Videos",
+}
 
 
 @dataclass
@@ -68,6 +86,20 @@ def normalize_spreadsheet_id(value: object) -> str:
             return cleaned
 
     return cleaned
+
+
+def env_spreadsheet_id() -> str:
+    for env_name in SPREADSHEET_ID_ENV_NAMES:
+        spreadsheet_id = normalize_spreadsheet_id(os.getenv(env_name))
+        if spreadsheet_id:
+            return spreadsheet_id
+    return ""
+
+
+def env_sheet_tab(content_type: str) -> str:
+    return _clean(os.getenv(SHEET_TAB_ENV_NAMES[content_type])) or DEFAULT_SHEET_TABS[
+        content_type
+    ]
 
 
 def _bool(value: object, default: bool = False) -> bool:
@@ -251,14 +283,17 @@ def _sync_videos(db: Session, rows: list[dict[str, str]], result: SheetSyncResul
 
 
 def run_sheet_sync(db: Session, settings: Settings) -> SheetSyncResult:
-    spreadsheet_id = normalize_spreadsheet_id(settings.sheet_spreadsheet_id)
+    spreadsheet_id = env_spreadsheet_id()
     if not spreadsheet_id:
-        raise ValueError("Google Spreadsheet ID is required")
+        raise ValueError(
+            "Google Spreadsheet ID is required in server env "
+            f"({SPREADSHEET_ID_ENV_NAMES[0]})"
+        )
 
     result = SheetSyncResult()
-    books_rows = _fetch_rows(spreadsheet_id, settings.sheet_books_tab or "Books")
-    blogs_rows = _fetch_rows(spreadsheet_id, settings.sheet_blogs_tab or "Blogs")
-    videos_rows = _fetch_rows(spreadsheet_id, settings.sheet_videos_tab or "Videos")
+    books_rows = _fetch_rows(spreadsheet_id, env_sheet_tab("books"))
+    blogs_rows = _fetch_rows(spreadsheet_id, env_sheet_tab("blogs"))
+    videos_rows = _fetch_rows(spreadsheet_id, env_sheet_tab("videos"))
 
     _sync_books(db, books_rows, result)
     _sync_blogs(db, blogs_rows, result)

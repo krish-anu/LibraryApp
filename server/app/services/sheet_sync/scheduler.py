@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from app.db import SessionLocal
 from app.models.settings import Settings
 from app.routers.settings import _get_or_create_settings_row
-from .service import run_sheet_sync
+from .service import env_spreadsheet_id, run_sheet_sync
 
 
 class SheetSyncScheduler:
@@ -45,7 +45,7 @@ class SheetSyncScheduler:
         db = SessionLocal()
         try:
             settings = _get_or_create_settings_row(db)
-            if not settings.sheet_sync_enabled or not settings.sheet_spreadsheet_id:
+            if not settings.sheet_sync_enabled or not env_spreadsheet_id():
                 return
 
             interval = max(1, int(settings.sheet_sync_interval_days or 30))

@@ -18,10 +18,6 @@ interface SettingsFormData {
   notification_days_before_due: number;
   sheet_sync_enabled: boolean;
   sheet_sync_interval_days: number;
-  sheet_spreadsheet_id: string;
-  sheet_books_tab: string;
-  sheet_blogs_tab: string;
-  sheet_videos_tab: string;
   sheet_last_sync_at?: string | null;
   sheet_last_sync_status?: string | null;
   sheet_last_sync_message?: string | null;
@@ -40,10 +36,6 @@ export default function SettingsPage() {
     notification_days_before_due: 3,
     sheet_sync_enabled: false,
     sheet_sync_interval_days: 30,
-    sheet_spreadsheet_id: "",
-    sheet_books_tab: "Books",
-    sheet_blogs_tab: "Blogs",
-    sheet_videos_tab: "Videos",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,7 +53,12 @@ export default function SettingsPage() {
       const res = await fetch("/api/settings");
       const json = await res.json();
       if (json.data) {
-        setSettings((current) => ({ ...current, ...json.data }));
+        const settingsData = { ...json.data };
+        delete settingsData.sheet_spreadsheet_id;
+        delete settingsData.sheet_books_tab;
+        delete settingsData.sheet_blogs_tab;
+        delete settingsData.sheet_videos_tab;
+        setSettings((current) => ({ ...current, ...settingsData }));
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -73,10 +70,18 @@ export default function SettingsPage() {
   const handleManualSync = async () => {
     setSyncing(true);
     try {
+      const {
+        sheet_sync_enabled,
+        sheet_sync_interval_days,
+      } = settings;
+
       const saveRes = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({
+          sheet_sync_enabled,
+          sheet_sync_interval_days,
+        }),
       });
       if (!saveRes.ok) {
         const error = await saveRes
@@ -106,10 +111,20 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const {
+        sheet_sync_enabled,
+        sheet_sync_interval_days,
+        ...settingsPayload
+      } = settings;
+
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({
+          ...settingsPayload,
+          sheet_sync_enabled,
+          sheet_sync_interval_days,
+        }),
       });
 
       if (res.ok) {
@@ -382,8 +397,8 @@ export default function SettingsPage() {
 
                   <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
                     The spreadsheet must be published or shared so the API can
-                    read CSV exports. Use tab names exactly as they appear in
-                    Google Sheets.
+                    read CSV exports. The spreadsheet ID is read from the
+                    server env file as GOOGLE_SHEET_SPREADSHEET_ID.
                   </div>
 
                   <label className="flex items-center gap-3">
@@ -404,55 +419,7 @@ export default function SettingsPage() {
                   </label>
 
                   <Input
-                    label="Google Spreadsheet ID"
-                    value={settings.sheet_spreadsheet_id || ""}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        sheet_spreadsheet_id: e.target.value,
-                      })
-                    }
-                    placeholder="1AbC..."
-                  />
-
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <Input
-                      label="Books Tab Name"
-                      value={settings.sheet_books_tab || ""}
-                      onChange={(e) =>
-                        setSettings({
-                          ...settings,
-                          sheet_books_tab: e.target.value,
-                        })
-                      }
-                      placeholder="Books"
-                    />
-                    <Input
-                      label="Blogs Tab Name"
-                      value={settings.sheet_blogs_tab || ""}
-                      onChange={(e) =>
-                        setSettings({
-                          ...settings,
-                          sheet_blogs_tab: e.target.value,
-                        })
-                      }
-                      placeholder="Blogs"
-                    />
-                    <Input
-                      label="Videos Tab Name"
-                      value={settings.sheet_videos_tab || ""}
-                      onChange={(e) =>
-                        setSettings({
-                          ...settings,
-                          sheet_videos_tab: e.target.value,
-                        })
-                      }
-                      placeholder="Videos"
-                    />
-                  </div>
-
-                  <Input
-                    label="Automatic Sync Interval (days)"
+                    label="Sync Every (days)"
                     type="number"
                     min="1"
                     max="365"

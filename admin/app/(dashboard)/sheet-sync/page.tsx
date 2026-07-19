@@ -9,10 +9,6 @@ import { RefreshCw, Save } from "lucide-react";
 interface SheetSyncSettings {
   sheet_sync_enabled: boolean;
   sheet_sync_interval_days: number;
-  sheet_spreadsheet_id: string;
-  sheet_books_tab: string;
-  sheet_blogs_tab: string;
-  sheet_videos_tab: string;
   sheet_last_sync_at?: string | null;
   sheet_last_sync_status?: string | null;
   sheet_last_sync_message?: string | null;
@@ -21,10 +17,6 @@ interface SheetSyncSettings {
 const defaults: SheetSyncSettings = {
   sheet_sync_enabled: false,
   sheet_sync_interval_days: 30,
-  sheet_spreadsheet_id: "",
-  sheet_books_tab: "Books",
-  sheet_blogs_tab: "Blogs",
-  sheet_videos_tab: "Videos",
 };
 
 export default function SheetSyncPage() {
@@ -41,7 +33,14 @@ export default function SheetSyncPage() {
     try {
       const res = await fetch("/api/settings");
       const json = await res.json();
-      if (json.data) setSettings((current) => ({ ...current, ...json.data }));
+      if (json.data) {
+        const syncSettings = { ...json.data };
+        delete syncSettings.sheet_spreadsheet_id;
+        delete syncSettings.sheet_books_tab;
+        delete syncSettings.sheet_blogs_tab;
+        delete syncSettings.sheet_videos_tab;
+        setSettings((current) => ({ ...current, ...syncSettings }));
+      }
     } catch (error) {
       console.error("Error fetching sync settings:", error);
     } finally {
@@ -50,10 +49,15 @@ export default function SheetSyncPage() {
   };
 
   const saveSettings = async () => {
+    const payload = {
+      sheet_sync_enabled: settings.sheet_sync_enabled,
+      sheet_sync_interval_days: settings.sheet_sync_interval_days,
+    };
+
     const res = await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const error = await res
@@ -116,7 +120,8 @@ export default function SheetSyncPage() {
           <div className="space-y-6">
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
               The spreadsheet must be published or shared so the API can read
-              CSV exports. Paste only the spreadsheet ID, not the full URL.
+              CSV exports. The spreadsheet ID is read from the server env file
+              as GOOGLE_SHEET_SPREADSHEET_ID.
             </div>
 
             <label className="flex items-center gap-3">
@@ -137,46 +142,7 @@ export default function SheetSyncPage() {
             </label>
 
             <Input
-              label="Google Spreadsheet ID"
-              value={settings.sheet_spreadsheet_id || ""}
-              onChange={(event) =>
-                setSettings({
-                  ...settings,
-                  sheet_spreadsheet_id: event.target.value,
-                })
-              }
-              placeholder="1AbC..."
-            />
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <Input
-                label="Books Tab Name"
-                value={settings.sheet_books_tab || ""}
-                onChange={(event) =>
-                  setSettings({ ...settings, sheet_books_tab: event.target.value })
-                }
-                placeholder="Books"
-              />
-              <Input
-                label="Blogs Tab Name"
-                value={settings.sheet_blogs_tab || ""}
-                onChange={(event) =>
-                  setSettings({ ...settings, sheet_blogs_tab: event.target.value })
-                }
-                placeholder="Blogs"
-              />
-              <Input
-                label="Videos Tab Name"
-                value={settings.sheet_videos_tab || ""}
-                onChange={(event) =>
-                  setSettings({ ...settings, sheet_videos_tab: event.target.value })
-                }
-                placeholder="Videos"
-              />
-            </div>
-
-            <Input
-              label="Automatic Sync Interval (days)"
+              label="Sync Every (days)"
               type="number"
               min="1"
               max="365"
