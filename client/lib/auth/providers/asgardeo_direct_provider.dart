@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:libraryapp/auth/services/asgardeo_direct_auth_service.dart';
+import 'package:libraryapp/core/providers/current_user_notifier.dart';
 import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/core/services/notification_service.dart';
 
@@ -64,6 +65,7 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
   @override
   AsgardeoDirectState build() {
     AuthenticatedHttpClient.configureTokenRefresher(refreshAccessToken);
+    AuthenticatedHttpClient.configureSessionExpiredHandler(expireSession);
     // Try to restore session on startup
     _restoreSession();
     return const AsgardeoDirectState();
@@ -87,8 +89,12 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
         // Fetch user info. If the stored access token expired while the app
         // was closed, renew it once and retry without forcing a new login.
         final restored = await getUserInfo();
-        if (!restored && refreshToken != null && await refreshAccessToken()) {
-          await getUserInfo();
+        if (!restored) {
+          if (refreshToken != null && await refreshAccessToken()) {
+            await getUserInfo();
+          } else {
+            await expireSession();
+          }
         }
       }
     } catch (e) {
@@ -292,6 +298,7 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
   /// Refresh the access token
   Future<bool> refreshAccessToken() async {
     if (state.refreshToken == null) {
+      await expireSession();
       return false;
     }
 
@@ -310,7 +317,17 @@ class AsgardeoDirectAuth extends _$AsgardeoDirectAuth {
       return true;
     }
 
+    await expireSession();
     return false;
+  }
+
+  /// Clear the local session when the backend or IdP rejects stored tokens.
+  Future<void> expireSession() async {
+    await _clearTokens();
+    ref.read(currentUserProvider.notifier).clearUser();
+    state = const AsgardeoDirectState(
+      error: 'Your session expired. Please sign in again.',
+    );
   }
 
   /// Logout and clear session

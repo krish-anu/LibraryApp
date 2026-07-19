@@ -10,11 +10,18 @@ class AuthenticatedHttpClient {
   static const String _accessTokenKey = 'asgardeo_access_token';
   static const Duration _requestTimeout = Duration(seconds: 15);
   static Future<bool> Function()? _tokenRefresher;
+  static Future<void> Function()? _sessionExpiredHandler;
   static Future<bool>? _refreshInFlight;
+  static Future<void>? _sessionExpiryInFlight;
 
   /// Registers the auth provider callback used to renew an expired token.
   static void configureTokenRefresher(Future<bool> Function() refresher) {
     _tokenRefresher = refresher;
+  }
+
+  /// Registers the auth provider callback used when token recovery fails.
+  static void configureSessionExpiredHandler(Future<void> Function() handler) {
+    _sessionExpiredHandler = handler;
   }
 
   /// Read the current access token from secure storage.
@@ -57,9 +64,18 @@ class AuthenticatedHttpClient {
     }
 
     if (!await _refreshToken()) {
+      await _handleSessionExpired();
       return response;
     }
-    return _sendWithTimeout(send(await _authHeaders(headers)), url);
+
+    final retryResponse = await _sendWithTimeout(
+      send(await _authHeaders(headers)),
+      url,
+    );
+    if (retryResponse.statusCode == 401 || retryResponse.statusCode == 403) {
+      await _handleSessionExpired();
+    }
+    return retryResponse;
   }
 
   static Future<http.Response> _sendWithTimeout(
@@ -92,6 +108,27 @@ class AuthenticatedHttpClient {
     });
     _refreshInFlight = refresh;
     return refresh;
+  }
+
+  static Future<void> _handleSessionExpired() {
+    final activeExpiry = _sessionExpiryInFlight;
+    if (activeExpiry != null) {
+      return activeExpiry;
+    }
+
+    final handler = _sessionExpiredHandler;
+    if (handler == null) {
+      return Future.value();
+    }
+
+    late final Future<void> expiry;
+    expiry = handler().whenComplete(() {
+      if (identical(_sessionExpiryInFlight, expiry)) {
+        _sessionExpiryInFlight = null;
+      }
+    });
+    _sessionExpiryInFlight = expiry;
+    return expiry;
   }
 
   /// Authenticated GET request.
