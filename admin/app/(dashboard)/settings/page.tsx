@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatUtcDateTime } from "@/lib/utils";
 import { Save, BookOpen, Building, User, RefreshCw } from "lucide-react";
 
 interface SettingsFormData {
@@ -441,11 +442,7 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-medium text-gray-500">Time</p>
                         <p className="text-gray-900">
-                          {settings.sheet_last_sync_at
-                            ? new Date(
-                                settings.sheet_last_sync_at,
-                              ).toLocaleString()
-                            : "Never"}
+                          {formatUtcDateTime(settings.sheet_last_sync_at)}
                         </p>
                       </div>
                       <div>
