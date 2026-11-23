@@ -5,7 +5,7 @@ import io
 import os
 from dataclasses import dataclass
 from datetime import datetime
-from urllib.parse import quote, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import httpx
 from sqlalchemy.orm import Session
@@ -86,6 +86,44 @@ def normalize_spreadsheet_id(value: object) -> str:
             return cleaned
 
     return cleaned
+
+
+def extract_youtube_video_id(value: object) -> str:
+    cleaned = _clean(value)
+    if not cleaned:
+        return ""
+
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
+    if 6 <= len(cleaned) <= 32 and all(char in allowed for char in cleaned):
+        return cleaned
+
+    parsed = urlparse(cleaned)
+    query_video_id = parse_qs(parsed.query).get("v", [""])[0].strip()
+    if query_video_id:
+        return query_video_id.split("&")[0].split("#")[0]
+
+    parts = [part for part in parsed.path.split("/") if part]
+    if "youtu.be" in parsed.netloc and parts:
+        return parts[0].strip()
+
+    for marker in ("embed", "shorts", "live", "v"):
+        if marker in parts:
+            index = parts.index(marker)
+            if len(parts) > index + 1:
+                return parts[index + 1].strip()
+
+    return ""
+
+
+def resolve_youtube_video_id(
+    row: dict[str, str], existing_video_id: object = ""
+) -> str:
+    youtube_url = row.get("youtube_url") or row.get("url")
+    return (
+        extract_youtube_video_id(youtube_url)
+        or extract_youtube_video_id(row.get("youtube_video_id"))
+        or extract_youtube_video_id(existing_video_id)
+    )
 
 
 def env_spreadsheet_id() -> str:
@@ -264,10 +302,13 @@ def _sync_videos(db: Session, rows: list[dict[str, str]], result: SheetSyncResul
             db.add(video)
             result.videos_created += 1
 
-        video.youtube_video_id = row.get("youtube_video_id") or video.youtube_video_id
+        youtube_url = row.get("youtube_url") or row.get("url") or None
+        youtube_video_id = resolve_youtube_video_id(row, video.youtube_video_id)
+
+        video.youtube_video_id = youtube_video_id
         video.title = row.get("title") or video.title
         video.description = row.get("description") or ""
-        video.youtube_url = row.get("youtube_url") or None
+        video.youtube_url = youtube_url
         video.thumbnail_url = row.get("thumbnail_url") or None
         video.speaker = row.get("channel_name") or row.get("speaker") or "Library Team"
         video.channel_name = row.get("channel_name") or None

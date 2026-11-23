@@ -79,6 +79,11 @@ def _configured_admin_groups() -> list[str]:
     return sorted({part.strip().lower() for part in raw.split(",") if part.strip()})
 
 
+def _configured_member_groups() -> list[str]:
+    raw = os.getenv("MEMBER_GROUPS", "member,User")
+    return sorted({part.strip().lower() for part in raw.split(",") if part.strip()})
+
+
 class RegisterRequest(BaseModel):
     """Registration request schema."""
 
@@ -161,7 +166,9 @@ class IdentityDebugResponse(BaseModel):
     subject_present: bool
     is_admin: bool
     configured_admin_groups: list[str]
+    configured_member_groups: list[str]
     matched_admin_values: list[str]
+    matched_member_values: list[str]
     role_claim_keys_present: list[str]
     role_values_seen: list[str]
     scopes_seen: list[str]
@@ -393,7 +400,9 @@ async def debug_identity(identity: dict = Depends(verify_access_token)):
         subject_present=bool(str(identity.get("sub") or "").strip()),
         is_admin=identity_is_admin(identity),
         configured_admin_groups=_configured_admin_groups(),
+        configured_member_groups=_configured_member_groups(),
         matched_admin_values=sorted(identity_admin_matches(identity)),
+        matched_member_values=sorted(identity_member_matches(identity)),
         role_claim_keys_present=identity_role_claim_keys(identity),
         role_values_seen=sorted(identity_role_values(identity)),
         scopes_seen=sorted(identity_scopes(identity)),
@@ -548,27 +557,7 @@ async def _ensure_user_from_access_token(
             detail="Identity provider not configured. Set ASGARDEO_BASE_URL in .env",
         )
 
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.get(
-                f"{ASGARDEO_BASE_URL}/oauth2/userinfo",
-                headers={"Authorization": f"Bearer {access_token}"},
-            )
-    except httpx.RequestError as e:
-        logger.warning(
-            "Failed to reach Asgardeo userinfo endpoint %s/oauth2/userinfo: %s",
-            ASGARDEO_BASE_URL,
-            e,
-        )
-        raise HTTPException(
-            status_code=503,
-            detail="Unable to reach identity provider",
-        )
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=401, detail="Invalid Asgardeo access token")
-
-    data = response.json() if response.content else {}
+    data = await verify_access_token(f"Bearer {access_token}")
     sub = data.get("sub")
     if not sub:
         raise HTTPException(

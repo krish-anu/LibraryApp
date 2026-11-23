@@ -36,7 +36,7 @@ class BlogPost(BlogPostBase):
 class VideoPostBase(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(default="", max_length=3000)
-    youtube_video_id: str = Field(min_length=6, max_length=32)
+    youtube_video_id: str = Field(default="", max_length=32)
     youtube_url: str | None = Field(default=None, max_length=2048)
     speaker: str = Field(default="Library Team", min_length=1, max_length=120)
     channel_name: str | None = Field(default=None, max_length=120)
@@ -55,6 +55,8 @@ class VideoPostBase(BaseModel):
     @classmethod
     def validate_youtube_video_id(cls, value: str) -> str:
         cleaned = value.strip()
+        if not cleaned:
+            return ""
         allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
         if not cleaned or any(char not in allowed for char in cleaned):
             raise ValueError("youtube_video_id must contain only YouTube video id characters")

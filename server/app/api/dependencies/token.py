@@ -1,3 +1,5 @@
+import base64
+import json
 import logging
 import os
 from json import JSONDecodeError
@@ -90,6 +92,31 @@ def _merge_token_metadata(identity: dict, metadata: dict) -> dict:
     return identity
 
 
+def _jwt_payload(token: str) -> dict:
+    parts = token.split(".")
+    if len(parts) < 2:
+        return {}
+
+    payload = parts[1]
+    padding = "=" * (-len(payload) % 4)
+    try:
+        decoded = base64.urlsafe_b64decode(f"{payload}{padding}")
+        data = json.loads(decoded)
+    except (ValueError, TypeError, JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _merge_jwt_claims(identity: dict, token: str) -> dict:
+    payload = _jwt_payload(token)
+    for claim in (*SCOPE_CLAIMS, *ROLE_CLAIMS):
+        if claim in payload and claim not in identity:
+            identity[claim] = payload[claim]
+    if payload:
+        identity["_token_payload_claim_keys"] = sorted(payload.keys())
+    return identity
+
+
 async def verify_access_token(
     authorization: Optional[str] = Header(default=None),
 ) -> dict:
@@ -130,6 +157,7 @@ async def verify_access_token(
 
             identity = response.json()
             identity["_access_token"] = token
+            _merge_jwt_claims(identity, token)
             metadata = await _token_metadata(token, client)
             _merge_token_metadata(identity, metadata)
             return identity

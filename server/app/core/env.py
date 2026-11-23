@@ -6,7 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-SERVER_ROOT = Path(__file__).resolve().parent.parent
+SERVER_ROOT = Path(__file__).resolve().parents[2]
 
 
 def resolve_env_file() -> Path:

@@ -2,7 +2,9 @@ from app.services.sheet_sync.service import (
     _sheet_csv_url,
     env_sheet_tab,
     env_spreadsheet_id,
+    extract_youtube_video_id,
     normalize_spreadsheet_id,
+    resolve_youtube_video_id,
 )
 
 
@@ -42,3 +44,29 @@ def test_env_sheet_tab_uses_env_override(monkeypatch):
     monkeypatch.setenv("GOOGLE_SHEET_VIDEOS_TAB", "Library Videos")
 
     assert env_sheet_tab("videos") == "Library Videos"
+
+
+def test_extract_youtube_video_id_from_common_url_formats():
+    assert (
+        extract_youtube_video_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        == "dQw4w9WgXcQ"
+    )
+    assert extract_youtube_video_id("https://youtu.be/dQw4w9WgXcQ?t=4") == (
+        "dQw4w9WgXcQ"
+    )
+    assert (
+        extract_youtube_video_id("https://www.youtube.com/embed/dQw4w9WgXcQ")
+        == "dQw4w9WgXcQ"
+    )
+
+
+def test_resolve_youtube_video_id_prefers_real_url_over_stale_id():
+    assert (
+        resolve_youtube_video_id(
+            {
+                "youtube_video_id": "def456uvw02",
+                "youtube_url": "https://youtu.be/SqcY0GlETPk?si=qyIMZucDQ_OhjaFg",
+            }
+        )
+        == "SqcY0GlETPk"
+    )

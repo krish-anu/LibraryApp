@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 
 
 DEFAULT_ADMIN_GROUPS = "Admin"
-DEFAULT_MEMBER_GROUPS = "User"
+DEFAULT_MEMBER_GROUPS = "member,User"
 ROLE_CLAIMS = (
     "groups",
     "roles",
@@ -168,9 +168,36 @@ def identity_admin_matches(identity: dict) -> set[str]:
     return matches
 
 
+def _identity_email_values(identity: dict) -> set[str]:
+    values = set()
+    for claim in (
+        "email",
+        "username",
+        "preferred_username",
+        "userName",
+        "http://wso2.org/claims/emailaddress",
+        "http://wso2.org/claims/email",
+        "http://wso2.org/claims/username",
+    ):
+        value = str(identity.get(claim) or "").strip().lower()
+        if value:
+            values.add(value)
+    return values
+
+
 def identity_member_matches(identity: dict) -> set[str]:
     allowed_roles = _csv_env("MEMBER_GROUPS", DEFAULT_MEMBER_GROUPS)
-    return identity_role_values(identity).intersection(allowed_roles)
+    matches = identity_role_values(identity).intersection(allowed_roles)
+
+    allowed_emails = _csv_env("MEMBER_EMAILS")
+    matches.update(_identity_email_values(identity).intersection(allowed_emails))
+
+    allowed_subjects = _csv_env("MEMBER_SUBJECTS")
+    subject = str(identity.get("sub") or "").strip().lower()
+    if subject and subject in allowed_subjects:
+        matches.add(subject)
+
+    return matches
 
 
 def identity_subject(identity: dict) -> str:

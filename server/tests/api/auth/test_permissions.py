@@ -58,3 +58,12 @@ def test_mobile_member_role_matching(monkeypatch):
 
     assert identity_member_matches({"groups": ["user"]}) == {"user"}
     assert identity_member_matches({"groups": ["admin"]}) == set()
+
+
+def test_mobile_member_email_fallback(monkeypatch):
+    monkeypatch.setenv("MEMBER_GROUPS", "member")
+    monkeypatch.setenv("MEMBER_EMAILS", "user@gmail.com")
+
+    assert identity_member_matches({"email": "user@gmail.com"}) == {
+        "user@gmail.com"
+    }

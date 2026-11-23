@@ -4,8 +4,12 @@ import 'package:libraryapp/core/theme/app_pallete.dart';
 import 'package:libraryapp/core/widgets/common/common_app_bar.dart';
 import 'package:libraryapp/data/repository/content_repository.dart';
 import 'package:libraryapp/models/content.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+
+const _youtubeEmbedOrigin = 'https://www.youtube-nocookie.com';
+const _youtubeEmbedReferer = '$_youtubeEmbedOrigin/';
 
 class VideosView extends ConsumerStatefulWidget {
   const VideosView({super.key});
@@ -96,7 +100,7 @@ class _FeaturedVideo extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: YouTubeEmbed(videoId: video.youtubeVideoId),
+            child: _YouTubePlayer(video: video),
           ),
           Padding(
             padding: const EdgeInsets.all(14),
@@ -116,13 +120,6 @@ class _FeaturedVideo extends StatelessWidget {
                         ),
                       ),
                     ],
-                    const Spacer(),
-                    IconButton(
-                      tooltip: 'Open in YouTube',
-                      onPressed: () => _openExternal(video),
-                      icon: const Icon(Icons.open_in_new, size: 20),
-                      color: Pallete.iconColor,
-                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -151,52 +148,139 @@ class _FeaturedVideo extends StatelessWidget {
       ),
     );
   }
-
-  Future<void> _openExternal(LibraryVideo video) async {
-    final uri = Uri.parse(video.youtubeUrl);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
 }
 
-class YouTubeEmbed extends StatefulWidget {
-  final String videoId;
+class _YouTubePlayer extends StatefulWidget {
+  final LibraryVideo video;
 
-  const YouTubeEmbed({super.key, required this.videoId});
+  const _YouTubePlayer({required this.video});
 
   @override
-  State<YouTubeEmbed> createState() => _YouTubeEmbedState();
+  State<_YouTubePlayer> createState() => _YouTubePlayerState();
 }
 
-class _YouTubeEmbedState extends State<YouTubeEmbed> {
+class _YouTubePlayerState extends State<_YouTubePlayer> {
   late final WebViewController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
+    late final PlatformWebViewControllerCreationParams params;
+    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+      params = WebKitWebViewControllerCreationParams(
+        allowsInlineMediaPlayback: true,
+        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+      );
+    } else {
+      params = const PlatformWebViewControllerCreationParams();
+    }
+
+    _controller = WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
-      ..loadRequest(Uri.parse(_embedUrl(widget.videoId)));
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onNavigationRequest: (request) {
+            if (_isAllowedYoutubeUrl(request.url)) {
+              return NavigationDecision.navigate;
+            }
+            return NavigationDecision.prevent;
+          },
+        ),
+      );
+
+    final platformController = _controller.platform;
+    if (platformController is AndroidWebViewController) {
+      platformController.setMediaPlaybackRequiresUserGesture(false);
+    }
+
+    _loadVideo();
   }
 
   @override
-  void didUpdateWidget(covariant YouTubeEmbed oldWidget) {
+  void didUpdateWidget(covariant _YouTubePlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.videoId != widget.videoId) {
-      _controller.loadRequest(Uri.parse(_embedUrl(widget.videoId)));
+    if (oldWidget.video.resolvedYoutubeVideoId !=
+        widget.video.resolvedYoutubeVideoId) {
+      _loadVideo();
     }
+  }
+
+  void _loadVideo() {
+    final videoId = widget.video.resolvedYoutubeVideoId;
+    if (videoId.isEmpty) return;
+
+    _controller.loadRequest(
+      _embedUri(videoId),
+      headers: const {'Referer': _youtubeEmbedReferer},
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
+    if (widget.video.resolvedYoutubeVideoId.isEmpty) {
+      return const _NoVideoAvailable();
+    }
+
+    return Material(
       color: Colors.black,
       child: WebViewWidget(controller: _controller),
     );
   }
 
-  String _embedUrl(String videoId) {
-    return 'https://www.youtube.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1';
+  Uri _embedUri(String videoId) {
+    return Uri.https('www.youtube-nocookie.com', '/embed/$videoId', {
+      'playsinline': '1',
+      'rel': '0',
+      'modestbranding': '1',
+      'enablejsapi': '1',
+      'origin': _youtubeEmbedOrigin,
+    });
+  }
+
+  bool _isAllowedYoutubeUrl(String value) {
+    if (value == 'about:blank') return true;
+    final uri = Uri.tryParse(value);
+    final host = uri?.host.toLowerCase() ?? '';
+    return host == 'youtube.com' ||
+        host.endsWith('.youtube.com') ||
+        host == 'youtube-nocookie.com' ||
+        host.endsWith('.youtube-nocookie.com') ||
+        host == 'ytimg.com' ||
+        host.endsWith('.ytimg.com') ||
+        host == 'googlevideo.com' ||
+        host.endsWith('.googlevideo.com') ||
+        host == 'gstatic.com' ||
+        host.endsWith('.gstatic.com') ||
+        host == 'google.com' ||
+        host.endsWith('.google.com');
+  }
+}
+
+class _NoVideoAvailable extends StatelessWidget {
+  const _NoVideoAvailable();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: Color(0xFF1F2933),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.ondemand_video, color: Colors.white70, size: 52),
+            SizedBox(height: 10),
+            Text(
+              'No video available',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -227,15 +311,21 @@ class _VideoListItem extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    video.effectiveThumbnailUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const ColoredBox(
-                          color: Pallete.cardAccent,
-                          child: Icon(Icons.play_circle_outline),
-                        ),
-                  ),
+                  if (video.effectiveThumbnailUrl.isNotEmpty)
+                    Image.network(
+                      video.effectiveThumbnailUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const ColoredBox(
+                            color: Pallete.cardAccent,
+                            child: Icon(Icons.play_circle_outline),
+                          ),
+                    )
+                  else
+                    const ColoredBox(
+                      color: Pallete.cardAccent,
+                      child: Icon(Icons.play_circle_outline),
+                    ),
                   const Center(
                     child: Icon(
                       Icons.play_circle_fill,

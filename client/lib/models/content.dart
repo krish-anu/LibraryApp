@@ -43,6 +43,7 @@ class LibraryVideo {
   final String title;
   final String description;
   final String youtubeVideoId;
+  final String? youtubeUrlValue;
   final String speaker;
   final String category;
   final String duration;
@@ -54,6 +55,7 @@ class LibraryVideo {
     required this.title,
     required this.description,
     required this.youtubeVideoId,
+    required this.youtubeUrlValue,
     required this.speaker,
     required this.category,
     required this.duration,
@@ -61,11 +63,54 @@ class LibraryVideo {
     required this.publishedAt,
   });
 
-  String get youtubeUrl => 'https://www.youtube.com/watch?v=$youtubeVideoId';
-  String get embedUrl => 'https://www.youtube.com/embed/$youtubeVideoId';
+  String get resolvedYoutubeVideoId =>
+      extractYoutubeVideoId(youtubeUrlValue) ??
+      extractYoutubeVideoId(youtubeVideoId) ??
+      '';
+  String get youtubeUrl => youtubeUrlValue?.trim().isNotEmpty == true
+      ? youtubeUrlValue!.trim()
+      : 'https://www.youtube.com/watch?v=$resolvedYoutubeVideoId';
+  String get embedUrl =>
+      'https://www.youtube.com/embed/$resolvedYoutubeVideoId';
   String get effectiveThumbnailUrl =>
       thumbnailUrl ??
-      'https://img.youtube.com/vi/$youtubeVideoId/hqdefault.jpg';
+      (resolvedYoutubeVideoId.isNotEmpty
+          ? 'https://img.youtube.com/vi/$resolvedYoutubeVideoId/hqdefault.jpg'
+          : '');
+
+  static String? extractYoutubeVideoId(String? value) {
+    final raw = value?.trim();
+    if (raw == null || raw.isEmpty) return null;
+
+    final rawIdMatch = RegExp(r'^[a-zA-Z0-9_-]{6,32}$').firstMatch(raw);
+    if (rawIdMatch != null) return raw;
+
+    final uri = Uri.tryParse(raw);
+    if (uri == null) return null;
+
+    final queryVideoId = uri.queryParameters['v'];
+    if (queryVideoId != null && queryVideoId.trim().isNotEmpty) {
+      return _cleanVideoId(queryVideoId);
+    }
+
+    final segments = uri.pathSegments;
+    if (uri.host.contains('youtu.be') && segments.isNotEmpty) {
+      return _cleanVideoId(segments.first);
+    }
+
+    for (final marker in ['embed', 'shorts', 'live', 'v']) {
+      final index = segments.indexOf(marker);
+      if (index >= 0 && segments.length > index + 1) {
+        return _cleanVideoId(segments[index + 1]);
+      }
+    }
+
+    return null;
+  }
+
+  static String _cleanVideoId(String value) {
+    return value.split(RegExp(r'[?&#/]')).first.trim();
+  }
 
   factory LibraryVideo.fromMap(Map<String, dynamic> map) {
     return LibraryVideo(
@@ -73,6 +118,7 @@ class LibraryVideo {
       title: map['title']?.toString() ?? '',
       description: map['description']?.toString() ?? '',
       youtubeVideoId: map['youtube_video_id']?.toString() ?? '',
+      youtubeUrlValue: map['youtube_url']?.toString(),
       speaker: map['speaker']?.toString() ?? 'Library Team',
       category: map['category']?.toString() ?? 'Learning',
       duration: map['duration']?.toString() ?? '',
