@@ -5,6 +5,7 @@ import 'package:libraryapp/core/constants/server_constant.dart';
 import 'package:libraryapp/core/failure/failure.dart';
 import 'package:libraryapp/core/services/authenticated_http_client.dart';
 import 'package:libraryapp/models/book.dart';
+import 'package:http/http.dart' as http;
 
 part 'book_repository.g.dart';
 
@@ -21,6 +22,11 @@ Future<List<Book>> fetchAllBooks(Ref ref) async {
 }
 
 class BookRepository {
+  final Future<http.Response> Function(Uri uri) _get;
+
+  BookRepository({Future<http.Response> Function(Uri uri)? get})
+    : _get = get ?? ((uri) => AuthenticatedHttpClient.get(uri));
+
   static List<Book>? _cachedBooks;
   static Future<Either<Failure, List<Book>>>? _inFlightBooksRequest;
 
@@ -48,9 +54,7 @@ class BookRepository {
 
   Future<Either<Failure, List<Book>>> _fetchAllBooks() async {
     try {
-      final res = await AuthenticatedHttpClient.get(
-        Uri.parse('${ServerConstant.serverURL}/books'),
-      );
+      final res = await _get(Uri.parse('${ServerConstant.serverURL}/books'));
 
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(res.body);
