@@ -41,6 +41,14 @@ interface ReturnLoan {
   };
 }
 
+function isOverdue(dueDate?: string | null) {
+  if (!dueDate) return false;
+  const due = new Date(`${dueDate.slice(0, 10)}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return !Number.isNaN(due.getTime()) && due < today;
+}
+
 export default function ReturnsPage() {
   const [loans, setLoans] = useState<ReturnLoan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +248,12 @@ export default function ReturnsPage() {
                       </div>
                       <div>
                         <p className="text-xs font-medium uppercase text-gray-400">Due</p>
-                        <p>{loan.returned_date ? formatDate(loan.returned_date) : "-"}</p>
+                        <div className="flex items-center gap-2">
+                          <p>{loan.returned_date ? formatDate(loan.returned_date) : "-"}</p>
+                          {isOverdue(loan.returned_date) ? (
+                            <Badge variant="danger">Overdue</Badge>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
 
@@ -324,7 +337,14 @@ export default function ReturnsPage() {
                           {formatDate(loan.loan_date)}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
-                          {loan.returned_date ? formatDate(loan.returned_date) : "-"}
+                          <div className="flex items-center gap-2">
+                            <span>
+                              {loan.returned_date ? formatDate(loan.returned_date) : "-"}
+                            </span>
+                            {isOverdue(loan.returned_date) ? (
+                              <Badge variant="danger">Overdue</Badge>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <Button

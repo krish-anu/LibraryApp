@@ -250,7 +250,20 @@ def get_user_stats(
 
     active_loans = (
         db.query(func.count(LoanModel.id))
-        .filter(LoanModel.member_id == user_id)
+        .filter(
+            LoanModel.member_id == user_id,
+            func.lower(func.coalesce(LoanModel.status, "active")) == "active",
+        )
+        .scalar()
+        or 0
+    )
+
+    books_read = (
+        db.query(func.count(LoanModel.id))
+        .filter(
+            LoanModel.member_id == user_id,
+            func.lower(func.coalesce(LoanModel.status, "active")) == "returned",
+        )
         .scalar()
         or 0
     )
@@ -267,14 +280,19 @@ def get_user_stats(
 
     active_reservations = (
         db.query(func.count(ReservationModel.id))
-        .filter(ReservationModel.member_id == user_id)
+        .filter(
+            ReservationModel.member_id == user_id,
+            func.lower(
+                func.coalesce(ReservationModel.status, "pending")
+            ).in_(("pending", "ready")),
+        )
         .scalar()
         or 0
     )
 
     return user_schema.ProfileStats(
         total_borrows=total_borrows,
-        books_read=total_borrows,
+        books_read=books_read,
         total_fines=float(total_fines),
         active_loans=active_loans,
         active_reservations=active_reservations,

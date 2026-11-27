@@ -40,4 +40,31 @@ void main() {
       (_) => fail('Expected a failure'),
     );
   });
+
+  test(
+    'invalidating the cache forces the next request to reload books',
+    () async {
+      var calls = 0;
+      final repository = BookRepository(
+        get: (_) async {
+          calls += 1;
+          return http.Response(
+            '[{"id":"b1","title":"Version $calls","author":"Author",'
+            '"category":"Tech","copies_owned":1}]',
+            200,
+          );
+        },
+      );
+
+      final first = await repository.getAllBooks(forceRefresh: true);
+      final cached = await repository.getAllBooks();
+      repository.invalidateCache();
+      final refreshed = await repository.getAllBooks();
+
+      expect(calls, 2);
+      expect(first.getOrElse((_) => []).single.title, 'Version 1');
+      expect(cached.getOrElse((_) => []).single.title, 'Version 1');
+      expect(refreshed.getOrElse((_) => []).single.title, 'Version 2');
+    },
+  );
 }

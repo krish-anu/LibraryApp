@@ -33,7 +33,11 @@ def test_fine_summary_counts_only_unpaid_amounts(
     )
     assert first.status_code == 201
     assert second.status_code == 201
-    client.put(f"/fines/{first.json()['data']['id']}", json={"status": "paid"})
+    payment = client.put(
+        f"/fines/{first.json()['data']['id']}",
+        json={"payment_amount": 3, "payment_method": "physical"},
+    )
+    assert payment.status_code == 200
 
     response = client.get("/fines/member/summary-member/summary")
 

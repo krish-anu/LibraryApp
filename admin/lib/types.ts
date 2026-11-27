@@ -108,6 +108,7 @@ export interface DashboardStats {
 export interface Settings {
   loan_period_days: number;
   max_books_per_user: number;
+  max_renewals: number;
   grace_period_days: number;
   daily_fine_rate: number;
   max_fine_cap: number;

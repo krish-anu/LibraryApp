@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, require_admin_scope, require_scope
@@ -6,6 +7,7 @@ from ..models import settings as settings_model
 from ..pydantic_schemas import settings as settings_schema
 
 router = APIRouter(prefix="/settings", tags=["settings"])
+DEFAULT_SETTINGS_ID = "00000000-0000-0000-0000-000000000001"
 
 
 def _get_or_create_settings_row(db: Session) -> settings_model.Settings:
@@ -17,9 +19,16 @@ def _get_or_create_settings_row(db: Session) -> settings_model.Settings:
     if row:
         return row
 
-    row = settings_model.Settings(id=f's{__import__("random").randint(100000, 999999)}')
+    row = settings_model.Settings(id=DEFAULT_SETTINGS_ID)
     db.add(row)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = db.get(settings_model.Settings, DEFAULT_SETTINGS_ID)
+        if existing is None:
+            raise
+        return existing
     db.refresh(row)
     return row
 
@@ -45,6 +54,10 @@ def update_settings(
     for key, value in updates.items():
         setattr(row, key, value)
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(row)
     return row

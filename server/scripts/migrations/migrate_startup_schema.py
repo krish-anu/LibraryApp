@@ -33,7 +33,55 @@ MIGRATION_STATEMENTS = [
     "ALTER TABLE loans ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'",
     "ALTER TABLE loans ADD COLUMN IF NOT EXISTS returned_at DATE",
     "ALTER TABLE loans ADD COLUMN IF NOT EXISTS returned_by TEXT",
+    "ALTER TABLE loans ADD COLUMN IF NOT EXISTS renewal_count INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS max_renewals INTEGER NOT NULL DEFAULT 1",
     "UPDATE loans SET status = 'active' WHERE status IS NULL OR TRIM(status) = ''",
+    "UPDATE reservations SET status = 'pending' WHERE status IS NULL OR TRIM(status) = ''",
+    "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS queued_at TIMESTAMPTZ",
+    """
+    DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_books_copies_nonnegative') THEN
+            ALTER TABLE books ADD CONSTRAINT ck_books_copies_nonnegative
+            CHECK (copies_owned IS NULL OR copies_owned >= 0) NOT VALID;
+        END IF;
+    END $$;
+    """,
+    """
+    DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_loans_status') THEN
+            ALTER TABLE loans ADD CONSTRAINT ck_loans_status
+            CHECK (status IS NULL OR lower(status) IN ('active', 'returned')) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_loans_renewal_count') THEN
+            ALTER TABLE loans ADD CONSTRAINT ck_loans_renewal_count
+            CHECK (renewal_count >= 0) NOT VALID;
+        END IF;
+    END $$;
+    """,
+    """
+    DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_reservations_status') THEN
+            ALTER TABLE reservations ADD CONSTRAINT ck_reservations_status
+            CHECK (status IS NULL OR lower(status) IN
+                ('pending', 'ready', 'cancelled', 'canceled', 'expired', 'completed', 'fulfilled')) NOT VALID;
+        END IF;
+    END $$;
+    """,
+    """
+    DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_fines_amount_nonnegative') THEN
+            ALTER TABLE fines ADD CONSTRAINT ck_fines_amount_nonnegative
+            CHECK (fine_amount IS NULL OR fine_amount >= 0) NOT VALID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_fines_status') THEN
+            ALTER TABLE fines ADD CONSTRAINT ck_fines_status
+            CHECK (status IS NULL OR lower(status) IN ('unpaid', 'paid', 'waived')) NOT VALID;
+        END IF;
+    END $$;
+    """,
+    "CREATE UNIQUE INDEX IF NOT EXISTS uq_loans_active_member_book ON loans (member_id, book_id) WHERE lower(coalesce(status, 'active')) = 'active'",
+    "CREATE UNIQUE INDEX IF NOT EXISTS uq_reservations_active_member_book ON reservations (member_id, book_id) WHERE status IS NULL OR lower(status) IN ('pending', 'ready')",
+    "CREATE INDEX IF NOT EXISTS ix_reservations_queue_order ON reservations (book_id, queued_at NULLS FIRST, reservation_date NULLS FIRST, id) WHERE status IS NULL OR lower(status) IN ('pending', 'ready')",
     "ALTER TABLE books ADD COLUMN IF NOT EXISTS image_blob BYTEA",
     "ALTER TABLE books ADD COLUMN IF NOT EXISTS image_mime_type TEXT",
     "ALTER TABLE books ADD COLUMN IF NOT EXISTS subtitle TEXT",
@@ -116,6 +164,14 @@ MIGRATION_STATEMENTS = [
     "ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS notes TEXT",
     "ALTER TABLE fine_payments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP",
     "UPDATE fine_payments SET payment_method = 'physical' WHERE payment_method IS NULL OR TRIM(payment_method) = ''",
+    """
+    DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_fine_payments_amount_positive') THEN
+            ALTER TABLE fine_payments ADD CONSTRAINT ck_fine_payments_amount_positive
+            CHECK (payment_amount IS NULL OR payment_amount > 0) NOT VALID;
+        END IF;
+    END $$;
+    """,
     """
     INSERT INTO settings (
         id,

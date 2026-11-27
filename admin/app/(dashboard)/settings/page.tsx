@@ -10,6 +10,7 @@ import { Save, BookOpen, Building, User, RefreshCw } from "lucide-react";
 interface SettingsFormData {
   loan_period_days: number;
   max_books_per_user: number;
+  max_renewals: number;
   grace_period_days: number;
   daily_fine_rate: number;
   max_fine_cap: number;
@@ -28,6 +29,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsFormData>({
     loan_period_days: 14,
     max_books_per_user: 5,
+    max_renewals: 1,
     grace_period_days: 2,
     daily_fine_rate: 0.5,
     max_fine_cap: 25.0,
@@ -233,6 +235,18 @@ export default function SettingsPage() {
                           setSettings({
                             ...settings,
                             grace_period_days: parseInt(e.target.value) || 0,
+                          })
+                        }
+                      />
+                      <Input
+                        label="Maximum Renewals Per Loan"
+                        type="number"
+                        min="0"
+                        value={settings.max_renewals}
+                        onChange={(e) =>
+                          setSettings({
+                            ...settings,
+                            max_renewals: parseInt(e.target.value) || 0,
                           })
                         }
                       />

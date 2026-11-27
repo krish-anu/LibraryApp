@@ -48,6 +48,8 @@ def test_dashboard_returns_postgres_aggregates(db_session):
         member_id=user.id,
         loan_date=date.today() - timedelta(days=2),
         returned_date=None,
+        status="returned",
+        returned_at=date.today() - timedelta(days=1),
     )
     older_loan = Loan(
         id="loan-3",
@@ -55,6 +57,8 @@ def test_dashboard_returns_postgres_aggregates(db_session):
         member_id=user.id,
         loan_date=date.today() - timedelta(days=8),
         returned_date=None,
+        status="returned",
+        returned_at=date.today() - timedelta(days=7),
     )
     fine = Fine(
         id="fine-1",

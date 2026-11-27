@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, LargeBinary, NUMERIC, TEXT
+from sqlalchemy import CheckConstraint, ForeignKey, LargeBinary, NUMERIC, TEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -14,6 +14,9 @@ if TYPE_CHECKING:
 
 class Book(Base):
     __tablename__ = "books"
+    __table_args__ = (
+        CheckConstraint("copies_owned IS NULL OR copies_owned >= 0", name="ck_books_copies_nonnegative"),
+    )
 
     id: Mapped[str] = mapped_column(TEXT, primary_key=True)
     title: Mapped[str | None] = mapped_column(TEXT)

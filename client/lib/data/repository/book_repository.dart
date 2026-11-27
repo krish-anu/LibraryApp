@@ -29,8 +29,18 @@ class BookRepository {
 
   static List<Book>? _cachedBooks;
   static Future<Either<Failure, List<Book>>>? _inFlightBooksRequest;
+  static int _cacheGeneration = 0;
+
+  void invalidateCache() {
+    _cacheGeneration += 1;
+    _cachedBooks = null;
+    _inFlightBooksRequest = null;
+  }
 
   Future<Either<Failure, List<Book>>> getAllBooks({bool forceRefresh = false}) {
+    if (forceRefresh) {
+      invalidateCache();
+    }
     if (!forceRefresh) {
       final cachedBooks = _cachedBooks;
       if (cachedBooks != null) {
@@ -43,7 +53,8 @@ class BookRepository {
       }
     }
 
-    final request = _fetchAllBooks();
+    final generation = _cacheGeneration;
+    final request = _fetchAllBooks(generation);
     _inFlightBooksRequest = request;
     return request.whenComplete(() {
       if (identical(_inFlightBooksRequest, request)) {
@@ -52,7 +63,7 @@ class BookRepository {
     });
   }
 
-  Future<Either<Failure, List<Book>>> _fetchAllBooks() async {
+  Future<Either<Failure, List<Book>>> _fetchAllBooks(int generation) async {
     try {
       final res = await _get(Uri.parse('${ServerConstant.serverURL}/books'));
 
@@ -75,7 +86,9 @@ class BookRepository {
             ratingCount: e['rating_count'] as int? ?? 0,
           );
         }).toList();
-        _cachedBooks = books;
+        if (generation == _cacheGeneration) {
+          _cachedBooks = books;
+        }
         return right(books);
       } else {
         return left(Failure(res.body));

@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:libraryapp/auth/pages/forgot_password.dart';
 import 'package:libraryapp/auth/pages/signup_page.dart';
 import 'package:libraryapp/auth/providers/asgardeo_direct_provider.dart';
 import 'package:libraryapp/core/theme/app_pallete.dart';
@@ -163,7 +164,19 @@ class _LoginState extends ConsumerState<Login> {
                     },
                   ),
 
-                  const SizedBox(height: 24),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: authState.isLoading
+                          ? null
+                          : () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const ForgotPassword(),
+                              ),
+                            ),
+                      child: const Text('Forgot password?'),
+                    ),
+                  ),
 
                   // Login Button
                   Padding(

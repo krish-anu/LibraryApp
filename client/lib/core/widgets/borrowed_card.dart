@@ -15,9 +15,10 @@ class BorrowedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remainingDays = dueDate.difference(DateTime.now()).inDays;
+    final remainingDays = DateUtils.dateOnly(
+      dueDate,
+    ).difference(DateUtils.dateOnly(DateTime.now())).inDays;
     final isOverdue = remainingDays < 0;
-    final fine = isOverdue ? remainingDays.abs() * 50 : 0;
     final formattedDate = "${dueDate.day}/${dueDate.month}/${dueDate.year}";
 
     return Card(
@@ -83,7 +84,7 @@ class BorrowedCard extends StatelessWidget {
                 if (isOverdue) ...[
                   const SizedBox(height: 4),
                   Text(
-                    "Fine: LKR $fine",
+                    "Fine is calculated by library policy",
                     style: const TextStyle(
                       color: Colors.red,
                       fontSize: 12,

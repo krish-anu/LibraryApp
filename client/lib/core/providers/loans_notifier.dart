@@ -3,6 +3,7 @@ import 'package:libraryapp/models/loan.dart';
 import 'package:libraryapp/models/reserve.dart';
 import 'package:libraryapp/data/repository/loan_repository.dart';
 import 'package:libraryapp/data/repository/reserve_repository.dart';
+import 'package:libraryapp/data/repository/book_repository.dart';
 
 part 'loans_notifier.g.dart';
 
@@ -123,6 +124,8 @@ class LoansNotifier extends _$LoansNotifier {
       final result = await repository.borrowBook(bookId, memberId);
 
       return result.fold((failure) => false, (loan) {
+        ref.read(bookRepositoryProvider).invalidateCache();
+        ref.invalidate(fetchAllBooksProvider);
         if (!ref.mounted) return true;
         // Update local state
         final updatedLoans = [...state.loans, loan];
@@ -144,12 +147,12 @@ class LoansNotifier extends _$LoansNotifier {
       final result = await repository.returnBook(loanId);
 
       return result.fold((failure) => false, (message) {
+        ref.read(bookRepositoryProvider).invalidateCache();
+        ref.invalidate(fetchAllBooksProvider);
         if (!ref.mounted) return true;
-        // Find and remove the loan
-        final loan = state.loans.firstWhere(
-          (l) => l.id == loanId,
-          orElse: () => state.loans.first,
-        );
+        final loanIndex = state.loans.indexWhere((loan) => loan.id == loanId);
+        if (loanIndex < 0) return true;
+        final loan = state.loans[loanIndex];
         final updatedLoans = state.loans.where((l) => l.id != loanId).toList();
         final updatedIds = state.borrowedBookIds
             .where((id) => id != loan.bookId)
@@ -206,14 +209,16 @@ class LoansNotifier extends _$LoansNotifier {
   }
 
   Future<bool> cancelReservation(String reserveId) async {
-    // Cancel reservation by removing from local state
-    // (API for delete may not exist, so we just update local state)
     if (!ref.mounted) return false;
     try {
-      final reserve = state.reservations.firstWhere(
-        (r) => r.id == reserveId,
-        orElse: () => state.reservations.first,
+      final repository = ref.read(reserveRepositoryProvider);
+      final result = await repository.cancelReserve(reserveId);
+      if (result.isLeft()) return false;
+      final reserveIndex = state.reservations.indexWhere(
+        (reserve) => reserve.id == reserveId,
       );
+      if (reserveIndex < 0) return true;
+      final reserve = state.reservations[reserveIndex];
       final updatedReservations = state.reservations
           .where((r) => r.id != reserveId)
           .toList();

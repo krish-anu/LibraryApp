@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, cast
+from uuid import uuid4
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException
 from sqlalchemy import func, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import (
@@ -12,12 +14,58 @@ from app.api.dependencies import (
     require_subject_or_admin,
 )
 from app.services.images import image_response, validate_image_body
+from ..models import author as author_model
 from ..models import book as book_model
 from ..models import category as category_model
 from ..models.interactions import Interaction
 from ..pydantic_schemas import book as book_schema
 
 router = APIRouter(prefix="/books", tags=["books"])
+
+
+def _author_name_parts(name: str) -> tuple[str, str]:
+    parts = name.strip().split()
+    if not parts:
+        return "Unknown", ""
+    if len(parts) == 1:
+        return parts[0], ""
+    return " ".join(parts[:-1]), parts[-1]
+
+
+def _find_or_create_author(db: Session, name: str) -> author_model.Author:
+    first_name, last_name = _author_name_parts(name)
+    author = (
+        db.query(author_model.Author)
+        .filter(
+            func.lower(func.coalesce(author_model.Author.first_name, ""))
+            == first_name.lower(),
+            func.lower(func.coalesce(author_model.Author.last_name, ""))
+            == last_name.lower(),
+        )
+        .first()
+    )
+    if author:
+        return author
+    author = author_model.Author(
+        id=str(uuid4()), first_name=first_name, last_name=last_name
+    )
+    db.add(author)
+    db.flush()
+    return author
+
+
+def _find_or_create_category(db: Session, name: str) -> category_model.Category:
+    category = (
+        db.query(category_model.Category)
+        .filter(func.lower(category_model.Category.name) == name.strip().lower())
+        .first()
+    )
+    if category:
+        return category
+    category = category_model.Category(id=str(uuid4()), name=name.strip())
+    db.add(category)
+    db.flush()
+    return category
 
 
 def _book_to_response(book_obj: book_model.Book) -> book_schema.Book:
@@ -78,25 +126,13 @@ def create_book(
     _admin: dict = Depends(require_admin_scope("books_manage")),
     db: Session = Depends(get_db),
 ):
-    existing_category = (
-        db.query(category_model.Category)
-        .filter(category_model.Category.name == book_data.category)
-        .first()
-    )
-
-    if not existing_category:
-        existing_category = category_model.Category(
-            id=f"cat_{book_data.category.lower().replace(' ', '_')}",
-            name=book_data.category,
-        )
-        db.add(existing_category)
-        db.commit()
-        db.refresh(existing_category)
+    existing_category = _find_or_create_category(db, book_data.category)
+    author = _find_or_create_author(db, book_data.author)
 
     new_book = book_model.Book(
-        id=f"book_{datetime.now().timestamp()}",
+        id=str(uuid4()),
         title=book_data.title,
-        author_id=None,
+        author_id=author.id,
         category_id=existing_category.id,
         description=book_data.description,
         rating=book_data.rating,
@@ -108,7 +144,11 @@ def create_book(
         rating_count=book_data.rating_count,
     )
     db.add(new_book)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Book data conflicts with an existing record") from exc
     db.refresh(new_book)
     return _book_to_response(new_book)
 
@@ -249,21 +289,10 @@ def update_book(
     if not book_obj:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    if book_data.category != (book_obj.category or ""):
-        existing_category = (
-            db.query(category_model.Category)
-            .filter(category_model.Category.name == book_data.category)
-            .first()
-        )
-        if not existing_category:
-            existing_category = category_model.Category(
-                id=f"cat_{book_data.category.lower().replace(' ', '_')}",
-                name=book_data.category,
-            )
-            db.add(existing_category)
-            db.commit()
-            db.refresh(existing_category)
-        book_obj.category_id = existing_category.id
+    category = _find_or_create_category(db, book_data.category)
+    author = _find_or_create_author(db, book_data.author)
+    book_obj.category_id = category.id
+    book_obj.author_id = author.id
 
     book_obj.title = book_data.title
     book_obj.description = book_data.description
@@ -275,7 +304,11 @@ def update_book(
     book_obj.pages = book_data.pages
     book_obj.rating_count = book_data.rating_count
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Book data conflicts with an existing record") from exc
     db.refresh(book_obj)
     return _book_to_response(book_obj)
 
@@ -290,5 +323,12 @@ def delete_book(
     if not book_obj:
         raise HTTPException(status_code=404, detail="Book not found")
     db.delete(book_obj)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Books with loan, reservation, or interaction history cannot be deleted",
+        ) from exc
     return None

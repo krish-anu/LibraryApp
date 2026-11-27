@@ -12,6 +12,7 @@ class Settings(Base):
     id: Mapped[str] = mapped_column(TEXT, primary_key=True)
     loan_period_days: Mapped[int] = mapped_column(INTEGER, nullable=False, default=14)
     max_books_per_user: Mapped[int] = mapped_column(INTEGER, nullable=False, default=5)
+    max_renewals: Mapped[int] = mapped_column(INTEGER, nullable=False, default=1)
     grace_period_days: Mapped[int] = mapped_column(INTEGER, nullable=False, default=2)
     daily_fine_rate: Mapped[float] = mapped_column(
         NUMERIC(10, 2), nullable=False, default=0.50

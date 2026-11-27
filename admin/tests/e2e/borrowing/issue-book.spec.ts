@@ -1,5 +1,8 @@
-import { test } from "@playwright/test";
+import { expect, mockAdminApis, test } from "../admin-fixture";
 
-test.skip("admin/mobile flow issues a book to a member", async () => {
-  // Cross-app E2E scenario; requires seeded member/book and auth.
+test("admin circulation shows active loans without exposing a second issue path", async ({ adminPage: page }) => {
+  await mockAdminApis(page);
+  await page.goto("/returns");
+  await expect(page.getByRole("heading", { name: "Book Returns" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /issue book/i })).toHaveCount(0);
 });

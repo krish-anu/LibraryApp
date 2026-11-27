@@ -38,9 +38,7 @@ def test_register_valid_user(client: TestClient):
         mock_instance.post.side_effect = [mock_resp_token, mock_resp_register]
 
         response = client.post("/auth/register", json=payload)
-        if response.status_code in [404, 405, 500, 422, 401]: return
-        if response.status_code in [404, 405, 500, 422, 401]: return
-        assert response.status_code in [200, 201]
+        assert response.status_code in [200, 201], response.text
 
 def test_register_duplicate_email(client: TestClient):
     """AUTH-02: Register duplicate user (mocked conflict)"""
@@ -66,8 +64,6 @@ def test_register_duplicate_email(client: TestClient):
         mock_instance.post.side_effect = [mock_resp_token, mock_resp_register]
 
         response = client.post("/auth/register", json=payload)
-        if response.status_code in [404, 405, 500, 422, 401]: return
-        if response.status_code in [404, 405, 500, 422, 401]: return
         assert response.status_code == 409
 
 def test_register_missing_field(client: TestClient):
@@ -76,8 +72,6 @@ def test_register_missing_field(client: TestClient):
         "username": "newuser",
     }
     response = client.post("/auth/register", json=payload)
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    if response.status_code in [404, 405, 500, 422, 401]: return
     assert response.status_code == 422
 
 def test_login_valid_credentials_returns_token_and_authorizes_scoped_routes(
@@ -186,7 +180,5 @@ def test_login_valid_credentials_returns_token_and_authorizes_scoped_routes(
 
 def test_access_protected_route_no_token(client: TestClient):
     """AUTH-19: Missing token rejected"""
-    response = client.get("/users/me")
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    assert response.status_code in [401, 403, 405]
+    response = client.get("/settings/")
+    assert response.status_code in [401, 403]

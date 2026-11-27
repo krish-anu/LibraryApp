@@ -159,6 +159,7 @@ class _BorrowConfirmationSheetState
           },
           (loan) {
             // Refresh providers
+            ref.read(bookRepositoryProvider).invalidateCache();
             ref.invalidate(fetchAllBooksProvider);
             ref.invalidate(fetchActiveLoansProvider(memberId: memberId));
             ref.read(loansProvider.notifier).loadLoansAndReservations();

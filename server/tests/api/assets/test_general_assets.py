@@ -1,4 +1,9 @@
+from pathlib import Path
+
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+from app.core.factory import SafeStaticFiles
 
 
 def test_health_check(client: TestClient):
@@ -26,8 +31,15 @@ def test_non_existent_asset(client: TestClient):
     assert response.status_code == 404
 
 
-def test_temp_asset_access(client: TestClient, tmp_path):
+def test_temp_asset_access():
     """ASSET-01: Existing allowed asset"""
+    assets = Path(__file__).resolve().parents[4] / "client" / "assets"
+    app = FastAPI()
+    app.mount(
+        "/assets",
+        SafeStaticFiles(directory=str(assets), allowed_extensions={".webp"}),
+    )
+    client = TestClient(app)
     response = client.get("/assets/person.webp")
 
     assert response.status_code == 200

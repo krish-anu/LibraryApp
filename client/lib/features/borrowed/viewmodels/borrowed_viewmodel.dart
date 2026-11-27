@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:libraryapp/models/book.dart';
 import 'package:libraryapp/models/loan.dart';
@@ -72,13 +73,13 @@ class BorrowedState {
 
   /// Get borrowed items with status information
   List<BorrowedItem> get borrowedItems {
-    final now = DateTime.now();
+    final now = DateUtils.dateOnly(DateTime.now());
     final items = loans.map((loan) {
       final book = books.firstWhere(
         (b) => b.id == loan.bookId,
-        orElse: () => books.isNotEmpty ? books.first : _emptyBook,
+        orElse: () => _emptyBook,
       );
-      final dueDate = loan.returnedDate;
+      final dueDate = DateUtils.dateOnly(loan.returnedDate);
       final remainingDays = dueDate.difference(now).inDays;
 
       BorrowStatus status;
@@ -120,7 +121,7 @@ class BorrowedState {
     return reservations.map((reservation) {
       final book = books.firstWhere(
         (b) => b.id == reservation.bookId,
-        orElse: () => books.isNotEmpty ? books.first : _emptyBook,
+        orElse: () => _emptyBook,
       );
       return ReservedItem(book: book, reservation: reservation);
     }).toList();

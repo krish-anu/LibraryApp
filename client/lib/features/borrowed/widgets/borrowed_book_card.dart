@@ -20,7 +20,9 @@ class BorrowedBookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remainingDays = dueDate.difference(DateTime.now()).inDays;
+    final remainingDays = DateUtils.dateOnly(
+      dueDate,
+    ).difference(DateUtils.dateOnly(DateTime.now())).inDays;
     final isOverdue = remainingDays < 0;
     final isDueSoon = remainingDays >= 0 && remainingDays <= 3;
 
@@ -81,10 +83,7 @@ class BorrowedBookCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _buildDueInfo(remainingDays, isOverdue),
-                if (isOverdue) ...[
-                  const SizedBox(height: 8),
-                  _buildFineInfo(remainingDays),
-                ],
+                if (isOverdue) ...[const SizedBox(height: 8), _buildFineInfo()],
               ],
             ),
           ),
@@ -191,16 +190,13 @@ class BorrowedBookCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFineInfo(int remainingDays) {
-    const dailyFineRate = 0.25;
-    final fine = remainingDays.abs() * dailyFineRate;
-
+  Widget _buildFineInfo() {
     return Row(
       children: [
         const Icon(Icons.attach_money, size: 14, color: Pallete.error),
         const SizedBox(width: 4),
         Text(
-          'Fine: LKR ${fine.toStringAsFixed(2)}',
+          'Fine is calculated by library policy',
           style: const TextStyle(
             color: Pallete.error,
             fontSize: 12,

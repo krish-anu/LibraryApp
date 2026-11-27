@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class SettingsBase(BaseModel):
     loan_period_days: int = Field(default=14, gt=0)
     max_books_per_user: int = Field(default=5, gt=0)
+    max_renewals: int = Field(default=1, ge=0)
     grace_period_days: int = Field(default=2, ge=0)
     daily_fine_rate: float = Field(default=0.50, ge=0)
     max_fine_cap: float = Field(default=25.00, ge=0)
@@ -21,6 +22,7 @@ class SettingsBase(BaseModel):
 class SettingsUpdate(BaseModel):
     loan_period_days: Optional[int] = Field(default=None, gt=0)
     max_books_per_user: Optional[int] = Field(default=None, gt=0)
+    max_renewals: Optional[int] = Field(default=None, ge=0)
     grace_period_days: Optional[int] = Field(default=None, ge=0)
     daily_fine_rate: Optional[float] = Field(default=None, ge=0)
     max_fine_cap: Optional[float] = Field(default=None, ge=0)

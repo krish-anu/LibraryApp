@@ -28,7 +28,22 @@ VALID_BOOK = {
 
 
 @pytest.fixture
-def book_id(db_session: Session):
+def member_id(db_session: Session):
+    user = User(
+        id="std-user-id",
+        member_id="M-STD",
+        name="Standard User",
+        email="user@example.com",
+        phone="0771234567",
+        address="Library Street",
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user.id
+
+
+@pytest.fixture
+def book_id(db_session: Session, member_id):
     """Helper to create a book directly in the database and return its ID."""
     # Create an author first for the book to reference
     author = Author(id="test-author", first_name="Test", last_name="Author")
@@ -80,70 +95,58 @@ def user_headers(app):
 
 def test_borrow_available_book(client: TestClient, book_id, user_headers):
     """LOAN-01: Borrow available book"""
-    payload = {
-        "bookId": book_id,
-        "dueDate": (date.today() + timedelta(days=7)).isoformat(),
-    }
-    response = client.post("/loans/", json=payload, headers=user_headers)
+    response = client.post(
+        "/loans/borrow",
+        params={"book_id": book_id, "member_id": "std-user-id"},
+        headers=user_headers,
+    )
 
-    if response.status_code in [404, 405, 500, 422, 401]:
-        return
-    if response.status_code in [404, 405, 500, 422, 401]:
-        return
-    assert response.status_code in [200, 201]
+    assert response.status_code == 200, response.text
     data = response.json()
-    assert data["bookId"] == book_id
-    assert data["status"] == "Active"  # Assuming status enum
+    assert data["book_id"] == book_id
+    assert data["status"] == "active"
 
 
-def test_borrow_non_existing_book(client: TestClient, user_headers):
+def test_borrow_non_existing_book(client: TestClient, member_id, user_headers):
     """LOAN-02: Borrow non-existing book"""
-    payload = {"bookId": 999999}
-    response = client.post("/loans/", json=payload, headers=user_headers)
-    if response.status_code in [404, 405, 500, 422, 401]:
-        return
-    if response.status_code in [404, 405, 500, 422, 401]:
-        return
+    response = client.post(
+        "/loans/borrow",
+        params={"book_id": "missing-book", "member_id": member_id},
+        headers=user_headers,
+    )
     assert response.status_code == 404
 
 
 def test_return_active_loan(client: TestClient, book_id, user_headers):
     """LOAN-10: Return active loan"""
     # Borrow first
-    borrow_payload = {"bookId": book_id}
-    borrow_res = client.post("/loans/", json=borrow_payload, headers=user_headers)
-
-    # Handle various possible responses from borrow endpoint
-    if borrow_res.status_code in [404, 405, 500, 422, 401]:
-        return  # Borrow endpoint not available or not working, skip test
-
-    loan_id = borrow_res.json().get("id", "1") if borrow_res.status_code == 200 else "1"
+    borrow_res = client.post(
+        "/loans/borrow",
+        params={"book_id": book_id, "member_id": "std-user-id"},
+        headers=user_headers,
+    )
+    assert borrow_res.status_code == 200, borrow_res.text
+    loan_id = borrow_res.json()["id"]
 
     # Return
-    return_res = client.post(f"/loans/{loan_id}/return", headers=user_headers)
-    if return_res.status_code in [404, 405, 500, 422, 401]:
-        return  # Return endpoint not available or not working, skip test
+    return_res = client.post(f"/loans/return/{loan_id}", headers=user_headers)
     assert return_res.status_code == 200
-    assert return_res.json().get("status", "dummy") == "Returned"
+    assert return_res.json()["status"] == "Returned"
 
 
-def test_borrow_no_copies(client: TestClient, admin_user, user_headers):
+def test_borrow_no_copies(client: TestClient, db_session, member_id, user_headers):
     """LOAN-03: Borrow no copies available"""
-    # Create 0 copy book
-    zero_copy_book = VALID_BOOK.copy()
-    zero_copy_book["totalCopies"] = 0
-    zero_copy_book["isbn"] = "0000000"
-
-    res = client.post("/books/", json=zero_copy_book)
-    book_id = res.json().get("id", "1") if res.status_code == 200 else "1"
-
-    payload = {"bookId": book_id}
-    response = client.post("/loans/", json=payload, headers=user_headers)
-    if response.status_code in [404, 405, 500, 422, 401]:
-        return
-    if response.status_code in [404, 405, 500, 422, 401]:
-        return
-    assert response.status_code in [400, 409]  # Conflict or BadRequest
+    category = Category(id="zero-category", name="Zero Copies")
+    book = Book(id="zero-book", title="Unavailable", category_id=category.id, copies_owned=0)
+    db_session.add_all([category, book])
+    db_session.commit()
+    response = client.post(
+        "/loans/borrow",
+        params={"book_id": book.id, "member_id": member_id},
+        headers=user_headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "No copies available"
 
 
 def test_admin_return_marks_loan_returned_and_restores_inventory(db_session: Session):

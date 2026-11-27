@@ -84,6 +84,7 @@ export default function BooksPage() {
   const [categoryError, setCategoryError] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const bookDetailsRequestRef = useRef(0);
+  const inventoryRequest = useRef<AbortController | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -100,6 +101,9 @@ export default function BooksPage() {
   };
 
   const fetchBooks = useCallback(async () => {
+    inventoryRequest.current?.abort();
+    const request = new AbortController();
+    inventoryRequest.current = request;
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -110,19 +114,23 @@ export default function BooksPage() {
       if (statusFilter) params.append("status", statusFilter);
       if (categoryFilter) params.append("category", categoryFilter);
 
-      const res = await fetch(`/api/books?${params}`);
+      const res = await fetch(`/api/books?${params}`, {
+        signal: request.signal,
+      });
       const json = await res.json();
+      if (request.signal.aborted) return;
       setBooks(json.data || []);
       setTotalCount(json.totalCount || 0);
     } catch (error) {
-      console.error("Error fetching books:", error);
+      if (!request.signal.aborted) console.error("Error fetching books:", error);
     } finally {
-      setLoading(false);
+      if (!request.signal.aborted) setLoading(false);
     }
   }, [categoryFilter, limit, page, searchQuery, statusFilter]);
 
   useEffect(() => {
     fetchBooks();
+    return () => inventoryRequest.current?.abort();
   }, [fetchBooks]);
 
   const hydrateBookForm = (book: Book) => {
@@ -354,6 +362,7 @@ export default function BooksPage() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row xl:flex-none">
               <Select
+                aria-label="Filter by availability"
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value);
@@ -459,12 +468,14 @@ export default function BooksPage() {
 
                   <div className="flex items-center justify-end gap-2">
                     <button
+                      aria-label={`Edit ${book.title}`}
                       onClick={() => handleOpenModal(book)}
                       className="rounded-lg p-2 transition-colors hover:bg-gray-100"
                     >
                       <Edit className="h-4 w-4 text-gray-600" />
                     </button>
                     <button
+                      aria-label={`Delete ${book.title}`}
                       onClick={() => handleDelete(book)}
                       className="rounded-lg p-2 transition-colors hover:bg-red-100"
                     >
@@ -572,12 +583,14 @@ export default function BooksPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            aria-label={`Edit ${book.title}`}
                             onClick={() => handleOpenModal(book)}
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                           >
                             <Edit className="w-4 h-4 text-gray-600" />
                           </button>
                           <button
+                            aria-label={`Delete ${book.title}`}
                             onClick={() => handleDelete(book)}
                             className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                           >

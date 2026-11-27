@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, TEXT
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Numeric, TEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -15,6 +15,12 @@ if TYPE_CHECKING:
 
 class FinePayment(Base):
     __tablename__ = "fine_payments"
+    __table_args__ = (
+        CheckConstraint(
+            "payment_amount IS NULL OR payment_amount > 0",
+            name="ck_fine_payments_amount_positive",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(TEXT, primary_key=True)
     fine_id: Mapped[str | None] = mapped_column(TEXT, ForeignKey("fines.id"))

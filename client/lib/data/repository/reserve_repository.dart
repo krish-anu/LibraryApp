@@ -72,6 +72,29 @@ class ReserveRepository {
     }
   }
 
+  Future<Either<AppFailure, Reserve>> cancelReserve(String reserveId) async {
+    try {
+      final res = await AuthenticatedHttpClient.delete(
+        Uri.parse('${ServerConstant.serverURL}/reservations/$reserveId'),
+      );
+      if (res.statusCode == 200) {
+        return Right(
+          Reserve.fromMap(jsonDecode(res.body) as Map<String, dynamic>),
+        );
+      }
+      return Left(
+        AppFailure(
+          _extractErrorMessage(
+            res.body,
+            fallback: 'Unable to cancel this reservation right now.',
+          ),
+        ),
+      );
+    } catch (_) {
+      return Left(AppFailure('Unable to cancel this reservation right now.'));
+    }
+  }
+
   Future<Either<AppFailure, List<Reserve>>> getReservedByMember(
     String memberId,
   ) async {

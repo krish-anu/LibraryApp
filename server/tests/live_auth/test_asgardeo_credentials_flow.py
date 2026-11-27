@@ -50,39 +50,22 @@ def _login_with_credentials(
     return token, user_id
 
 
-def test_live_admin_credentials_token_scopes_and_protected_settings(
+def test_live_admin_credentials_are_rejected_by_mobile_login(
     client: TestClient,
 ):
     _required_env("ASGARDEO_BASE_URL")
     _required_env("ASGARDEO_PUBLIC_CLIENT_ID")
 
-    token, admin_subject = _login_with_credentials(
-        client, "E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD"
+    response = client.post(
+        "/auth/login/credentials",
+        json={
+            "email": _required_env("E2E_ADMIN_EMAIL"),
+            "password": _required_env("E2E_ADMIN_PASSWORD"),
+        },
     )
-    os.environ.setdefault("ADMIN_SUBJECTS", admin_subject)
-
-    identity_response = client.get("/auth/debug/identity", headers=_bearer(token))
-    assert identity_response.status_code == 200, _error_body(identity_response)
-    identity_body = identity_response.json()
-    assert identity_body["subject_present"] is True
-    assert identity_body["is_admin"] is True
-    scopes = _scopes_seen(identity_body)
-    assert {"openid", "profile"}.issubset(scopes)
-
-    settings_response = client.get("/settings/", headers=_bearer(token))
-    expected_read_status = 200 if "settings_read" in scopes else 403
-    assert settings_response.status_code == expected_read_status, _error_body(
-        settings_response
-    )
-
-    update_response = client.patch(
-        "/settings/",
-        json={"loan_period_days": 14, "max_books_per_user": 5},
-        headers=_bearer(token),
-    )
-    expected_manage_status = 200 if "settings_manage" in scopes else 403
-    assert update_response.status_code == expected_manage_status, _error_body(
-        update_response
+    assert response.status_code == 403, _error_body(response)
+    assert response.json()["detail"] == (
+        "Administrator accounts can only sign in to the admin portal."
     )
 
 

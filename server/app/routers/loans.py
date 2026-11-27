@@ -1,5 +1,7 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, List, Optional, cast
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -19,6 +21,7 @@ from ..models import (
     book as book_model,
     fine as fine_model,
     loan,
+    reservation as reservation_model,
     settings as settings_model,
     users as user_model,
 )
@@ -169,6 +172,13 @@ def _max_books_per_user(db: Session) -> int:
     return max(1, int(cast(Any, row.max_books_per_user)))
 
 
+def _max_renewals(db: Session) -> int:
+    row = _get_settings(db)
+    if not row or getattr(row, "max_renewals", None) is None:
+        return 1
+    return max(0, int(cast(Any, row.max_renewals)))
+
+
 def _borrow_block_threshold(db: Session) -> float | None:
     row = _get_settings(db)
     if not row or not bool(row.block_on_unpaid_fines):
@@ -182,6 +192,59 @@ def _is_blank(value: str | None) -> bool:
     return value is None or value.strip() == ""
 
 
+def _active_reservation_filter() -> ColumnElement[bool]:
+    return func.lower(func.coalesce(reservation_model.Reservation.status, "pending")).in_(
+        ("pending", "ready")
+    )
+
+
+def _create_overdue_fine(
+    db: Session, db_loan: Any, returned_on: date
+) -> tuple[Any | None, bool]:
+    due_date = cast(date | None, db_loan.returned_date)
+    if due_date is None:
+        return None, False
+    settings = _get_settings(db)
+    grace_days = max(0, int(getattr(settings, "grace_period_days", 2) or 0))
+    overdue_days = (returned_on - due_date).days - grace_days
+    if overdue_days <= 0:
+        return None, False
+
+    existing = (
+        db.query(fine_model.Fine)
+        .filter(fine_model.Fine.loan_id == db_loan.id)
+        .with_for_update()
+        .first()
+    )
+    if existing:
+        return existing, False
+
+    daily_rate = Decimal(str(getattr(settings, "daily_fine_rate", 0.50) or 0))
+    max_cap = Decimal(str(getattr(settings, "max_fine_cap", 25.00) or 0))
+    amount = daily_rate * overdue_days
+    if max_cap > 0:
+        amount = min(amount, max_cap)
+    amount = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if amount <= 0:
+        return None, False
+
+    now = datetime.utcnow()
+    fine = fine_model.Fine(
+        id=str(uuid4()),
+        member_id=db_loan.member_id,
+        loan_id=db_loan.id,
+        fine_date=returned_on,
+        fine_amount=amount,
+        status="unpaid",
+        reason=f"Overdue by {overdue_days} day(s) after grace period",
+        due_date=returned_on,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(fine)
+    return fine, True
+
+
 @router.post("/borrow", response_model=loan_schema.Loan)
 def borrow_book(
     book_id: str,
@@ -190,6 +253,26 @@ def borrow_book(
     db: Session = Depends(get_db),
 ):
     require_subject_or_admin(identity, member_id)
+    user = cast(
+        Any,
+        db.query(user_model.User)
+        .filter(user_model.User.id == member_id)
+        .with_for_update()
+        .first(),
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    db_book = cast(
+        Any,
+        db.query(book_model.Book)
+        .filter(book_model.Book.id == book_id)
+        .with_for_update()
+        .first(),
+    )
+    if not db_book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
     existing_loan = (
         db.query(loan.Loan)
         .filter(
@@ -204,12 +287,6 @@ def borrow_book(
             status_code=409,
             detail="You already borrowed this book. Return it before borrowing again.",
         )
-
-    user = cast(
-        Any, db.query(user_model.User).filter(user_model.User.id == member_id).first()
-    )
-    if not user:
-        raise HTTPException(status_code=404, detail="Member not found")
 
     missing_mobile = _is_blank(cast(Optional[str], user.phone))
     missing_address = _is_blank(cast(Optional[str], user.address))
@@ -248,7 +325,7 @@ def borrow_book(
             .scalar()
         )
         total_fines_float = float(total_fines or 0)
-        if total_fines_float >= fine_threshold:
+        if total_fines_float > 0 and total_fines_float >= fine_threshold:
             raise HTTPException(
                 status_code=400,
                 detail=(
@@ -258,30 +335,61 @@ def borrow_book(
                 ),
             )
 
-    db_book = cast(
-        Any, db.query(book_model.Book).filter(book_model.Book.id == book_id).first()
-    )
-    if not db_book:
-        raise HTTPException(status_code=404, detail="Book not found")
-
     current_copies_owned = int(cast(Any, db_book.copies_owned) or 0)
     if current_copies_owned <= 0:
         raise HTTPException(status_code=400, detail="No copies available")
 
-    new_id = f'l{__import__("random").randint(100000, 999999)}'
+    active_reservations = (
+        db.query(reservation_model.Reservation)
+        .filter(
+            reservation_model.Reservation.book_id == book_id,
+            _active_reservation_filter(),
+        )
+        .order_by(*reservation_model.reservation_queue_order())
+        .with_for_update()
+        .all()
+    )
+    member_reservation = next(
+        (item for item in active_reservations if item.member_id == member_id), None
+    )
+    ready_holds = sum(
+        1 for item in active_reservations if str(item.status or "pending").lower() == "ready"
+    )
+    ready_reservations = [
+        item
+        for item in active_reservations
+        if str(item.status or "pending").lower() == "ready"
+    ]
+    pending_reservations = [
+        item
+        for item in active_reservations
+        if str(item.status or "pending").lower() == "pending"
+    ]
+    unheld_copies = max(0, current_copies_owned - ready_holds)
+    eligible_reservations = ready_reservations + pending_reservations[:unheld_copies]
+    eligible_member_ids = {str(item.member_id) for item in eligible_reservations}
+    queue_uses_all_copies = len(eligible_reservations) >= current_copies_owned
+    if str(member_id) not in eligible_member_ids and queue_uses_all_copies:
+        raise HTTPException(
+            status_code=409,
+            detail="This copy is reserved for a member earlier in the queue.",
+        )
 
     loan_period_days = _loan_period_days(db)
     new_loan = loan.Loan(
-        id=new_id,
+        id=str(uuid4()),
         book_id=book_id,
         member_id=member_id,
         loan_date=date.today(),
         returned_date=date.today() + timedelta(days=loan_period_days),
         status="active",
         returned_at=None,
+        renewal_count=0,
     )
 
     db_book.copies_owned = current_copies_owned - 1
+    if member_reservation is not None:
+        member_reservation.status = "fulfilled"
 
     db.add(new_loan)
     try:
@@ -339,7 +447,13 @@ def return_book(
     identity: dict = Depends(require_scope("loans_manage")),
     db: Session = Depends(get_db),
 ):
-    db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
+    db_loan = cast(
+        Any,
+        db.query(loan.Loan)
+        .filter(loan.Loan.id == loan_id)
+        .with_for_update()
+        .first(),
+    )
     if not db_loan:
         raise HTTPException(status_code=404, detail="Loan not found")
     require_subject_or_admin(identity, str(cast(Any, db_loan.member_id) or ""))
@@ -348,10 +462,14 @@ def return_book(
 
     db_book = cast(
         Any,
-        db.query(book_model.Book).filter(book_model.Book.id == db_loan.book_id).first(),
+        db.query(book_model.Book)
+        .filter(book_model.Book.id == db_loan.book_id)
+        .with_for_update()
+        .first(),
     )
-    if db_book:
-        db_book.copies_owned = int(cast(Any, db_book.copies_owned) or 0) + 1
+    if not db_book:
+        raise HTTPException(status_code=409, detail="The loan's book record is missing")
+    db_book.copies_owned = int(cast(Any, db_book.copies_owned) or 0) + 1
 
     member_id = str(cast(Any, db_loan.member_id) or "")
     book_id = str(cast(Any, db_loan.book_id) or "")
@@ -365,7 +483,40 @@ def return_book(
     db_loan.status = "returned"
     db_loan.returned_at = date.today()
     db_loan.returned_by = returned_by
-    db.commit()
+    overdue_fine, fine_created = _create_overdue_fine(db, db_loan, date.today())
+
+    next_reservation = None
+    active_reservations = (
+        db.query(reservation_model.Reservation)
+        .filter(
+            reservation_model.Reservation.book_id == db_loan.book_id,
+            _active_reservation_filter(),
+        )
+        .order_by(*reservation_model.reservation_queue_order())
+        .with_for_update()
+        .all()
+    )
+    ready_count = sum(
+        1
+        for item in active_reservations
+        if str(item.status or "pending").lower() == "ready"
+    )
+    if int(cast(Any, db_book.copies_owned) or 0) > ready_count:
+        next_reservation = next(
+            (
+                item
+                for item in active_reservations
+                if str(item.status or "pending").lower() == "pending"
+            ),
+            None,
+        )
+        if next_reservation is not None:
+            next_reservation.status = "ready"
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     if member_id:
         returned_by_text = f" by {returned_by}" if returned_by else ""
@@ -406,6 +557,20 @@ def return_book(
             dedupe_key=f"admin-returned:{loan_id}",
         )
     )
+    if next_reservation is not None:
+        _safe_notify(
+            lambda: create_user_notification(
+                str(next_reservation.member_id),
+                title="Reserved book available",
+                body=f'"{book_title}" is now available for you to borrow.',
+                category="reservation_ready",
+                entity_type="reservation",
+                entity_id=str(next_reservation.id),
+                metadata={"book_id": book_id, "book_title": book_title},
+                dedupe_key=f"reservation-ready:{next_reservation.id}",
+                send_push=True,
+            )
+        )
 
     return {
         "message": "Book returned successfully",
@@ -413,6 +578,8 @@ def return_book(
         "loan_id": str(loan_id),
         "returned_at": db_loan.returned_at.isoformat(),
         "returned_by": returned_by,
+        "fine_created": fine_created,
+        "fine_amount": float(overdue_fine.fine_amount or 0) if overdue_fine else 0.0,
     }
 
 
@@ -422,16 +589,56 @@ def renew_loan(
     identity: dict = Depends(require_scope("loans_manage")),
     db: Session = Depends(get_db),
 ):
-    db_loan = cast(Any, db.query(loan.Loan).filter(loan.Loan.id == loan_id).first())
+    db_loan = cast(
+        Any,
+        db.query(loan.Loan)
+        .filter(loan.Loan.id == loan_id)
+        .with_for_update()
+        .first(),
+    )
     if not db_loan:
         raise HTTPException(status_code=404, detail="Loan not found")
     require_subject_or_admin(identity, str(cast(Any, db_loan.member_id) or ""))
     if str(cast(Any, db_loan.status) or "active").lower() == "returned":
         raise HTTPException(status_code=409, detail="Returned loans cannot be renewed")
 
+    due_date = cast(date | None, db_loan.returned_date)
+    if due_date is not None and due_date < date.today():
+        raise HTTPException(status_code=409, detail="Overdue loans cannot be renewed")
+
+    renewal_count = int(cast(Any, getattr(db_loan, "renewal_count", 0)) or 0)
+    max_renewals = _max_renewals(db)
+    if renewal_count >= max_renewals:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Renewal limit reached. Maximum renewals is {max_renewals}.",
+        )
+
+    waiting_reservation = (
+        db.query(reservation_model.Reservation)
+        .filter(
+            reservation_model.Reservation.book_id == db_loan.book_id,
+            reservation_model.Reservation.member_id != db_loan.member_id,
+            _active_reservation_filter(),
+        )
+        .with_for_update()
+        .first()
+    )
+    if waiting_reservation:
+        raise HTTPException(
+            status_code=409,
+            detail="This loan cannot be renewed because another member is waiting.",
+        )
+
     loan_period_days = _loan_period_days(db)
-    db_loan.returned_date = date.today() + timedelta(days=loan_period_days)
-    db.commit()
+    renewal_base = max(date.today(), due_date or date.today())
+    db_loan.returned_date = renewal_base + timedelta(days=loan_period_days)
+    db_loan.renewal_count = renewal_count + 1
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(db_loan)
 
     book = (

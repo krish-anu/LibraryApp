@@ -8,6 +8,7 @@ from app.api.dependencies import get_db, require_scope, require_subject_or_admin
 from ..models.book import Book
 from ..models.interactions import Interaction
 from ..pydantic_schemas import book as book_schema
+from .books import _book_to_response
 
 router = APIRouter(prefix="/favorites", tags=["favorites"])
 
@@ -29,7 +30,7 @@ def get_favorites(
 
     book_ids = [favorite.book_id for favorite in favorites]
     books = db.query(Book).filter(Book.id.in_(book_ids)).all() if book_ids else []
-    return books
+    return [_book_to_response(book) for book in books]
 
 
 @router.get("/{member_id}/ids")

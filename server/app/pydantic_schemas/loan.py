@@ -19,5 +19,6 @@ class LoanCreate(LoanBase):
 
 class Loan(LoanBase):
     id: str
+    renewal_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)

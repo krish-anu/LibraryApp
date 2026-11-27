@@ -1,5 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.models.book import Book
+from app.models.category import Category
+from app.models.users import User
 
 VALID_BOOK = {
     "title": "Reservable Book",
@@ -14,9 +19,27 @@ VALID_BOOK = {
 
 
 @pytest.fixture
-def book_id(client, admin_user):
-    res = client.post("/books/", json=VALID_BOOK)
-    return res.json().get("id", "1") if res.status_code == 200 else "1"
+def member_id(db_session: Session):
+    user = User(
+        id="res-user-id",
+        member_id="M-RES",
+        name="Reservation User",
+        email="reserve@example.com",
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user.id
+
+
+@pytest.fixture
+def book_id(db_session: Session, member_id):
+    category = Category(id="reserve-category", name="Reservations")
+    book = Book(
+        id="reserve-book", title="Reservable Book", category_id=category.id, copies_owned=0
+    )
+    db_session.add_all([category, book])
+    db_session.commit()
+    return book.id
 
 
 @pytest.fixture
@@ -38,42 +61,38 @@ def user_headers(app):
 
 def test_reserve_unavailable_book(client: TestClient, book_id, user_headers):
     """RES-01: Reserve unavailable book"""
-    payload = {"bookId": book_id}
-    response = client.post("/reservations/", json=payload, headers=user_headers)
+    payload = {"book_id": book_id, "member_id": "res-user-id"}
+    response = client.post("/reservations", json=payload, headers=user_headers)
 
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    assert response.status_code in [200, 201]
+    assert response.status_code == 201, response.text
     data = response.json()
-    assert data["bookId"] == book_id
-    assert data["status"] == "Pending"
+    assert data["book_id"] == book_id
+    assert data["status"] == "pending"
 
 
-def test_reserve_non_existing_book(client: TestClient, user_headers):
+def test_reserve_non_existing_book(client: TestClient, member_id, user_headers):
     """RES-03: Reserve non-existing book"""
-    payload = {"bookId": 99999}
-    response = client.post("/reservations/", json=payload, headers=user_headers)
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    if response.status_code in [404, 405, 500, 422, 401]: return
+    payload = {"book_id": "missing-book", "member_id": member_id}
+    response = client.post("/reservations", json=payload, headers=user_headers)
     assert response.status_code == 404
 
 
 def test_cancel_own_reservation(client: TestClient, book_id, user_headers):
     """RES-11: Cancel own reservation"""
     # Create
-    res = client.post("/reservations/", json={"bookId": book_id}, headers=user_headers)
-    reservation_id = res.json().get("id", "1") if res.status_code == 200 else "1"
+    res = client.post(
+        "/reservations",
+        json={"book_id": book_id, "member_id": "res-user-id"},
+        headers=user_headers,
+    )
+    assert res.status_code == 201, res.text
+    reservation_id = res.json()["id"]
 
     # Cancel
     cancel_res = client.delete(f"/reservations/{reservation_id}", headers=user_headers)
-    if cancel_res.status_code in [404, 405, 500]: return
-    if cancel_res.status_code in [404, 405, 500, 422]: return
-    if cancel_res.status_code in [404, 405, 500, 422]: return
-    assert cancel_res.status_code in [200, 204]
+    assert cancel_res.status_code == 200, cancel_res.text
 
     # Check status is cancelled or deleted
     get_res = client.get(f"/reservations/{reservation_id}", headers=user_headers)
-    if get_res.status_code == 200:
-        assert get_res.json().get("status", "dummy") == "Cancelled"
-    else:
-        assert get_res.status_code == 404
+    assert get_res.status_code == 200
+    assert get_res.json()["status"] == "cancelled"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 from uuid import uuid4
 
@@ -35,7 +36,10 @@ def _serialize_fine(db: Session, fine: Fine) -> dict[str, Any]:
         .order_by(FinePayment.created_at.desc(), FinePayment.payment_date.desc())
         .all()
     )
-    total_paid = sum(float(payment.payment_amount or 0) for payment in payments)
+    total_paid = sum(
+        (Decimal(str(payment.payment_amount or 0)) for payment in payments),
+        Decimal(0),
+    )
     latest = payments[0] if payments else None
     user_total_due = float(
         db.query(func.coalesce(func.sum(Fine.fine_amount), 0))
@@ -46,14 +50,14 @@ def _serialize_fine(db: Session, fine: Fine) -> dict[str, Any]:
         .scalar()
         or 0
     )
-    remaining = float(fine.fine_amount or 0)
+    remaining = Decimal(str(fine.fine_amount or 0))
 
     return {
         "id": str(fine.id),
         "member_id": fine.member_id,
         "loan_id": fine.loan_id,
         "fine_date": fine.fine_date,
-        "fine_amount": remaining,
+        "fine_amount": float(remaining),
         "status": fine.status or "unpaid",
         "reason": fine.reason,
         "due_date": fine.due_date,
@@ -68,15 +72,18 @@ def _serialize_fine(db: Session, fine: Fine) -> dict[str, Any]:
         "payment_amount": float(latest.payment_amount or 0) if latest else 0,
         "payment_handled_by": latest.handled_by if latest else None,
         "payment_notes": latest.notes if latest else None,
-        "total_paid": total_paid,
+        "total_paid": float(total_paid),
         "payment_count": len(payments),
-        "total_fine_amount": remaining + total_paid,
+        "total_fine_amount": float(remaining + total_paid),
         "user_total_due": user_total_due,
     }
 
 
-def _find_fine(db: Session, fine_id: str) -> Fine:
-    fine = db.query(Fine).filter(Fine.id == fine_id).first()
+def _find_fine(db: Session, fine_id: str, *, for_update: bool = False) -> Fine:
+    query = db.query(Fine).filter(Fine.id == fine_id)
+    if for_update:
+        query = query.with_for_update()
+    fine = query.first()
     if not fine:
         raise HTTPException(status_code=404, detail="Fine not found")
     return fine
@@ -217,7 +224,11 @@ def create_fine(
         updated_at=now,
     )
     db.add(fine)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(fine)
     return {"data": _serialize_fine(db, fine)}
 
@@ -240,32 +251,48 @@ def update_fine(
     admin: dict = Depends(require_admin_scope("fines_manage")),
     db: Session = Depends(get_db),
 ):
-    fine = _find_fine(db, fine_id)
+    if payload.status is not None and payload.payment_amount is not None:
+        raise HTTPException(
+            status_code=400, detail="Choose either a status change or a payment"
+        )
+    fine = _find_fine(db, fine_id, for_update=True)
     now = datetime.utcnow()
 
     if payload.status is not None:
         normalized_status = payload.status.strip().lower()
         if normalized_status not in {"unpaid", "paid", "waived"}:
             raise HTTPException(status_code=400, detail="Invalid fine status")
+        current_status = str(fine.status or "unpaid").lower()
+        if current_status in {"paid", "waived"} and normalized_status != current_status:
+            raise HTTPException(status_code=409, detail="Closed fines cannot be reopened")
+        if normalized_status == "paid":
+            raise HTTPException(
+                status_code=400,
+                detail="Record the payment amount instead of manually marking a fine paid",
+            )
         fine.status = normalized_status
         fine.updated_at = now
-        if normalized_status == "paid":
+        if normalized_status in {"paid", "waived"}:
             fine.fine_amount = 0
-            fine.paid_at = now
+            fine.paid_at = now if normalized_status == "paid" else None
 
     payment_result = None
     if payload.payment_amount is not None:
         if (fine.status or "unpaid").lower() in {"paid", "waived"}:
             raise HTTPException(status_code=409, detail="This fine is already closed")
-        current_due = float(fine.fine_amount or 0)
-        amount = float(payload.payment_amount)
+        current_due = Decimal(str(fine.fine_amount or 0)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        amount = payload.payment_amount
         if amount > current_due:
             raise HTTPException(
                 status_code=400,
-                detail=f"Payment exceeds the current due amount of {current_due:.2f}",
+                detail=f"Payment exceeds the current due amount of {current_due}",
             )
 
-        remaining = round(current_due - amount, 2)
+        remaining = (current_due - amount).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
         payment = FinePayment(
             id=str(uuid4()),
             fine_id=fine.id,
@@ -285,11 +312,15 @@ def update_fine(
             fine.status = "paid"
             fine.paid_at = now
         payment_result = {
-            "appliedAmount": amount,
-            "remainingAmount": remaining,
+            "appliedAmount": float(amount),
+            "remainingAmount": float(remaining),
         }
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(fine)
     response: dict[str, Any] = {"data": _serialize_fine(db, fine)}
     if payment_result is not None:
@@ -303,10 +334,14 @@ def delete_fine(
     _admin: dict = Depends(require_admin_scope("fines_manage")),
     db: Session = Depends(get_db),
 ):
-    fine = _find_fine(db, fine_id)
+    fine = _find_fine(db, fine_id, for_update=True)
     db.query(FinePayment).filter(FinePayment.fine_id == fine.id).delete(
         synchronize_session=False
     )
     db.delete(fine)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return {"success": True}

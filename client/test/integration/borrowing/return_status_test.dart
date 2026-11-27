@@ -5,7 +5,7 @@ import 'package:libraryapp/features/borrowed/widgets/borrowed_book_card.dart';
 import '../../test_helpers.dart';
 
 void main() {
-  testWidgets('past due date displays overdue status and calculated fine', (
+  testWidgets('past due date displays overdue status and fine policy', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -22,6 +22,6 @@ void main() {
 
     expect(find.text('OVERDUE'), findsOneWidget);
     expect(find.textContaining('days overdue'), findsOneWidget);
-    expect(find.textContaining('Fine: LKR'), findsOneWidget);
+    expect(find.textContaining('Fine is calculated'), findsOneWidget);
   });
 }

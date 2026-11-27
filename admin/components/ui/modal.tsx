@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useId, useRef, ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ export function Modal({
   size = "md",
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -59,14 +60,21 @@ export function Modal({
     >
       <div
         ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className={cn(
           "relative my-8 w-full rounded-xl bg-white shadow-2xl sm:my-0",
           sizeClasses[size],
         )}
       >
         <div className="flex items-center justify-between gap-4 border-b border-gray-200 p-4">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <h2 id={titleId} className="text-lg font-semibold text-gray-900">
+            {title}
+          </h2>
           <button
+            type="button"
+            aria-label={`Close ${title}`}
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
           >

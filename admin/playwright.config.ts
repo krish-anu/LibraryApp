@@ -1,29 +1,18 @@
 import { defineConfig, devices } from "@playwright/test";
-import fs from "node:fs";
-import path from "node:path";
+import { randomBytes } from "node:crypto";
 
-function loadEnvFile(filePath: string) {
-  if (!fs.existsSync(filePath)) return;
+const baseURL = new URL(process.env.ADMIN_BASE_URL || "http://127.0.0.1:3100");
+const useExistingServer = Boolean(process.env.PLAYWRIGHT_SKIP_WEB_SERVER);
 
-  const content = fs.readFileSync(filePath, "utf8");
-  for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    const separatorIndex = trimmed.indexOf("=");
-    if (separatorIndex === -1) continue;
-
-    const key = trimmed.slice(0, separatorIndex).trim();
-    const rawValue = trimmed.slice(separatorIndex + 1).trim();
-    const value = rawValue.replace(/^['"]|['"]$/g, "");
-    if (key && process.env[key] === undefined) {
-      process.env[key] = value;
-    }
-  }
+if (baseURL.protocol !== "http:" || !["localhost", "127.0.0.1"].includes(baseURL.hostname)) {
+  throw new Error("Admin browser tests require an isolated local HTTP server.");
 }
-
-loadEnvFile(path.resolve(process.cwd(), ".env.local"));
-loadEnvFile(path.resolve(process.cwd(), ".env.e2e.local"));
+if (useExistingServer && !process.env.PLAYWRIGHT_ADMIN_SESSION_SECRET) {
+  throw new Error("Set PLAYWRIGHT_ADMIN_SESSION_SECRET to the signing key of the isolated test server.");
+}
+const sessionSecret =
+  process.env.PLAYWRIGHT_ADMIN_SESSION_SECRET ?? randomBytes(32).toString("hex");
+process.env.PLAYWRIGHT_ADMIN_SESSION_SECRET = sessionSecret;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -34,7 +23,7 @@ export default defineConfig({
   fullyParallel: true,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: process.env.ADMIN_BASE_URL || "http://localhost:3000",
+    baseURL: baseURL.origin,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -57,12 +46,18 @@ export default defineConfig({
       use: { ...devices["Pixel 5"] },
     },
   ],
-  webServer: process.env.PLAYWRIGHT_SKIP_WEB_SERVER
+  webServer: useExistingServer
     ? undefined
     : {
-        command: "npm run dev",
-        url: process.env.ADMIN_BASE_URL || "http://localhost:3000",
-        reuseExistingServer: true,
+        command: `npm run dev -- --hostname ${baseURL.hostname} --port ${baseURL.port || 80}`,
+        url: baseURL.origin,
+        env: {
+          ADMIN_SESSION_SECRET: sessionSecret,
+          ASGARDEO_AUTHORIZE_ENDPOINT: "https://identity.example.test/oauth2/authorize",
+          ASGARDEO_CLIENT_ID: "playwright-admin",
+          NEXT_PUBLIC_APP_URL: baseURL.origin,
+        },
+        reuseExistingServer: false,
         timeout: 120_000,
       },
 });

@@ -264,12 +264,14 @@ export default function UsersPage() {
 
                   <div className="flex items-center justify-end gap-2">
                     <button
+                      aria-label={`Edit ${user.name || user.email || "user"}`}
                       onClick={() => handleOpenModal(user)}
                       className="rounded-lg p-2 transition-colors hover:bg-gray-100"
                     >
                       <Edit className="h-4 w-4 text-gray-600" />
                     </button>
                     <button
+                      aria-label={`Delete ${user.name || user.email || "user"}`}
                       onClick={() => handleDelete(user)}
                       className="rounded-lg p-2 transition-colors hover:bg-red-100"
                     >
@@ -372,12 +374,14 @@ export default function UsersPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            aria-label={`Edit ${user.name || user.email || "user"}`}
                             onClick={() => handleOpenModal(user)}
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                           >
                             <Edit className="w-4 h-4 text-gray-600" />
                           </button>
                           <button
+                            aria-label={`Delete ${user.name || user.email || "user"}`}
                             onClick={() => handleDelete(user)}
                             className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                           >

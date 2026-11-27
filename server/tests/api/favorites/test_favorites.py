@@ -1,5 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.models.book import Book
+from app.models.category import Category
+from app.models.users import User
 
 VALID_BOOK = {
     "title": "Favorite Book",
@@ -14,9 +19,23 @@ VALID_BOOK = {
 
 
 @pytest.fixture
-def book_id(client, admin_user):
-    res = client.post("/books/", json=VALID_BOOK)
-    return res.json().get("id", "1") if res.status_code == 200 else "1"
+def book_id(db_session: Session):
+    user = User(
+        id="fav-user-id",
+        member_id="M-FAV",
+        name="Favorite User",
+        email="favorite@example.com",
+    )
+    category = Category(id="favorite-category", name="Favorites")
+    book = Book(
+        id="favorite-book",
+        title="Favorite Book",
+        category_id=category.id,
+        copies_owned=1,
+    )
+    db_session.add_all([user, category, book])
+    db_session.commit()
+    return book.id
 
 
 @pytest.fixture
@@ -38,29 +57,35 @@ def user_headers(app):
 
 def test_add_favorite_valid(client: TestClient, book_id, user_headers):
     """FAV-01: Add favorite valid"""
-    response = client.post(f"/favorites/{book_id}", headers=user_headers)
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    assert response.status_code in [200, 201]
+    response = client.post(
+        f"/favorites/fav-user-id/{book_id}", headers=user_headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["is_favorite"] is True
 
 
 def test_remove_favorite(client: TestClient, book_id, user_headers):
     """FAV-03: Remove existing favorite"""
-    client.post(f"/favorites/{book_id}", headers=user_headers)
+    add_response = client.post(
+        f"/favorites/fav-user-id/{book_id}", headers=user_headers
+    )
+    assert add_response.status_code == 200
 
-    response = client.delete(f"/favorites/{book_id}", headers=user_headers)
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    assert response.status_code in [200, 204]
+    response = client.delete(
+        f"/favorites/fav-user-id/{book_id}", headers=user_headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["is_favorite"] is False
 
 
 def test_get_own_favorites(client: TestClient, book_id, user_headers):
     """FAV-05: Get own favorites"""
-    client.post(f"/favorites/{book_id}", headers=user_headers)
+    add_response = client.post(
+        f"/favorites/fav-user-id/{book_id}", headers=user_headers
+    )
+    assert add_response.status_code == 200
 
-    response = client.get("/favorites/", headers=user_headers)
-    if response.status_code in [404, 405, 500, 422, 401]: return
-    if response.status_code in [404, 405, 500, 422, 401]: return
+    response = client.get("/favorites/fav-user-id", headers=user_headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)

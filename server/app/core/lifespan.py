@@ -23,6 +23,18 @@ def _ensure_schema_columns() -> None:
             text("ALTER TABLE loans ADD COLUMN IF NOT EXISTS returned_by TEXT")
         )
         conn.execute(
+            text(
+                "ALTER TABLE loans ADD COLUMN IF NOT EXISTS "
+                "renewal_count INTEGER NOT NULL DEFAULT 0"
+            )
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE settings ADD COLUMN IF NOT EXISTS "
+                "max_renewals INTEGER NOT NULL DEFAULT 1"
+            )
+        )
+        conn.execute(
             text("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image_blob BYTEA")
         )
         conn.execute(
@@ -87,6 +99,65 @@ def _ensure_schema_columns() -> None:
             text(
                 "UPDATE loans SET status = 'active' "
                 "WHERE status IS NULL OR TRIM(status) = ''"
+            )
+        )
+        conn.execute(
+            text(
+                "UPDATE reservations SET status = 'pending' "
+                "WHERE status IS NULL OR TRIM(status) = ''"
+            )
+        )
+        conn.execute(
+            text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS queued_at TIMESTAMPTZ")
+        )
+        # PostgreSQL enforces the invariants that application-level checks alone
+        # cannot protect under concurrent requests. NOT VALID preserves startup
+        # for legacy rows while still enforcing each constraint for new writes.
+        for constraint_sql in (
+            "ALTER TABLE books ADD CONSTRAINT ck_books_copies_nonnegative "
+            "CHECK (copies_owned IS NULL OR copies_owned >= 0) NOT VALID",
+            "ALTER TABLE loans ADD CONSTRAINT ck_loans_status "
+            "CHECK (status IS NULL OR lower(status) IN ('active', 'returned')) NOT VALID",
+            "ALTER TABLE loans ADD CONSTRAINT ck_loans_renewal_count "
+            "CHECK (renewal_count >= 0) NOT VALID",
+            "ALTER TABLE reservations ADD CONSTRAINT ck_reservations_status "
+            "CHECK (status IS NULL OR lower(status) IN "
+            "('pending', 'ready', 'cancelled', 'canceled', 'expired', 'completed', 'fulfilled')) NOT VALID",
+            "ALTER TABLE fines ADD CONSTRAINT ck_fines_amount_nonnegative "
+            "CHECK (fine_amount IS NULL OR fine_amount >= 0) NOT VALID",
+            "ALTER TABLE fines ADD CONSTRAINT ck_fines_status "
+            "CHECK (status IS NULL OR lower(status) IN ('unpaid', 'paid', 'waived')) NOT VALID",
+            "ALTER TABLE fine_payments ADD CONSTRAINT ck_fine_payments_amount_positive "
+            "CHECK (payment_amount IS NULL OR payment_amount > 0) NOT VALID",
+        ):
+            constraint_name = constraint_sql.split(" ADD CONSTRAINT ", 1)[1].split()[0]
+            conn.execute(
+                text(
+                    "DO $$ BEGIN "
+                    "IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = "
+                    f"'{constraint_name}') THEN {constraint_sql}; END IF; END $$;"
+                )
+            )
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_loans_active_member_book "
+                "ON loans (member_id, book_id) "
+                "WHERE lower(coalesce(status, 'active')) = 'active'"
+            )
+        )
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_reservations_active_member_book "
+                "ON reservations (member_id, book_id) "
+                "WHERE status IS NULL OR lower(status) IN ('pending', 'ready')"
+            )
+        )
+        conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_reservations_queue_order "
+                "ON reservations (book_id, queued_at NULLS FIRST, "
+                "reservation_date NULLS FIRST, id) "
+                "WHERE status IS NULL OR lower(status) IN ('pending', 'ready')"
             )
         )
 
